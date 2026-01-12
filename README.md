@@ -132,10 +132,8 @@ Future work may include:
 
 ## Learn More
 
-- **Specification:** [draft-rabit-rbt-02](./draft-rabit-rbt-02.md) — the full technical spec
+- **Specification:** [rabit-spec-draft-2026-01-12](./rabit-spec-draft-2026-01-12.md) — the full technical spec
 - **Quick Start:** Coming soon
-- **Reference Implementation:** Coming soon
+- **Reference Implementation:** [rabbit-examples](./rabit-examples)
 
----
 
-*Rabit: Because the agentic web needs burrows, not just pages.*
