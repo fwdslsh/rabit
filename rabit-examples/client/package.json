@@ -1,0 +1,17 @@
+{
+  "name": "rabit-client",
+  "version": "0.1.0",
+  "description": "Proof-of-concept Rabit Burrow Traversal client",
+  "type": "module",
+  "bin": {
+    "rabit": "./cli.ts"
+  },
+  "scripts": {
+    "start": "bun run cli.ts",
+    "dev": "bun --watch cli.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

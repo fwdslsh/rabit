@@ -1,0 +1,230 @@
+# Rabit Server
+
+Official Docker image for serving Rabit burrows and warrens with zero configuration.
+
+## Quick Start
+
+### Serve a Burrow
+
+```bash
+# Serve a directory as a burrow
+docker run -d \
+  -p 8080:80 \
+  -v ./my-docs:/data/burrow \
+  -e RABIT_TITLE="My Documentation" \
+  rabit/server
+```
+
+Your content is now available at:
+- Manifest: http://localhost:8080/.burrow.json
+- Content: http://localhost:8080/
+
+### Serve a Warren (Registry)
+
+```bash
+# Serve a directory of burrows as a warren
+docker run -d \
+  -p 8080:80 \
+  -v ./my-burrows:/data/warren \
+  -e RABIT_MODE="warren" \
+  -e RABIT_TITLE="My Registry" \
+  rabit/server
+```
+
+Your registry is now available at:
+- Registry: http://localhost:8080/.warren.json
+- Markdown: http://localhost:8080/.warren.md
+
+## Features
+
+- **Zero configuration** - Just mount your content directory
+- **Auto-generated manifests** - Creates `.burrow.json` and `.warren.json` automatically
+- **CORS enabled** - Ready for browser and agent access
+- **Content-type detection** - Proper MIME types for all files
+- **Health checks** - Built-in `/health` endpoint
+- **RID generation** - Automatic content-addressed identifiers
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RABIT_MODE` | `burrow` | Mode: `burrow`, `warren`, or `both` |
+| `RABIT_PORT` | `80` | Port to listen on |
+| `RABIT_TITLE` | `My Burrow` | Title for the manifest |
+| `RABIT_DESCRIPTION` | `` | Description for the manifest |
+| `RABIT_BASE_URL` | Auto-detected | Base URL for the burrow/warren |
+| `RABIT_CORS_ORIGINS` | `*` | Allowed CORS origins |
+| `RABIT_AUTO_GENERATE` | `true` | Auto-generate manifests if missing |
+| `RABIT_LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warn`, `error` |
+
+## Modes
+
+### Burrow Mode (default)
+
+Serves a single burrow from `/data/burrow`:
+
+```bash
+docker run -v ./content:/data/burrow rabit/server
+```
+
+Directory structure:
+```
+/data/burrow/
+├── .burrow.json    # Auto-generated if missing
+├── README.md
+├── guides/
+│   └── getting-started.md
+└── api/
+    └── reference.md
+```
+
+### Warren Mode
+
+Serves a registry of burrows from `/data/warren`:
+
+```bash
+docker run -v ./burrows:/data/warren -e RABIT_MODE=warren rabit/server
+```
+
+Directory structure:
+```
+/data/warren/
+├── .warren.json    # Auto-generated if missing
+├── .warren.md      # Auto-generated if missing
+├── docs/           # Each subdirectory becomes a burrow entry
+│   ├── .burrow.json
+│   └── ...
+├── api/
+│   ├── .burrow.json
+│   └── ...
+└── blog/
+    ├── .burrow.json
+    └── ...
+```
+
+### Both Mode
+
+Serves both a warren at root and burrows at `/burrow/`:
+
+```bash
+docker run \
+  -v ./content:/data/burrow \
+  -v ./registry:/data/warren \
+  -e RABIT_MODE=both \
+  rabit/server
+```
+
+## Using Your Own Manifests
+
+If you provide your own `.burrow.json` or `.warren.json`, the server will use them instead of auto-generating:
+
+```bash
+# Your existing manifest will be used
+docker run -v ./my-docs:/data/burrow rabit/server
+```
+
+To disable auto-generation entirely:
+
+```bash
+docker run -v ./my-docs:/data/burrow -e RABIT_AUTO_GENERATE=false rabit/server
+```
+
+## Docker Compose
+
+### Single Burrow
+
+```yaml
+version: '3.8'
+services:
+  docs:
+    image: rabit/server
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docs:/data/burrow:ro
+    environment:
+      RABIT_TITLE: "My Documentation"
+      RABIT_DESCRIPTION: "Project documentation and guides"
+```
+
+### Multiple Burrows with Warren
+
+```yaml
+version: '3.8'
+services:
+  warren:
+    image: rabit/server
+    ports:
+      - "8080:80"
+    volumes:
+      - ./registry:/data/warren:ro
+    environment:
+      RABIT_MODE: warren
+      RABIT_TITLE: "My Burrow Registry"
+
+  docs:
+    image: rabit/server
+    ports:
+      - "8081:80"
+    volumes:
+      - ./docs:/data/burrow:ro
+    environment:
+      RABIT_TITLE: "Documentation"
+      RABIT_BASE_URL: "http://localhost:8081/"
+
+  api:
+    image: rabit/server
+    ports:
+      - "8082:80"
+    volumes:
+      - ./api-docs:/data/burrow:ro
+    environment:
+      RABIT_TITLE: "API Reference"
+      RABIT_BASE_URL: "http://localhost:8082/"
+```
+
+## Health Check
+
+The server exposes a health endpoint:
+
+```bash
+curl http://localhost:8080/health
+# {"status":"healthy","mode":"burrow"}
+```
+
+## CORS Configuration
+
+By default, CORS allows all origins (`*`). To restrict:
+
+```bash
+docker run \
+  -v ./docs:/data/burrow \
+  -e RABIT_CORS_ORIGINS="https://myapp.example.com" \
+  rabit/server
+```
+
+## Building the Image
+
+```bash
+docker build -t rabit/server .
+```
+
+## API Endpoints
+
+| Endpoint | Mode | Description |
+|----------|------|-------------|
+| `/.burrow.json` | burrow, both | Burrow manifest |
+| `/.warren.json` | warren, both | Warren registry |
+| `/.warren.md` | warren, both | Human-readable registry |
+| `/health` | all | Health check |
+| `/*` | all | Static content |
+
+## License
+
+MIT License - See LICENSE file for details.
+
+## Links
+
+- [Rabit Specification](https://rabit.dev)
+- [GitHub Repository](https://github.com/rabit/rabit-server)
+- [Docker Hub](https://hub.docker.com/r/rabit/server)

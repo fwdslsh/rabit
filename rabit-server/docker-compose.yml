@@ -1,0 +1,35 @@
+# Rabit Server - Quick Start
+#
+# Usage:
+#   1. Create a 'docs' directory with your content
+#   2. Run: docker compose up -d
+#   3. Visit: http://localhost:8080/.burrow.json
+#
+# Or specify a different directory:
+#   CONTENT_DIR=./my-docs docker compose up -d
+
+version: '3.8'
+
+services:
+  rabit:
+    build: .
+    # image: rabit/server  # Use this for production
+    container_name: rabit-server
+    ports:
+      - "${RABIT_PORT:-8080}:80"
+    volumes:
+      - ${CONTENT_DIR:-./docs}:/data/burrow:ro
+    environment:
+      RABIT_MODE: ${RABIT_MODE:-burrow}
+      RABIT_TITLE: ${RABIT_TITLE:-My Burrow}
+      RABIT_DESCRIPTION: ${RABIT_DESCRIPTION:-}
+      RABIT_BASE_URL: ${RABIT_BASE_URL:-http://localhost:8080/}
+      RABIT_CORS_ORIGINS: ${RABIT_CORS_ORIGINS:-*}
+      RABIT_AUTO_GENERATE: ${RABIT_AUTO_GENERATE:-true}
+      RABIT_LOG_LEVEL: ${RABIT_LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
