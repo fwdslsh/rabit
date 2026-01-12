@@ -2,6 +2,7 @@
   "name": "rabit-client",
   "version": "0.1.0",
   "description": "Proof-of-concept Rabit Burrow Traversal client",
+  "license": "CC-BY-4.0",
   "type": "module",
   "bin": {
     "rabit": "./cli.ts"
