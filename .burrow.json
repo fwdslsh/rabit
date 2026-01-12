@@ -20,12 +20,12 @@
       "license": "LICENSE"
     },
     "agents": {
-      "context": "This is the official Rabit project repository containing the RBT specification, a reference server implementation, and a proof-of-concept client.",
+      "context": "This is the official Rabit project repository containing the RBT specification, a reference server implementation, a proof-of-concept client, and example burrows.",
       "entryPoint": "readme",
       "hints": [
         "The specification document (rabit-spec-draft-2026-01-12.md) contains normative requirements marked with RFC 2119 keywords",
         "The rabit-server directory contains a Docker-based server implementation",
-        "The rabit-examples/client directory contains a TypeScript/Bun reference client"
+        "The rabit-examples directory contains example burrows, a warren setup, and a TypeScript/Bun reference client"
       ],
       "ignore": ["*.git*"]
     }
@@ -129,13 +129,31 @@
       "summary": "TypeScript script that auto-generates .burrow.json and .warren.json from directory contents."
     },
     {
-      "id": "client-readme",
-      "rid": "urn:rabit:sha256:065ce2f555293fe6b8ee21f44d61b23b7e6f083843ef4e567b83ff1ef8d59d05",
+      "id": "examples-readme",
+      "rid": "urn:rabit:sha256:a8129c39780df86aecbd7701582a19d84b88bf6da5039119d6b89e1e8554bbdc",
       "href": "rabit-examples/README.md",
       "type": "text/markdown",
       "rel": ["item", "about"],
-      "title": "Reference Client Documentation",
-      "summary": "Documentation for the proof-of-concept CLI client."
+      "title": "Rabit Examples Documentation",
+      "summary": "Documentation for example burrows, warren setup, and the proof-of-concept CLI client."
+    },
+    {
+      "id": "examples-compose",
+      "rid": "urn:rabit:sha256:23f643f4975734a57a102275fd8cb73e1287096a53e236b45b51065a45450907",
+      "href": "rabit-examples/docker-compose.yml",
+      "type": "application/x-yaml",
+      "rel": ["item"],
+      "title": "Examples Docker Compose",
+      "summary": "Docker Compose configuration hosting three example burrows and a warren."
+    },
+    {
+      "id": "examples-nginx-cors",
+      "rid": "urn:rabit:sha256:a5430e85c75a4a294cc4966d28d43888e19d5a0a4aea19163d23ba13ae09370f",
+      "href": "rabit-examples/nginx-cors.conf",
+      "type": "text/plain",
+      "rel": ["item"],
+      "title": "CORS Configuration",
+      "summary": "Nginx CORS configuration snippet for the example servers."
     },
     {
       "id": "client-types",
@@ -163,6 +181,131 @@
       "rel": ["item"],
       "title": "CLI Commands",
       "summary": "Command-line interface for interacting with burrows and warrens."
+    },
+    {
+      "id": "docs-burrow-license",
+      "rid": "urn:rabit:sha256:2445643fc84926e8de56f3a1fcc50133b8e1244e5f696b6624863cfa2714bf62",
+      "href": "rabit-examples/burrows/docs-burrow/LICENSE",
+      "type": "text/plain",
+      "rel": ["license"],
+      "title": "Docs Burrow License (CC-BY-4.0)"
+    },
+    {
+      "id": "docs-burrow-readme",
+      "rid": "urn:rabit:sha256:b0a19c1d9d0781a3e940a07a6a0850f69b79ddf8852a2a9d4600e7cac356f68f",
+      "href": "rabit-examples/burrows/docs-burrow/README.md",
+      "type": "text/markdown",
+      "rel": ["item", "about"],
+      "title": "Acme Documentation Example",
+      "summary": "Example documentation burrow for the fictional Acme Platform."
+    },
+    {
+      "id": "docs-burrow-faq",
+      "rid": "urn:rabit:sha256:7f9138d6ab66bebe17ab096ec9139cbcf9999de14226c95305b0f7eefbe2fa49",
+      "href": "rabit-examples/burrows/docs-burrow/faq.md",
+      "type": "text/markdown",
+      "rel": ["item"],
+      "title": "Acme FAQ Example",
+      "summary": "Example FAQ document for the fictional Acme Platform."
+    },
+    {
+      "id": "docs-burrow-installation",
+      "rid": "urn:rabit:sha256:369c450116f634c12f723a67a6d52a08f6b41cd9757512eee2f371f9019d869b",
+      "href": "rabit-examples/burrows/docs-burrow/guides/installation.md",
+      "type": "text/markdown",
+      "rel": ["item"],
+      "title": "Acme Installation Guide Example",
+      "summary": "Example installation guide for the fictional Acme Platform."
+    },
+    {
+      "id": "docs-burrow-configuration",
+      "rid": "urn:rabit:sha256:da39b0b56c5a1eb2878abe7e652cca9c0c473bc9eba8ca02b5440dd0f6dede91",
+      "href": "rabit-examples/burrows/docs-burrow/guides/configuration.md",
+      "type": "text/markdown",
+      "rel": ["item"],
+      "title": "Acme Configuration Guide Example",
+      "summary": "Example configuration guide for the fictional Acme Platform."
+    },
+    {
+      "id": "docs-burrow-api-overview",
+      "rid": "urn:rabit:sha256:74c5644c89ef0be0c227747fafe73e79275d9fa8a6046ea33c70872d262d31be",
+      "href": "rabit-examples/burrows/docs-burrow/api/overview.md",
+      "type": "text/markdown",
+      "rel": ["item"],
+      "title": "Acme API Overview Example",
+      "summary": "Example API overview for the fictional Acme Platform."
+    },
+    {
+      "id": "api-burrow-readme",
+      "rid": "urn:rabit:sha256:ac23c03fd85b3b9cc63431840bdf4012a8ff8e04dc8f8710218428346841c5dc",
+      "href": "rabit-examples/burrows/api-burrow/README.md",
+      "type": "text/markdown",
+      "rel": ["item", "about"],
+      "title": "Acme API Reference Example",
+      "summary": "Example API reference burrow for the fictional Acme Platform."
+    },
+    {
+      "id": "api-burrow-auth",
+      "rid": "urn:rabit:sha256:431ec6283ae2ab3fae65efbacac08a706e8d18cb2c6b0f9653a314889e3030fb",
+      "href": "rabit-examples/burrows/api-burrow/auth.md",
+      "type": "text/markdown",
+      "rel": ["item"],
+      "title": "Acme Authentication Example",
+      "summary": "Example authentication documentation for the fictional Acme API."
+    },
+    {
+      "id": "api-burrow-endpoints",
+      "rid": "urn:rabit:sha256:a1110f40444dbd5fa71b6185e63183e4aea8b49f4428e8114e8b46ebe27632d0",
+      "href": "rabit-examples/burrows/api-burrow/endpoints.md",
+      "type": "text/markdown",
+      "rel": ["item"],
+      "title": "Acme API Endpoints Example",
+      "summary": "Example API endpoints documentation for the fictional Acme API."
+    },
+    {
+      "id": "api-burrow-openapi",
+      "rid": "urn:rabit:sha256:ec95a878b847b3da8cbed97b03f8b674594d75df520fef48febfcd840caa51e8",
+      "href": "rabit-examples/burrows/api-burrow/openapi.yaml",
+      "type": "application/x-yaml",
+      "rel": ["item"],
+      "title": "Acme OpenAPI Specification Example",
+      "summary": "Example OpenAPI specification for the fictional Acme API."
+    },
+    {
+      "id": "blog-burrow-readme",
+      "rid": "urn:rabit:sha256:83c77bf00f2e5a4fa7a2e87823d6881a0b916028454a73e50f37f3d455d81ef0",
+      "href": "rabit-examples/burrows/blog-burrow/README.md",
+      "type": "text/markdown",
+      "rel": ["item", "about"],
+      "title": "Acme Engineering Blog Example",
+      "summary": "Example blog burrow for the fictional Acme engineering team."
+    },
+    {
+      "id": "blog-burrow-scaling",
+      "rid": "urn:rabit:sha256:1d448475e1fa75d0c8da7aef6e9ea3c980112c33aaf85df62cac8f11a7fe252b",
+      "href": "rabit-examples/burrows/blog-burrow/posts/scaling-million-users.md",
+      "type": "text/markdown",
+      "rel": ["item"],
+      "title": "Scaling to a Million Users Example",
+      "summary": "Example blog post about scaling infrastructure."
+    },
+    {
+      "id": "blog-burrow-introducing",
+      "rid": "urn:rabit:sha256:5fc91be4920dca3945ac081321f3832fb343196376eed33a54bcaabe71ab99fe",
+      "href": "rabit-examples/burrows/blog-burrow/posts/introducing-acme-2.md",
+      "type": "text/markdown",
+      "rel": ["item"],
+      "title": "Introducing Acme 2.0 Example",
+      "summary": "Example product announcement blog post."
+    },
+    {
+      "id": "blog-burrow-kubernetes",
+      "rid": "urn:rabit:sha256:251e2c0e7d5aecec58ba9b2837f07332a06b23c0e0bc060650f2c881a88b7c3f",
+      "href": "rabit-examples/burrows/blog-burrow/posts/kubernetes-journey.md",
+      "type": "text/markdown",
+      "rel": ["item"],
+      "title": "Our Kubernetes Journey Example",
+      "summary": "Example technical blog post about Kubernetes migration."
     }
   ]
 }
