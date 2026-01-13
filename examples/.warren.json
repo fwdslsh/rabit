@@ -1,0 +1,34 @@
+{
+  "$schema": "../schemas/warren.schema.json",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/warren",
+  "kind": "warren",
+  "title": "Acme Warren",
+  "description": "Example warren demonstrating the Rabit specification. Contains documentation, API reference, and blog burrows.",
+  "updated": "2026-01-13T00:00:00Z",
+  "burrows": [
+    {
+      "id": "docs",
+      "uri": "burrows/docs-burrow/",
+      "title": "Documentation",
+      "description": "Product documentation and guides for the Acme Platform.",
+      "tags": ["docs", "guides"],
+      "priority": 100
+    },
+    {
+      "id": "api",
+      "uri": "burrows/api-burrow/",
+      "title": "API Reference",
+      "description": "API documentation, authentication guide, and OpenAPI specification.",
+      "tags": ["api", "reference"],
+      "priority": 90
+    },
+    {
+      "id": "blog",
+      "uri": "burrows/blog-burrow/",
+      "title": "Engineering Blog",
+      "description": "Technical blog posts from the Acme engineering team.",
+      "tags": ["blog", "technical"],
+      "priority": 80
+    }
+  ]
+}

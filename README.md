@@ -2,7 +2,7 @@
 
 ## What is Rabit?
 
-Rabit is a specification for publishing content that both humans and AI agents can navigate reliably. It defines a simple convention—a manifest file called `.burrow.json`—that tells visitors what's in your content space and how to traverse it.
+Rabit is a simple convention for publishing content that both humans and AI agents can navigate reliably. It defines a manifest file (`.burrow.json`) that tells visitors what's in your content space and how to traverse it.
 
 Think of it as a table of contents for the agentic age.
 
@@ -28,52 +28,162 @@ Today's web is built for browsers and humans. When AI agents need to understand 
 
 There's no standard way for a publisher to say: *"Here's my content, here's how it's organized, here's how to traverse it."*
 
-### The Opportunity
-
-We're entering an era where AI agents will consume as much web content as humans—maybe more. Agents that research, summarize, monitor, index, and act on our behalf. These agents need a better interface than "render the page and hope for the best."
-
 ### The Solution
 
 Rabit provides:
 
-1. **A manifest** (`.burrow.json`) — a machine-readable index of your content
+1. **A manifest** (`.burrow.json`) — a machine-readable menu of your content
 2. **A human-readable companion** (`.burrow.md`) — documentation for humans browsing your burrow
-3. **Stable identifiers** (RIDs) — content-addressed IDs that survive moves and mirrors
-4. **Flexible access** — Git-first distribution, HTTPS fallback, or local/network file paths
+3. **Simple structure** — just `id`, `kind`, and `uri` for each entry
+4. **Transport-agnostic** — works with HTTP, Git, local files, or any URI scheme
 5. **Optional agent guidance** — hints for how AI should interpret your content
 
-One file. Standard formats. No new infrastructure required.
+One file. Standard JSON. No new infrastructure required.
 
 ## Core Principles
 
-### Git-First (with Flexible Access)
+### Convention Over Specification
 
-Rabit treats Git repositories as first-class content sources. This gives you versioning, collaboration, mirroring, and cryptographic integrity for free.
+Rabit is a dotfile convention, not an RFC. It's designed to be:
+- Read in 10 minutes
+- Implemented in an afternoon
+- Adopted without ceremony
 
-For simpler deployments, HTTPS fallback is available. For local or enterprise scenarios, burrows can be accessed directly via file paths—including network shares (SMB/CIFS, NFS). The client uses your operating system's native file access, so mounted network drives work seamlessly.
+### Transport Agnostic
+
+Rabit uses standard URIs. Your content can be accessed via:
+- HTTPS (`https://docs.example.com/`)
+- Git repositories (`https://github.com/org/repo`)
+- Local filesystem (`file:///path/to/docs/`)
+- Any other URI scheme your clients support
 
 ### Human and Agent Friendly
 
 A burrow is just files—Markdown, HTML, images, whatever you publish. The `.burrow.json` manifest adds structure without replacing your content. Humans browse normally; agents get a roadmap.
 
-### Content-Addressed Identity
-
-Every resource has a RID (Resource Identifier) based on its content hash. Move a file, mirror it elsewhere, change your domain—the RID stays the same. This enables reliable cross-referencing and integrity verification.
-
 ### Minimal Footprint
 
-Rabit is "one file in one place." No servers to run, no databases to maintain, no protocols to implement. If you can host static files, push to a Git repository, or share a folder on your network, you can publish a burrow.
+Rabit is "one file in one place." No servers to run, no databases to maintain, no custom protocols. If you can host static files or push to a Git repository, you can publish a burrow.
 
-## The Terminology
+## Terminology
 
-Rabit uses playful terminology that maps to familiar concepts:
-
-| Rabit Term | What It Means |
-|------------|---------------|
-| **Burrow** | A content space (a site, a repo, a collection) |
-| **Manifest** | The index file (`.burrow.json`) |
+| Term | Description |
+|------|-------------|
+| **Burrow** | A content collection with a `.burrow.json` manifest |
 | **Warren** | A registry of burrows (`.warren.json`) |
-| **RID** | A content-addressed identifier |
+| **Entry** | A menu item (file, directory, sub-burrow, or link) |
+| **Kind** | Entry type: `file`, `dir`, `burrow`, or `link` |
+
+## Quick Start
+
+Publishing a burrow takes three steps:
+
+### 1. Create `.burrow.json`
+
+```json
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "kind": "burrow",
+  "title": "My Documentation",
+  "description": "Documentation for my project.",
+  "updated": "2026-01-13T00:00:00Z",
+  "entries": [
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "README.md",
+      "title": "Getting Started",
+      "summary": "Introduction and setup guide.",
+      "mediaType": "text/markdown",
+      "priority": 100
+    },
+    {
+      "id": "api",
+      "kind": "dir",
+      "uri": "api/",
+      "title": "API Reference",
+      "summary": "Complete API documentation.",
+      "priority": 80
+    }
+  ]
+}
+```
+
+### 2. Optionally create `.burrow.md`
+
+```markdown
+# My Documentation
+
+## Start here
+Read the README first, then explore the API Reference.
+
+## High-value paths
+- README.md — Installation and quick start
+- api/ — Complete API documentation
+```
+
+### 3. That's it!
+
+Your burrow is ready. Agents can discover it, read the manifest, and navigate your content.
+
+## Entry Schema
+
+Each entry in a burrow has:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `id` | Yes | Unique identifier |
+| `kind` | Yes | `file`, `dir`, `burrow`, or `link` |
+| `uri` | Yes | Location (relative or absolute) |
+| `title` | No | Human-readable title |
+| `summary` | No | Brief description for agents |
+| `mediaType` | No | MIME type |
+| `sha256` | No | Content hash for cache validation |
+| `tags` | No | Categorization tags |
+| `priority` | No | Higher = more prominent |
+
+## Warrens
+
+A warren is a registry of burrows:
+
+```json
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/warren",
+  "kind": "warren",
+  "title": "My Organization",
+  "burrows": [
+    {
+      "id": "docs",
+      "uri": "https://docs.example.com/",
+      "title": "Documentation",
+      "tags": ["docs"]
+    },
+    {
+      "id": "api",
+      "uri": "https://api.example.com/",
+      "title": "API Reference",
+      "tags": ["api"]
+    }
+  ]
+}
+```
+
+## Agent Instructions
+
+Optionally provide guidance for AI agents:
+
+```json
+{
+  "agents": {
+    "context": "Technical documentation for a payment API.",
+    "entryPoint": "quickstart",
+    "hints": [
+      "Start with the quickstart guide",
+      "Code examples are in /examples"
+    ]
+  }
+}
+```
 
 ## Who Is This For?
 
@@ -81,71 +191,25 @@ Rabit uses playful terminology that maps to familiar concepts:
 - **Knowledge bases** that need reliable machine traversal
 - **API providers** publishing human-readable references
 - **Researchers** sharing datasets and papers
-- **Anyone** who wants their content to be navigable by the next generation of AI tools
+- **Anyone** who wants their content to be navigable by AI tools
 
-## Getting Started
+## Project Structure
 
-Publishing a burrow is simple:
+This repository contains:
 
-1. Create a `.burrow.json` at your content root
-2. Optionally create a `.burrow.md` for human readers
-3. List your entries with titles, paths, and types
-4. Add roots for Git, HTTPS, and/or file access
-5. That's it—you have a burrow
-
-```json
-{
-  "rbt": "0.2",
-  "manifest": {
-    "title": "My Documentation",
-    "updated": "2025-01-15T12:00:00Z",
-    "rid": "urn:rabit:sha256:...",
-    "roots": [
-      { "git": { "remote": "https://github.com/me/docs.git", "ref": "refs/heads/main" } },
-      { "https": { "base": "https://docs.example.com/" } },
-      { "file": { "path": "/mnt/shared/docs/" } }
-    ]
-  },
-  "entries": [
-    {
-      "id": "readme",
-      "rid": "urn:rabit:sha256:...",
-      "href": "README.md",
-      "type": "text/markdown",
-      "rel": ["index", "about"],
-      "title": "Getting Started"
-    }
-  ]
-}
-```
-
-## The Road Ahead
-
-Rabit is an early-stage specification. The current draft (0.2) defines the core mechanics:
-
-- Manifest and registry formats
-- Multiple transport protocols:
-  - Git (HTTPS and SSH remotes)
-  - HTTPS (static hosting)
-  - HTTP (for development/homelab with self-signed cert support)
-  - FTP/FTPS/SFTP (for legacy and enterprise systems)
-  - File system (local paths, SMB/NFS network shares)
-- Content-addressed identity
-- Automatic transport protocol detection
-- Traversal algorithms
-- Agent instruction hints
-
-Future work may include:
-
-- Reference implementations in multiple languages
-- Tooling for manifest generation
-- Integration with popular static site generators
-- Adoption by documentation platforms
+- `docs/rabit-spec-v0.3.0.md` — The specification
+- `schemas/` — JSON Schema files for validation
+- `packages/rabit-client/` — TypeScript/Bun client implementation
+- `packages/rabit-server/` — Docker-based manifest server
+- `packages/opencode-rabit/` — MCP plugin for AI agents
+- `examples/` — Example burrows and warren
 
 ## Learn More
 
-- **Specification:** [rabit-spec-draft-2026-01-12](./rabit-spec-draft-2026-01-12.md) — the full technical spec
-- **Quick Start:** Coming soon
-- **Reference Implementation:** [rabbit-examples](./rabit-examples)
+- **Specification:** [docs/rabit-spec-v0.3.0.md](./docs/rabit-spec-v0.3.0.md)
+- **Client Implementation:** [packages/rabit-client/](./packages/rabit-client/)
+- **Examples:** [examples/](./examples/)
 
+## License
 
+CC-BY-4.0

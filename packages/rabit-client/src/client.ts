@@ -1,92 +1,136 @@
 /**
  * Rabit Client Library - Core Implementation
- * Full RBT Client conformance per §3.2.2
+ * Based on Rabit Specification v0.3.0
  */
 
 import type {
-  BurrowManifest,
-  WarrenRegistry,
+  Burrow,
+  Warren,
   Entry,
-  Root,
-  GitRoot,
-  FileRoot,
-  HttpRoot,
-  FtpRoot,
+  BurrowReference,
+  DiscoveryResult,
+  DiscoverOptions,
+  FetchOptions,
   TraversalOptions,
-  TraversalResult,
-  FetchResult,
-  TraversalReport,
-  RbtError,
-  WellKnownBurrow,
-  WellKnownWarren,
+  TraversalEvent,
+  TraversalSummary,
+  RabitError,
+  ErrorCategory,
+  TransportType,
 } from './types';
 import {
-  isGitRoot,
-  isHttpsRoot,
-  isHttpRoot,
-  isFtpRoot,
-  isFileRoot,
-  isInsecureRoot,
-  getBaseUrl,
-  getFilePath,
+  detectTransport,
+  resolveUri,
+  getParentUri,
+  sortByPriority,
+  isValidSpecVersion,
 } from './types';
 import { readFile } from 'fs/promises';
 import { join, resolve, normalize } from 'path';
-import {
-  validateUrl,
-  validateManifestSize,
-  validateEntryCount,
-  verifyContent,
-  createError,
-  getRootBaseUrl,
-  getRootDisplayName,
-  RateLimiter,
-  RESOURCE_LIMITS,
-  sleep,
-  canonicalJson,
-} from './utils';
-import {
-  cloneRepository,
-  readFileFromRepo,
-  cleanupRepository,
-  isGitAvailable,
-} from './git';
+import * as crypto from 'crypto';
 
 // ============================================================================
-// Cache Implementation (§8.5)
+// Constants
+// ============================================================================
+
+const RESOURCE_LIMITS = {
+  MAX_MANIFEST_SIZE: 10 * 1024 * 1024, // 10 MB
+  MAX_ENTRY_COUNT: 10000,
+  MAX_TRAVERSAL_DEPTH: 100,
+  MAX_TOTAL_ENTRIES: 100000,
+  MAX_REQUEST_TIMEOUT: 30000, // 30 seconds
+  DEFAULT_MAX_CONCURRENT: 10,
+  DEFAULT_MIN_DELAY: 100,
+};
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+function createError(
+  category: ErrorCategory,
+  message: string,
+  entryId?: string,
+  uri?: string
+): RabitError {
+  return { category, message, entryId, uri };
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Verify content against sha256 hash
+ */
+async function verifySha256(content: Uint8Array, expectedHash?: string): Promise<boolean> {
+  if (!expectedHash) return true;
+
+  const hash = crypto.createHash('sha256').update(content).digest('hex');
+  return hash === expectedHash;
+}
+
+// ============================================================================
+// Rate Limiter
+// ============================================================================
+
+class RateLimiter {
+  private activeRequests = 0;
+  private lastRequestTime = 0;
+
+  constructor(
+    private maxConcurrent: number,
+    private minDelay: number
+  ) {}
+
+  async acquire(): Promise<void> {
+    while (this.activeRequests >= this.maxConcurrent) {
+      await sleep(50);
+    }
+
+    const timeSinceLastRequest = Date.now() - this.lastRequestTime;
+    if (timeSinceLastRequest < this.minDelay) {
+      await sleep(this.minDelay - timeSinceLastRequest);
+    }
+
+    this.activeRequests++;
+    this.lastRequestTime = Date.now();
+  }
+
+  release(): void {
+    this.activeRequests--;
+  }
+}
+
+// ============================================================================
+// Cache Implementation
 // ============================================================================
 
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
   maxAge: number;
-  staleWhileRevalidate: number;
 }
 
 class ManifestCache {
-  private cache = new Map<string, CacheEntry<BurrowManifest | WarrenRegistry>>();
+  private cache = new Map<string, CacheEntry<Burrow | Warren>>();
+  private defaultMaxAge = 3600 * 1000; // 1 hour
 
-  set(
-    url: string,
-    data: BurrowManifest | WarrenRegistry,
-    maxAge = 3600,
-    staleWhileRevalidate = 86400
-  ): void {
+  set(url: string, data: Burrow | Warren, maxAge?: number): void {
     this.cache.set(url, {
       data,
       timestamp: Date.now(),
-      maxAge: maxAge * 1000, // Convert to milliseconds
-      staleWhileRevalidate: staleWhileRevalidate * 1000,
+      maxAge: (maxAge ?? 3600) * 1000,
     });
   }
 
-  get(url: string): { data: BurrowManifest | WarrenRegistry; stale: boolean } | null {
+  get(url: string): { data: Burrow | Warren; stale: boolean } | null {
     const entry = this.cache.get(url);
     if (!entry) return null;
 
     const age = Date.now() - entry.timestamp;
     const stale = age > entry.maxAge;
-    const expired = age > entry.maxAge + entry.staleWhileRevalidate;
+    const expired = age > entry.maxAge * 2;
 
     if (expired) {
       this.cache.delete(url);
@@ -105,685 +149,248 @@ class ManifestCache {
 // RabitClient Class
 // ============================================================================
 
+export interface RabitClientOptions {
+  maxConcurrent?: number;
+  minDelay?: number;
+  enableCache?: boolean;
+  timeout?: number;
+}
+
 /**
- * Full RBT Client implementation
- * @see Specification §3.2.2
+ * Rabit Client for discovering and traversing burrows
  */
 export class RabitClient {
   private cache = new ManifestCache();
   private rateLimiter: RateLimiter;
-  private gitAvailable?: boolean;
+  private timeout: number;
 
-  constructor(
-    private readonly options: {
-      maxConcurrent?: number;
-      minDelay?: number;
-      enableCache?: boolean;
-    } = {}
-  ) {
+  constructor(private readonly options: RabitClientOptions = {}) {
     this.rateLimiter = new RateLimiter(
       options.maxConcurrent ?? RESOURCE_LIMITS.DEFAULT_MAX_CONCURRENT,
       options.minDelay ?? RESOURCE_LIMITS.DEFAULT_MIN_DELAY
     );
+    this.timeout = options.timeout ?? RESOURCE_LIMITS.MAX_REQUEST_TIMEOUT;
   }
 
   // ==========================================================================
-  // Well-Known Discovery (§11)
+  // Discovery (§5)
   // ==========================================================================
 
   /**
-   * Discover burrow via well-known endpoint
-   * @see Specification §11.1
+   * Discover burrows and warrens at a location
+   * @see Specification §5
    */
-  async discoverBurrow(origin: string): Promise<FetchResult<WellKnownBurrow>> {
-    try {
-      const url = new URL('/.well-known/rabit-burrow', origin);
-      validateUrl(url.toString());
+  async discover(uri: string, options: DiscoverOptions = {}): Promise<DiscoveryResult> {
+    const maxParentWalk = options.maxParentWalk ?? 2;
+    let currentUri = this.normalizeUri(uri);
 
-      const response = await this.fetchWithRateLimit(url.toString());
+    for (let depth = 0; depth <= maxParentWalk; depth++) {
+      const warren = await this.tryFetchWarren(currentUri);
+      const burrow = await this.tryFetchBurrow(currentUri);
 
-      if (!response.ok) {
+      if (warren || burrow) {
         return {
-          ok: false,
-          error: createError(
-            'manifest_not_found',
-            `Well-known burrow endpoint not found: HTTP ${response.status}`
-          ),
+          warren,
+          burrow,
+          baseUri: currentUri,
+          depth,
         };
       }
 
-      const data = (await response.json()) as WellKnownBurrow;
-      return { ok: true, data };
-    } catch (error) {
-      return {
-        ok: false,
-        error: createError('transport_error', `Failed to discover burrow: ${error}`),
-      };
-    }
-  }
-
-  /**
-   * Discover warren via well-known endpoint
-   * @see Specification §11.2
-   */
-  async discoverWarren(origin: string): Promise<FetchResult<WellKnownWarren>> {
-    try {
-      const url = new URL('/.well-known/rabit-warren', origin);
-      validateUrl(url.toString());
-
-      const response = await this.fetchWithRateLimit(url.toString());
-
-      if (!response.ok) {
-        return {
-          ok: false,
-          error: createError(
-            'manifest_not_found',
-            `Well-known warren endpoint not found: HTTP ${response.status}`
-          ),
-        };
-      }
-
-      const data = (await response.json()) as WellKnownWarren;
-      return { ok: true, data };
-    } catch (error) {
-      return {
-        ok: false,
-        error: createError('transport_error', `Failed to discover warren: ${error}`),
-      };
-    }
-  }
-
-  // ==========================================================================
-  // Manifest Fetching
-  // ==========================================================================
-
-  /**
-   * Fetch warren registry from URL
-   * @see Specification §10
-   */
-  async fetchWarren(url: string): Promise<FetchResult<WarrenRegistry>> {
-    const warrenUrl = url.endsWith('.warren.json')
-      ? url
-      : `${url.replace(/\/$/, '')}/.warren.json`;
-
-    // Check cache
-    if (this.options.enableCache !== false) {
-      const cached = this.cache.get(warrenUrl);
-      if (cached && !cached.stale) {
-        return { ok: true, data: cached.data as WarrenRegistry };
-      }
-    }
-
-    try {
-      validateUrl(warrenUrl);
-
-      const response = await this.fetchWithRateLimit(warrenUrl);
-
-      if (!response.ok) {
-        return {
-          ok: false,
-          error: createError(
-            'manifest_not_found',
-            `HTTP ${response.status}: ${response.statusText}`,
-            undefined,
-            warrenUrl
-          ),
-        };
-      }
-
-      // Validate size
-      const contentLength = response.headers.get('content-length');
-      if (contentLength) {
-        validateManifestSize(parseInt(contentLength, 10));
-      }
-
-      const data = (await response.json()) as WarrenRegistry;
-
-      // Validate required fields
-      if (!data.rbt || !data.registry || !data.entries) {
-        return {
-          ok: false,
-          error: createError(
-            'manifest_invalid',
-            'Invalid warren format: missing required fields'
-          ),
-        };
-      }
-
-      validateEntryCount(data.entries.length);
-
-      // Cache the result
-      if (this.options.enableCache !== false) {
-        this.cache.set(warrenUrl, data);
-      }
-
-      return { ok: true, data };
-    } catch (error) {
-      if ((error as RbtError).category) {
-        return { ok: false, error: error as RbtError };
-      }
-      return {
-        ok: false,
-        error: createError('transport_error', `Failed to fetch warren: ${error}`),
-      };
-    }
-  }
-
-  /**
-   * Fetch burrow manifest from URL, file path, or Root descriptor
-   * Implements root selection and fallback per §5.3
-   * Priority: File roots > Git roots > HTTPS/HTTP roots
-   * @see Specification §5.2, §5.3
-   */
-  async fetchBurrow(urlOrRoot: string | Root): Promise<FetchResult<BurrowManifest>> {
-    // Handle string URL or path
-    if (typeof urlOrRoot === 'string') {
-      // Check if it's a file:// URL or local path
-      if (urlOrRoot.startsWith('file://') || urlOrRoot.startsWith('/') || /^[a-zA-Z]:/.test(urlOrRoot) || urlOrRoot.startsWith('\\\\')) {
-        return this.fetchBurrowFromFile(urlOrRoot);
-      }
-      return this.fetchBurrowFromUrl(urlOrRoot);
-    }
-
-    // Handle Root descriptor - try in priority order per §5.3
-    const root = urlOrRoot;
-
-    // Try File root first (highest priority for local/network access)
-    if (isFileRoot(root)) {
-      const result = await this.fetchBurrowFromFile(root.file.path);
-      if (result.ok) return result;
-    }
-
-    // Try Git root second (for versioning and integrity)
-    if (isGitRoot(root)) {
-      const result = await this.fetchBurrowFromGit(root.git);
-      if (result.ok) return result;
-    }
-
-    // Try HTTPS root
-    if (isHttpsRoot(root)) {
-      return this.fetchBurrowFromUrl(root.https.base);
-    }
-
-    // Try HTTP root (§5.2.3 - for dev/homelab/internal networks)
-    if (isHttpRoot(root)) {
-      return this.fetchBurrowFromUrl(root.http.base, root.http.insecure);
-    }
-
-    // FTP roots (§5.2.4) - not yet implemented
-    if (isFtpRoot(root)) {
-      return {
-        ok: false,
-        error: createError('transport_error', 'FTP/FTPS/SFTP transport not yet implemented'),
-      };
+      currentUri = getParentUri(currentUri);
     }
 
     return {
-      ok: false,
-      error: createError('transport_error', 'No usable root available'),
+      warren: null,
+      burrow: null,
+      baseUri: uri,
+      depth: -1,
     };
   }
 
   /**
-   * Fetch burrow manifest from local or network file path
-   * Uses native OS file access for SMB, NFS, and local paths
-   * @see Specification §5.2.3
+   * Try to fetch a warren, returning null on failure
    */
-  private async fetchBurrowFromFile(pathOrUrl: string): Promise<FetchResult<BurrowManifest>> {
-    try {
-      // Convert file:// URL to path if needed
-      let filePath = pathOrUrl;
-      if (filePath.startsWith('file://')) {
-        filePath = filePath.replace(/^file:\/\//, '');
-        // Handle Windows file URLs (file:///C:/...)
-        if (filePath.startsWith('/') && /^\/[a-zA-Z]:/.test(filePath)) {
-          filePath = filePath.slice(1);
-        }
-      }
-
-      // Normalize the path and construct manifest path
-      filePath = normalize(filePath);
-      const manifestPath = filePath.endsWith('.burrow.json')
-        ? filePath
-        : join(filePath, '.burrow.json');
-
-      // Validate path is absolute
-      if (!resolve(manifestPath).startsWith(resolve(filePath.replace(/\.burrow\.json$/, '')))) {
-        return {
-          ok: false,
-          error: createError(
-            'transport_error',
-            'Path traversal detected - path must stay within burrow root'
-          ),
-        };
-      }
-
-      // Read the manifest file using native OS file access
-      // This automatically handles SMB, NFS, and other mounted file systems
-      const content = await readFile(manifestPath, 'utf-8');
-
-      // Validate size
-      validateManifestSize(Buffer.byteLength(content, 'utf-8'));
-
-      const data = JSON.parse(content) as BurrowManifest;
-
-      // Validate required fields
-      if (!data.rbt || !data.manifest || !data.entries) {
-        return {
-          ok: false,
-          error: createError(
-            'manifest_invalid',
-            'Invalid burrow format: missing required fields'
-          ),
-        };
-      }
-
-      validateEntryCount(data.entries.length);
-
-      return { ok: true, data };
-    } catch (error) {
-      if ((error as RbtError).category) {
-        return { ok: false, error: error as RbtError };
-      }
-
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Provide helpful error messages for common issues
-      if (errorMessage.includes('ENOENT')) {
-        return {
-          ok: false,
-          error: createError(
-            'manifest_not_found',
-            `Manifest not found at path: ${pathOrUrl}`,
-            undefined,
-            pathOrUrl
-          ),
-        };
-      }
-
-      if (errorMessage.includes('EACCES') || errorMessage.includes('EPERM')) {
-        return {
-          ok: false,
-          error: createError(
-            'transport_error',
-            `Permission denied accessing path: ${pathOrUrl}. Ensure the path is accessible.`,
-            undefined,
-            pathOrUrl
-          ),
-        };
-      }
-
-      if (errorMessage.includes('ENOTDIR')) {
-        return {
-          ok: false,
-          error: createError(
-            'transport_error',
-            `Path is not a directory: ${pathOrUrl}`,
-            undefined,
-            pathOrUrl
-          ),
-        };
-      }
-
-      return {
-        ok: false,
-        error: createError('transport_error', `Failed to fetch burrow from file: ${error}`),
-      };
-    }
+  private async tryFetchWarren(baseUri: string): Promise<Warren | null> {
+    const result = await this.fetchWarren(baseUri);
+    return result.ok ? result.data! : null;
   }
 
   /**
-   * Fetch burrow manifest from HTTP/HTTPS URL
-   * @param url - The URL to fetch from
-   * @param insecure - If true, accept invalid/self-signed TLS certificates (§5.4.2)
+   * Try to fetch a burrow, returning null on failure
    */
-  private async fetchBurrowFromUrl(url: string, insecure = false): Promise<FetchResult<BurrowManifest>> {
-    const burrowUrl = url.endsWith('.burrow.json')
-      ? url
-      : `${url.replace(/\/$/, '')}/.burrow.json`;
+  private async tryFetchBurrow(baseUri: string): Promise<Burrow | null> {
+    const result = await this.fetchBurrow(baseUri);
+    return result.ok ? result.data! : null;
+  }
+
+  // ==========================================================================
+  // Warren Fetching
+  // ==========================================================================
+
+  /**
+   * Fetch warren from URL or path
+   */
+  async fetchWarren(uri: string): Promise<{ ok: boolean; data?: Warren; error?: RabitError }> {
+    const warrenUri = uri.endsWith('.warren.json')
+      ? uri
+      : `${uri.replace(/\/$/, '')}/.warren.json`;
 
     // Check cache
     if (this.options.enableCache !== false) {
-      const cached = this.cache.get(burrowUrl);
-      if (cached && !cached.stale) {
-        return { ok: true, data: cached.data as BurrowManifest };
+      const cached = this.cache.get(warrenUri);
+      if (cached && !cached.stale && cached.data.kind === 'warren') {
+        return { ok: true, data: cached.data as Warren };
       }
     }
 
     try {
-      validateUrl(burrowUrl);
+      const transport = detectTransport(warrenUri);
 
-      const response = await this.fetchWithRateLimit(burrowUrl);
-
-      if (!response.ok) {
-        return {
-          ok: false,
-          error: createError(
-            'manifest_not_found',
-            `HTTP ${response.status}: ${response.statusText}`,
-            undefined,
-            burrowUrl
-          ),
-        };
+      let content: string;
+      if (transport === 'file') {
+        content = await this.readLocalFile(warrenUri);
+      } else {
+        content = await this.fetchRemoteJson(warrenUri);
       }
 
-      // Validate size
-      const contentLength = response.headers.get('content-length');
-      if (contentLength) {
-        validateManifestSize(parseInt(contentLength, 10));
-      }
-
-      const data = (await response.json()) as BurrowManifest;
+      const data = JSON.parse(content) as Warren;
 
       // Validate required fields
-      if (!data.rbt || !data.manifest || !data.entries) {
+      if (!data.specVersion || data.kind !== 'warren' || (!data.burrows && !data.warrens)) {
         return {
           ok: false,
           error: createError(
-            'manifest_invalid',
-            'Invalid burrow format: missing required fields'
+            'manifest-invalid',
+            'Invalid warren format: missing required fields (specVersion, kind, burrows/warrens)'
           ),
         };
       }
-
-      validateEntryCount(data.entries.length);
 
       // Cache the result
       if (this.options.enableCache !== false) {
-        const maxAge = data.manifest.cache?.maxAge ?? 3600;
-        const stale = data.manifest.cache?.staleWhileRevalidate ?? 86400;
-        this.cache.set(burrowUrl, data, maxAge, stale);
+        this.cache.set(warrenUri, data);
       }
 
       return { ok: true, data };
     } catch (error) {
-      if ((error as RbtError).category) {
-        return { ok: false, error: error as RbtError };
+      if ((error as RabitError).category) {
+        return { ok: false, error: error as RabitError };
       }
       return {
         ok: false,
-        error: createError('transport_error', `Failed to fetch burrow: ${error}`),
+        error: createError('transport-error', `Failed to fetch warren: ${error}`),
       };
     }
   }
 
+  // ==========================================================================
+  // Burrow Fetching
+  // ==========================================================================
+
   /**
-   * Fetch burrow manifest from Git repository
+   * Fetch burrow from URL or path
    */
-  private async fetchBurrowFromGit(root: GitRoot['git']): Promise<FetchResult<BurrowManifest>> {
-    // Check if Git is available
-    if (this.gitAvailable === undefined) {
-      this.gitAvailable = await isGitAvailable();
-    }
+  async fetchBurrow(uri: string): Promise<{ ok: boolean; data?: Burrow; error?: RabitError }> {
+    const burrowUri = uri.endsWith('.burrow.json')
+      ? uri
+      : `${uri.replace(/\/$/, '')}/.burrow.json`;
 
-    if (!this.gitAvailable) {
-      return {
-        ok: false,
-        error: createError(
-          'transport_error',
-          'Git is not available on this system'
-        ),
-      };
+    // Check cache
+    if (this.options.enableCache !== false) {
+      const cached = this.cache.get(burrowUri);
+      if (cached && !cached.stale && cached.data.kind === 'burrow') {
+        return { ok: true, data: cached.data as Burrow };
+      }
     }
-
-    const cloneResult = await cloneRepository({ git: root });
-    if (!cloneResult.ok || !cloneResult.data) {
-      return { ok: false, error: cloneResult.error! };
-    }
-
-    const repoPath = cloneResult.data;
 
     try {
-      const manifestResult = await readFileFromRepo(repoPath, '.burrow.json');
-      if (!manifestResult.ok || !manifestResult.data) {
-        return { ok: false, error: manifestResult.error! };
+      const transport = detectTransport(burrowUri);
+
+      let content: string;
+      if (transport === 'file') {
+        content = await this.readLocalFile(burrowUri);
+      } else {
+        content = await this.fetchRemoteJson(burrowUri);
       }
 
-      const manifestText = new TextDecoder().decode(manifestResult.data);
-      const data = JSON.parse(manifestText) as BurrowManifest;
+      const data = JSON.parse(content) as Burrow;
 
       // Validate required fields
-      if (!data.rbt || !data.manifest || !data.entries) {
+      if (!data.specVersion || data.kind !== 'burrow' || !data.entries) {
         return {
           ok: false,
           error: createError(
-            'manifest_invalid',
-            'Invalid burrow format: missing required fields'
+            'manifest-invalid',
+            'Invalid burrow format: missing required fields (specVersion, kind, entries)'
           ),
         };
       }
 
-      validateEntryCount(data.entries.length);
+      // Validate entry count
+      if (data.entries.length > RESOURCE_LIMITS.MAX_ENTRY_COUNT) {
+        return {
+          ok: false,
+          error: createError(
+            'manifest-invalid',
+            `Entry count ${data.entries.length} exceeds limit ${RESOURCE_LIMITS.MAX_ENTRY_COUNT}`
+          ),
+        };
+      }
+
+      // Cache the result
+      if (this.options.enableCache !== false) {
+        this.cache.set(burrowUri, data);
+      }
 
       return { ok: true, data };
-    } finally {
-      await cleanupRepository(repoPath);
+    } catch (error) {
+      if ((error as RabitError).category) {
+        return { ok: false, error: error as RabitError };
+      }
+      return {
+        ok: false,
+        error: createError('transport-error', `Failed to fetch burrow: ${error}`),
+      };
     }
   }
 
   // ==========================================================================
-  // Entry Fetching with Mirror Fallback (§7.4)
+  // Entry Fetching
   // ==========================================================================
 
   /**
-   * Fetch entry content with mirror fallback and RID verification
-   * @see Specification §7.4
+   * Fetch entry content
    */
   async fetchEntry(
-    burrow: BurrowManifest,
+    burrow: Burrow,
     entry: Entry,
-    options: { verifyRid?: boolean; useMirrors?: boolean } = {}
-  ): Promise<FetchResult<Uint8Array>> {
-    const { verifyRid = true, useMirrors = true } = options;
+    options: { verifySha256?: boolean } = {}
+  ): Promise<{ ok: boolean; data?: Uint8Array; error?: RabitError }> {
+    const { verifySha256: verify = true } = options;
 
-    const attempts: Array<{ root: string; error: string; status?: number }> = [];
-
-    // Try primary roots first
-    for (const root of burrow.manifest.roots) {
-      const result = await this.fetchEntryFromRoot(burrow, entry, root, verifyRid);
-
-      if (result.ok) return result;
-
-      attempts.push({
-        root: getRootDisplayName(root),
-        error: result.error?.message ?? 'Unknown error',
-      });
-    }
-
-    // Try mirrors if enabled (§7.4)
-    if (useMirrors && burrow.manifest.mirrors) {
-      for (const mirror of burrow.manifest.mirrors) {
-        const result = await this.fetchEntryFromRoot(burrow, entry, mirror, verifyRid);
-
-        if (result.ok) {
-          return result;
-        }
-
-        attempts.push({
-          root: `mirror:${getRootDisplayName(mirror)}`,
-          error: result.error?.message ?? 'Unknown error',
-        });
-      }
-    }
-
-    // All attempts failed
-    return {
-      ok: false,
-      error: {
-        category: 'entry_not_found',
-        message: `Failed to fetch entry from all available roots`,
-        entryId: entry.id,
-        href: entry.href,
-        attempts,
-      },
-    };
-  }
-
-  /**
-   * Fetch entry from a specific root
-   * Supports File, Git, HTTPS, HTTP, and FTP roots
-   * @see Specification §5.2
-   */
-  private async fetchEntryFromRoot(
-    burrow: BurrowManifest,
-    entry: Entry,
-    root: Root,
-    verifyRid: boolean
-  ): Promise<FetchResult<Uint8Array>> {
-    if (isFileRoot(root)) {
-      return this.fetchEntryFromFile(root.file.path, entry, verifyRid);
-    }
-
-    if (isHttpsRoot(root)) {
-      return this.fetchEntryFromHttps(root.https.base, entry, verifyRid);
-    }
-
-    if (isHttpRoot(root)) {
-      return this.fetchEntryFromHttps(root.http.base, entry, verifyRid, root.http.insecure);
-    }
-
-    if (isGitRoot(root)) {
-      return this.fetchEntryFromGit(root.git, entry, verifyRid);
-    }
-
-    if (isFtpRoot(root)) {
-      return {
-        ok: false,
-        error: createError('transport_error', 'FTP/FTPS/SFTP transport not yet implemented', entry.id, entry.href),
-      };
-    }
-
-    return {
-      ok: false,
-      error: createError('transport_error', 'Unsupported root type'),
-    };
-  }
-
-  /**
-   * Fetch entry via native file system access
-   * Uses OS file APIs for local paths and mounted network shares (SMB, NFS)
-   * @see Specification §5.2.3
-   */
-  private async fetchEntryFromFile(
-    basePath: string,
-    entry: Entry,
-    verifyRid: boolean
-  ): Promise<FetchResult<Uint8Array>> {
     try {
-      // Normalize and join paths
-      const normalizedBase = normalize(basePath);
-      const entryPath = join(normalizedBase, entry.href);
+      const entryUri = resolveUri(burrow.baseUri, entry.uri);
+      const transport = detectTransport(entryUri);
 
-      // Security: Validate path stays within burrow root (prevent directory traversal)
-      const resolvedBase = resolve(normalizedBase);
-      const resolvedEntry = resolve(entryPath);
-      if (!resolvedEntry.startsWith(resolvedBase)) {
-        return {
-          ok: false,
-          error: createError(
-            'transport_error',
-            'Path traversal detected - entry path must stay within burrow root',
-            entry.id,
-            entry.href
-          ),
-        };
+      let content: Uint8Array;
+      if (transport === 'file') {
+        content = await this.readLocalFileBytes(entryUri);
+      } else {
+        content = await this.fetchRemoteBytes(entryUri);
       }
 
-      // Read the file using native OS file access
-      const content = await readFile(entryPath);
-
-      // Verify RID if requested (§7.4)
-      if (verifyRid && (entry.rid || entry.hash)) {
-        const valid = await verifyContent(content, entry.rid, entry.hash);
+      // Verify sha256 if requested and available
+      if (verify && entry.sha256) {
+        const valid = await verifySha256(content, entry.sha256);
         if (!valid) {
           return {
             ok: false,
             error: createError(
-              'verification_failed',
-              'Content hash verification failed',
+              'hash-mismatch',
+              'Content sha256 verification failed',
               entry.id,
-              entry.href
-            ),
-          };
-        }
-      }
-
-      return { ok: true, data: new Uint8Array(content) };
-    } catch (error) {
-      if ((error as RbtError).category) {
-        return { ok: false, error: error as RbtError };
-      }
-
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      if (errorMessage.includes('ENOENT')) {
-        return {
-          ok: false,
-          error: createError(
-            'entry_not_found',
-            `Entry file not found: ${entry.href}`,
-            entry.id,
-            entry.href
-          ),
-        };
-      }
-
-      return {
-        ok: false,
-        error: createError(
-          'transport_error',
-          `Failed to fetch entry from file: ${error}`,
-          entry.id,
-          entry.href
-        ),
-      };
-    }
-  }
-
-  /**
-   * Fetch entry via HTTP/HTTPS
-   * @param baseUrl - Base URL for the burrow
-   * @param entry - Entry to fetch
-   * @param verifyRid - Whether to verify content against RID
-   * @param insecure - If true, accept invalid/self-signed TLS certificates (§5.4.2)
-   */
-  private async fetchEntryFromHttps(
-    baseUrl: string,
-    entry: Entry,
-    verifyRid: boolean,
-    insecure = false
-  ): Promise<FetchResult<Uint8Array>> {
-    try {
-      const entryUrl = new URL(entry.href, baseUrl).toString();
-      validateUrl(entryUrl);
-
-      const response = await this.fetchWithRateLimit(entryUrl);
-
-      if (!response.ok) {
-        return {
-          ok: false,
-          error: createError(
-            'entry_not_found',
-            `HTTP ${response.status}: ${response.statusText}`,
-            entry.id,
-            entry.href
-          ),
-        };
-      }
-
-      const content = new Uint8Array(await response.arrayBuffer());
-
-      // Verify RID if requested (§7.4)
-      if (verifyRid && (entry.rid || entry.hash)) {
-        const valid = await verifyContent(content, entry.rid, entry.hash);
-        if (!valid) {
-          return {
-            ok: false,
-            error: createError(
-              'verification_failed',
-              'Content hash verification failed',
-              entry.id,
-              entry.href
+              entry.uri
             ),
           };
         }
@@ -791,134 +398,85 @@ export class RabitClient {
 
       return { ok: true, data: content };
     } catch (error) {
-      if ((error as RbtError).category) {
-        return { ok: false, error: error as RbtError };
+      if ((error as RabitError).category) {
+        return { ok: false, error: error as RabitError };
       }
       return {
         ok: false,
         error: createError(
-          'transport_error',
+          'transport-error',
           `Failed to fetch entry: ${error}`,
           entry.id,
-          entry.href
+          entry.uri
         ),
       };
     }
   }
 
-  /**
-   * Fetch entry from Git repository
-   */
-  private async fetchEntryFromGit(
-    root: GitRoot['git'],
-    entry: Entry,
-    verifyRid: boolean
-  ): Promise<FetchResult<Uint8Array>> {
-    const cloneResult = await cloneRepository({ git: root });
-    if (!cloneResult.ok || !cloneResult.data) {
-      return { ok: false, error: cloneResult.error! };
-    }
-
-    const repoPath = cloneResult.data;
-
-    try {
-      const fileResult = await readFileFromRepo(repoPath, entry.href);
-      if (!fileResult.ok || !fileResult.data) {
-        return { ok: false, error: fileResult.error! };
-      }
-
-      const content = fileResult.data;
-
-      // Verify RID if requested
-      if (verifyRid && (entry.rid || entry.hash)) {
-        const valid = await verifyContent(content, entry.rid, entry.hash);
-        if (!valid) {
-          return {
-            ok: false,
-            error: createError(
-              'verification_failed',
-              'Content hash verification failed',
-              entry.id,
-              entry.href
-            ),
-          };
-        }
-      }
-
-      return { ok: true, data: content };
-    } finally {
-      await cleanupRepository(repoPath);
-    }
-  }
-
   // ==========================================================================
-  // Traversal (§8)
+  // Traversal
   // ==========================================================================
 
   /**
-   * Traverse a burrow using breadth-first search
-   * @see Specification §8
+   * Traverse a burrow, yielding events for each entry
    */
-  async *traverseBurrow(
-    burrow: BurrowManifest,
+  async *traverse(
+    burrow: Burrow,
     options: TraversalOptions = {}
-  ): AsyncGenerator<TraversalResult> {
+  ): AsyncGenerator<TraversalEvent> {
     const {
+      strategy = 'breadth-first',
       maxDepth = RESOURCE_LIMITS.MAX_TRAVERSAL_DEPTH,
       maxEntries = RESOURCE_LIMITS.MAX_TOTAL_ENTRIES,
-      followChildren = false,
       filter = () => true,
-      verifyRids = true,
-      useMirrors = true,
     } = options;
 
     const visited = new Set<string>();
     const queue: { entry: Entry; depth: number }[] = [];
     let processedCount = 0;
 
-    // Initialize queue with top-level entries
-    for (const entry of burrow.entries) {
+    // Sort entries by priority if using priority strategy
+    const entries = strategy === 'priority' ? sortByPriority(burrow.entries) : burrow.entries;
+
+    // Initialize queue
+    for (const entry of entries) {
       if (filter(entry)) {
         queue.push({ entry, depth: 0 });
       }
     }
 
     while (queue.length > 0 && processedCount < maxEntries) {
-      const item = queue.shift()!;
+      const item = strategy === 'depth-first' ? queue.pop()! : queue.shift()!;
       const { entry, depth } = item;
 
-      // Skip if already visited (cycle detection per §8.4)
-      if (visited.has(entry.rid)) {
+      // Cycle detection using entry id + uri as key
+      const entryKey = `${entry.id}:${entry.uri}`;
+      if (visited.has(entryKey)) {
+        yield { type: 'cycle-detected', entry, depth };
         continue;
       }
-      visited.add(entry.rid);
+      visited.add(entryKey);
+
+      // Depth limit
+      if (depth > maxDepth) {
+        yield { type: 'depth-limit', entry, depth };
+        continue;
+      }
+
+      yield { type: 'entry', entry, depth };
       processedCount++;
 
-      // Fetch content
-      const result = await this.fetchEntry(burrow, entry, { verifyRid: verifyRids, useMirrors });
+      // Queue children for burrow/dir entries
+      if ((entry.kind === 'burrow' || entry.kind === 'dir') && depth < maxDepth) {
+        const childBurrowResult = await this.fetchBurrow(resolveUri(burrow.baseUri, entry.uri));
+        if (childBurrowResult.ok && childBurrowResult.data) {
+          const childEntries = strategy === 'priority'
+            ? sortByPriority(childBurrowResult.data.entries)
+            : childBurrowResult.data.entries;
 
-      yield {
-        entry,
-        content: result.data,
-        error: result.error,
-        fromMirror: false, // TODO: track if fetched from mirror
-      };
-
-      // Follow children if enabled and within depth limit (§6.7)
-      if (followChildren && entry.children && depth < maxDepth) {
-        // Fetch child manifest
-        const childManifestUrl = new URL(
-          entry.children.href,
-          burrow.manifest.roots[0] && isHttpsRoot(burrow.manifest.roots[0])
-            ? burrow.manifest.roots[0].https.base
-            : undefined
-        ).toString();
-
-        const childResult = await this.fetchBurrow(childManifestUrl);
-        if (childResult.ok && childResult.data) {
-          for (const childEntry of childResult.data.entries) {
-            if (filter(childEntry)) {
-              queue.push({ entry: childEntry, depth: depth + 1 });
+          for (const child of childEntries) {
+            if (filter(child)) {
+              queue.push({ entry: child, depth: depth + 1 });
             }
           }
         }
@@ -927,73 +485,169 @@ export class RabitClient {
   }
 
   /**
-   * Generate a traversal report
-   * @see Specification §9.3
+   * Traverse and collect summary
    */
-  async generateTraversalReport(
-    burrow: BurrowManifest,
+  async traverseAndSummarize(
+    burrow: Burrow,
     options: TraversalOptions = {}
-  ): Promise<TraversalReport> {
-    const startTime = new Date().toISOString();
-    const errors: RbtError[] = [];
+  ): Promise<TraversalSummary> {
+    const startTime = Date.now();
+    const errors: Array<{ entryId: string; uri: string; error: string }> = [];
     let entriesProcessed = 0;
     let entriesSkipped = 0;
 
-    for await (const result of this.traverseBurrow(burrow, options)) {
-      if (result.error) {
-        errors.push(result.error);
-        entriesSkipped++;
-      } else {
+    for await (const event of this.traverse(burrow, options)) {
+      if (event.type === 'entry') {
         entriesProcessed++;
+      } else if (event.type === 'error') {
+        entriesSkipped++;
+        errors.push({
+          entryId: event.entry.id,
+          uri: event.entry.uri,
+          error: event.error ?? 'Unknown error',
+        });
+      } else {
+        entriesSkipped++;
       }
     }
 
     return {
-      manifest: burrow.manifest.roots[0]
-        ? getRootDisplayName(burrow.manifest.roots[0])
-        : 'unknown',
-      started: startTime,
-      completed: new Date().toISOString(),
       entriesProcessed,
       entriesSkipped,
       errors,
+      duration: Date.now() - startTime,
     };
   }
 
   // ==========================================================================
-  // Rate Limiting and HTTP
+  // Internal Helpers
   // ==========================================================================
 
   /**
-   * Fetch with rate limiting and retry logic
+   * Normalize a URI for consistent handling
    */
-  private async fetchWithRateLimit(
-    url: string,
-    retries = 3
-  ): Promise<Response> {
-    for (let attempt = 0; attempt < retries; attempt++) {
-      await this.rateLimiter.acquire();
+  private normalizeUri(uri: string): string {
+    // Ensure trailing slash for directory-like URIs
+    if (!uri.endsWith('/') && !uri.includes('.')) {
+      return uri + '/';
+    }
+    return uri;
+  }
 
-      try {
-        const response = await fetch(url, {
-          signal: AbortSignal.timeout(RESOURCE_LIMITS.MAX_REQUEST_TIMEOUT),
-        });
+  /**
+   * Read a local file as text
+   */
+  private async readLocalFile(pathOrUri: string): Promise<string> {
+    let filePath = pathOrUri;
 
-        // Handle rate limiting (§8.6)
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('retry-after');
-          const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : 5000 * (attempt + 1);
-          await sleep(delay);
-          continue;
-        }
-
-        return response;
-      } finally {
-        this.rateLimiter.release();
+    // Convert file:// URL to path
+    if (filePath.startsWith('file://')) {
+      filePath = filePath.replace(/^file:\/\//, '');
+      if (filePath.startsWith('/') && /^\/[a-zA-Z]:/.test(filePath)) {
+        filePath = filePath.slice(1);
       }
     }
 
-    throw createError('rate_limited', `Rate limited after ${retries} attempts`, undefined, url);
+    filePath = normalize(filePath);
+
+    try {
+      return await readFile(filePath, 'utf-8');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      if (errorMessage.includes('ENOENT')) {
+        throw createError('manifest-not-found', `File not found: ${filePath}`, undefined, filePath);
+      }
+      if (errorMessage.includes('EACCES') || errorMessage.includes('EPERM')) {
+        throw createError('transport-error', `Permission denied: ${filePath}`, undefined, filePath);
+      }
+      throw createError('transport-error', `Failed to read file: ${error}`, undefined, filePath);
+    }
+  }
+
+  /**
+   * Read a local file as bytes
+   */
+  private async readLocalFileBytes(pathOrUri: string): Promise<Uint8Array> {
+    let filePath = pathOrUri;
+
+    if (filePath.startsWith('file://')) {
+      filePath = filePath.replace(/^file:\/\//, '');
+      if (filePath.startsWith('/') && /^\/[a-zA-Z]:/.test(filePath)) {
+        filePath = filePath.slice(1);
+      }
+    }
+
+    filePath = normalize(filePath);
+
+    try {
+      const buffer = await readFile(filePath);
+      return new Uint8Array(buffer);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      if (errorMessage.includes('ENOENT')) {
+        throw createError('entry-not-found', `File not found: ${filePath}`, undefined, filePath);
+      }
+      throw createError('transport-error', `Failed to read file: ${error}`, undefined, filePath);
+    }
+  }
+
+  /**
+   * Fetch remote JSON content
+   */
+  private async fetchRemoteJson(url: string): Promise<string> {
+    await this.rateLimiter.acquire();
+
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(this.timeout),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw createError('manifest-not-found', `HTTP 404: ${url}`, undefined, url);
+        }
+        if (response.status === 429) {
+          throw createError('rate-limited', `HTTP 429: Rate limited`, undefined, url);
+        }
+        throw createError('transport-error', `HTTP ${response.status}: ${response.statusText}`, undefined, url);
+      }
+
+      // Validate size
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && parseInt(contentLength, 10) > RESOURCE_LIMITS.MAX_MANIFEST_SIZE) {
+        throw createError('manifest-invalid', `Manifest too large: ${contentLength} bytes`, undefined, url);
+      }
+
+      return await response.text();
+    } finally {
+      this.rateLimiter.release();
+    }
+  }
+
+  /**
+   * Fetch remote binary content
+   */
+  private async fetchRemoteBytes(url: string): Promise<Uint8Array> {
+    await this.rateLimiter.acquire();
+
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(this.timeout),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw createError('entry-not-found', `HTTP 404: ${url}`, undefined, url);
+        }
+        throw createError('transport-error', `HTTP ${response.status}: ${response.statusText}`, undefined, url);
+      }
+
+      return new Uint8Array(await response.arrayBuffer());
+    } finally {
+      this.rateLimiter.release();
+    }
   }
 
   /**
@@ -1011,6 +665,32 @@ export class RabitClient {
 /**
  * Create a default RabitClient instance
  */
-export function createClient(options?: ConstructorParameters<typeof RabitClient>[0]): RabitClient {
+export function createClient(options?: RabitClientOptions): RabitClient {
   return new RabitClient(options);
+}
+
+/**
+ * Quick discover function
+ */
+export async function discover(uri: string, options?: DiscoverOptions): Promise<DiscoveryResult> {
+  const client = createClient();
+  return client.discover(uri, options);
+}
+
+/**
+ * Quick fetch burrow function
+ */
+export async function fetchBurrow(uri: string): Promise<Burrow | null> {
+  const client = createClient();
+  const result = await client.fetchBurrow(uri);
+  return result.ok ? result.data! : null;
+}
+
+/**
+ * Quick fetch warren function
+ */
+export async function fetchWarren(uri: string): Promise<Warren | null> {
+  const client = createClient();
+  const result = await client.fetchWarren(uri);
+  return result.ok ? result.data! : null;
 }

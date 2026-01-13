@@ -2,28 +2,26 @@
 
 > **Reference implementation of Rabit Burrow Traversal (RBT) - Full Client Conformance**
 
-A production-ready TypeScript/Bun client for traversing and consuming Rabit burrows and warrens. Implements the complete RBT specification v0.2 with full Git support, RID verification, mirror fallback, caching, and comprehensive error handling.
+A production-ready TypeScript/Bun client for traversing and consuming Rabit burrows and warrens. Implements the Rabit specification v0.3.0 with full transport support, SHA256 content verification, caching, and comprehensive error handling.
 
 [![License](https://img.shields.io/badge/License-CC--BY--4.0-blue.svg)](LICENSE)
-[![RBT Spec](https://img.shields.io/badge/RBT-v0.2-green.svg)](../rabit-spec-draft-2026-01-12.md)
+[![Rabit Spec](https://img.shields.io/badge/Rabit-v0.3.0-green.svg)](../../docs/rabit-spec-v0.3.0.md)
 
 ## Features
 
-✅ **Full RBT Client Conformance** (Specification §3.2.2)
-- ✅ Git transport support (HTTPS and SSH remotes)
+✅ **Rabit v0.3.0 Implementation**
 - ✅ HTTPS static hosting support
 - ✅ HTTP support with self-signed certificate option (for dev/homelab)
-- ✅ FTP/FTPS/SFTP protocol support (specification support, transport pending)
 - ✅ File path support (local, SMB/CIFS, NFS via native OS access)
+- ✅ Git transport support (plugin)
 - ✅ Automatic transport protocol detection
-- ✅ RID verification for content integrity
-- ✅ Automatic mirror fallback on failure
+- ✅ SHA256 content verification
 - ✅ Cycle detection during traversal
 - ✅ Comprehensive error handling and recovery
-- ✅ Cache control directives
+- ✅ Caching with content hash validation
 - ✅ Resource limits and security validations
 - ✅ Rate limiting and exponential backoff
-- ✅ Well-known endpoint discovery
+- ✅ Parent-walk discovery algorithm
 - ✅ `.burrow.md` and `.warren.md` companion file support
 
 ## Installation
@@ -552,23 +550,19 @@ This project is licensed under [CC-BY-4.0](LICENSE).
 
 ## Links
 
-- **Specification**: [rabit-spec-draft-2026-01-12.md](../rabit-spec-draft-2026-01-12.md)
+- **Specification**: [docs/rabit-spec-v0.3.0.md](../../docs/rabit-spec-v0.3.0.md)
+- **Client Implementation Spec**: [docs/CLIENT_SPEC.md](./docs/CLIENT_SPEC.md)
 - **Repository**: https://github.com/itlackey/rabit
 - **Issues**: https://github.com/itlackey/rabit/issues
 
 ## Specification Compliance
 
-This implementation conforms to draft-rabit-rbt-04:
-- ✅ RBT Client (Full) - Specification §3.2.2
-- ✅ Git Transport - Specification §5.2.1
-- ✅ HTTPS Transport - Specification §5.2.2
-- ✅ HTTP Transport (with insecure option) - Specification §5.2.3
-- ⚠️ FTP/FTPS/SFTP Transport - Specification §5.2.4 (not yet implemented)
-- ✅ File Transport (local/SMB/NFS) - Specification §5.2.5
-- ✅ Transport Protocol Detection - Specification §5.4
-- ✅ RID Verification - Specification §7.3, §7.4
-- ✅ Traversal Algorithm - Specification §8
-- ✅ Error Handling - Specification §9
-- ✅ Well-Known Discovery - Specification §11
-- ✅ Security Considerations - Specification §15
-- ✅ Human-readable companions (.burrow.md, .warren.md) - Specification §4.1.1
+This implementation conforms to Rabit v0.3.0:
+- ✅ Discovery Algorithm - Specification §5
+- ✅ Warren Schema - Specification §7
+- ✅ Burrow Schema - Specification §8
+- ✅ Entry Schema - Specification §9
+- ✅ SHA256 Content Verification - Specification §9.1
+- ✅ Caching Guidance - Specification §11
+- ✅ Security Considerations - Specification §12
+- ✅ Human-readable companions (.burrow.md, .warren.md) - Specification §10

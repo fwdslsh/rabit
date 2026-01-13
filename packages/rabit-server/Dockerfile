@@ -18,7 +18,7 @@ FROM nginx:alpine
 
 LABEL org.opencontainers.image.title="Rabit Server"
 LABEL org.opencontainers.image.description="Serve Rabit burrows and warrens with zero configuration"
-LABEL org.opencontainers.image.version="0.2.0"
+LABEL org.opencontainers.image.version="0.3.0"
 LABEL org.opencontainers.image.vendor="Rabit"
 LABEL org.opencontainers.image.source="https://github.com/rabit/rabit-server"
 

@@ -12,7 +12,7 @@ log() {
     fi
 }
 
-log "INFO" "Starting Rabit Server v0.2.0"
+log "INFO" "Starting Rabit Server v0.3.0"
 log "INFO" "Mode: $RABIT_MODE"
 
 # Set default updated timestamp if not provided

@@ -1,269 +1,144 @@
-# RBT Specification Conformance
-
-This document certifies that `@rabit/client` v0.2.0 implements **Full RBT Client** conformance as defined in the Rabit Burrow Traversal Specification draft-rabit-rbt-04.
-
-## Conformance Level
-
-✅ **RBT Client (Full)** - Specification §3.2.2
-
-## Required Features
-
-All required features for Full Client conformance have been implemented:
-
-### Core Functionality (§3.2.1 - Minimal Client)
-
-- ✅ **Parse `.burrow.json`** per §5
-  - Implementation: `src/client.ts:fetchBurrowFromUrl()`, `src/client.ts:fetchBurrowFromGit()`
-  - Validates required fields: `rbt`, `manifest`, `entries`
-  - Validates manifest size limits (10 MB max)
-  - Validates entry count limits (10,000 max per manifest)
-
-- ✅ **Resolve entries via HTTPS roots**
-  - Implementation: `src/client.ts:fetchEntryFromHttps()`
-  - Supports relative and absolute href resolution
-  - Proper URL validation and security checks
-
-- ✅ **Implement traversal algorithm** per §8
-  - Implementation: `src/client.ts:traverseBurrow()`
-  - Breadth-first traversal (default)
-  - Configurable depth and entry limits
-  - Supports filtering and pagination
-
-- ✅ **Handle errors** per §9
-  - Implementation: `src/utils.ts:createError()`, `src/types.ts:RbtError`
-  - All error categories implemented: `manifest_invalid`, `manifest_not_found`, `entry_not_found`, `verification_failed`, `transport_error`, `rate_limited`
-  - Structured error reporting with retry attempts
-  - Graceful degradation and partial success support
-
-### Advanced Features (§3.2.2 - Full Client)
-
-- ✅ **Support Git transports** (HTTPS and SSH remotes)
-  - Implementation: `src/git.ts`
-  - HTTPS Git remotes: `https://github.com/org/repo.git`
-  - SSH Git remotes: `git@github.com:org/repo.git`
-  - Supports fully-qualified refs and commit SHAs
-  - Supports path within repository
-  - Uses Bun subprocess for Git operations
-
-- ✅ **Support file roots using native OS file access**
-  - Implementation: `src/client.ts:fetchBurrowFromFile()`, `fetchEntryFromFile()`
-  - Local file paths: `/home/user/docs/`
-  - Windows paths: `C:\Documents\`
-  - SMB/CIFS shares: `\\server\share\` (via OS mount)
-  - NFS mounts: `/mnt/nfs/docs/` (via OS mount)
-  - Uses native `fs` module for file access
-  - Inherits authentication from OS-level mechanisms
-
-- ✅ **Verify RIDs** when fetching resources
-  - Implementation: `src/utils.ts:verifyContent()`, `src/utils.ts:computeRid()`
-  - SHA-256 hash computation per §7.3
-  - Verification against `entry.rid` and `entry.hash`
-  - Automatic verification on fetch (configurable)
-
-- ✅ **Support mirror fallback** per §6.4
-  - Implementation: `src/client.ts:fetchEntry()`
-  - Tries all primary roots in order
-  - Falls back to mirrors on failure
-  - Verifies content from mirrors
-  - Tracks which root succeeded
-
-- ✅ **Implement cycle detection** per §7.3
-  - Implementation: `src/client.ts:traverseBurrow()`
-  - Maintains set of visited RIDs
-  - Skips entries with duplicate RIDs
-  - Logs cycle detection for debugging
-
-- ✅ **Respect cache directives** per §8.5
-  - Implementation: `src/client.ts:ManifestCache`
-  - Honors `manifest.cache.maxAge`
-  - Honors `manifest.cache.staleWhileRevalidate`
-  - Defaults to 1 hour cache for manifests without directives
-  - Optional cache enable/disable
-
-## Supported Specifications
-
-### Root Descriptors (§5)
-
-- ✅ Git Root (§5.2.1)
-  - `remote`: Git remote URL
-  - `ref`: Fully-qualified ref or commit SHA
-  - `path`: Optional path within repository
-
-- ✅ HTTPS Root (§5.2.2)
-  - `base`: HTTPS URL ending with `/`
-  - Manifest at `${base}.burrow.json`
-
-- ✅ HTTP Root (§5.2.3)
-  - `base`: HTTP or HTTPS URL ending with `/`
-  - `insecure`: Accept invalid/self-signed TLS certificates
-  - For development, homelab, and internal network environments
-
-- ⚠️ FTP Root (§5.2.4) - *Not yet implemented*
-  - `url`: FTP/FTPS/SFTP URL ending with `/`
-  - `protocol`: Force protocol (auto-detected from URL if omitted)
-  - `insecure`: Accept invalid TLS certificates for FTPS
-  - Supports plain FTP, FTPS (FTP over TLS), and SFTP (SSH File Transfer)
-
-- ✅ File Root (§5.2.5)
-  - `path`: Absolute path to burrow root
-  - Supports local paths, SMB/CIFS, NFS via native OS access
-  - Path traversal prevention for security
-
-- ✅ Root Selection (§5.3)
-  - Prefers file roots for local/network access (lowest latency)
-  - Then Git roots for versioning and integrity
-  - Falls back to HTTPS/HTTP roots for simplicity
+# Rabit v0.3.0 Specification Conformance
 
-- ✅ Transport Protocol Detection (§5.4)
-  - Auto-detects protocol from URL scheme
-  - Supports protocol override via root descriptor
-  - Certificate validation bypass for `insecure` roots
+This document certifies that `@rabit/client` v0.3.0 implements the Rabit Burrow & Warren Specification v0.3.0.
 
-### File Names and Discovery (§4)
+## Conformance Summary
 
-- ✅ Required files (§4.1)
-  - `.burrow.json` manifest parsing
-  - `.warren.json` registry parsing
+✅ **Full Rabit v0.3.0 Implementation**
 
-- ✅ Human-readable companions (§4.1.1)
-  - `.burrow.md` discovery and display
-  - `.warren.md` discovery and display
+## Core Features
 
-### Manifest Format (§6)
+### Well-known Files (§4)
 
-- ✅ Top-level structure (§6.2)
-  - `rbt`, `$schema`, `manifest`, `entries`
+- ✅ `.burrow.json` manifest parsing and validation
+- ✅ `.warren.json` registry parsing and validation
+- ✅ `.burrow.md` companion file support
+- ✅ `.warren.md` companion file support
+- ✅ Precedence rules when both warren and burrow exist
 
-- ✅ Manifest metadata (§6.3)
-  - `title`, `updated`, `rid`, `roots`
-  - Optional: `description`, `mirrors`, `repo`, `agents`, `auth`, `cache`, `git`
+### Discovery Algorithm (§5)
 
-- ✅ Entry objects (§6.4)
-  - Required: `id`, `rid`, `href`, `type`, `rel`
-  - Optional: `title`, `summary`, `hash`, `size`, `modified`, `lang`, `links`, `children`
+- ✅ Parent-walk discovery (configurable depth, default: 2)
+- ✅ Warren discovery at `U + "/.warren.json"`
+- ✅ Burrow discovery at `U + "/.burrow.json"`
+- ✅ Combined warren/burrow discovery
+- ✅ Transport-agnostic URI handling
 
-- ✅ Relation types (§6.5)
-  - All normative relation types supported: `item`, `collection`, `index`, `about`, `alternate`, `parent`, `related`, `license`, `author`
+### Common Document Fields (§6)
 
-- ✅ Pagination (§6.7)
-  - `children` descriptor with `href`, `offset`, `limit`, `total`
-  - Recursive child manifest fetching
+- ✅ `specVersion` validation (format: `fwdslsh.dev/rabit/schemas/0.3.0/{kind}`)
+- ✅ `kind` field validation (`warren` or `burrow`)
+- ✅ `$schema` optional field support
+- ✅ `title`, `description`, `updated` optional fields
+- ✅ `baseUri` for relative path resolution
+- ✅ `metadata` extensibility field
+- ✅ `extensions` deprecated field (backward compatibility)
 
-### RID Computation (§7)
+### Warren Schema (§7)
 
-- ✅ RID scheme (§7.2)
-  - `urn:rabit:sha256:{hex}`
-  - 64-character lowercase hexadecimal SHA-256 digest
+- ✅ `burrows` array with burrow references
+- ✅ `warrens` array for federation
+- ✅ Burrow reference fields: `id`, `uri`, `title`, `description`, `tags`, `priority`, `metadata`
+- ✅ Warren reference fields: `id`, `uri`, `title`, `description`, `metadata`
+- ✅ Validation: requires `burrows` or `warrens` array
 
-- ✅ RID computation (§7.3)
-  - For regular files: SHA-256 over raw bytes
-  - Uses file content, not Git blob format
-  - Consistent between Git and HTTPS
-
-- ✅ Mirror substitution (§7.4)
-  - Verifies content against RID/hash
-  - Falls back on verification failure
-  - Logs verification failures
-
-### Traversal (§8)
-
-- ✅ Breadth-first traversal (§8.3)
-  - Queue-based implementation
-  - Configurable depth and entry limits
-  - Optional filter function
-
-- ✅ Cycle detection (§8.4)
-  - RID-based visited tracking
-  - Skips duplicate entries
-
-- ✅ Cache control (§8.5)
-  - Manifest-level cache directives
-  - `maxAge` and `staleWhileRevalidate`
-  - Conditional requests with ETag
-
-- ✅ Rate limiting (§8.6)
-  - Maximum 10 concurrent requests per host (configurable)
-  - Minimum 100ms delay between requests (configurable)
-  - Exponential backoff on 429 responses
-
-### Error Handling (§9)
-
-- ✅ Error categories (§9.1)
-  - All categories implemented
-  - Proper recovery strategies
-
-- ✅ Graceful degradation (§9.2)
-  - Root fallback
-  - Mirror fallback
-  - Partial success
-  - Error aggregation
-
-- ✅ Error reporting (§9.3)
-  - Structured traversal reports
-  - Timestamps and metrics
-  - Detailed error information
-
-### Warren Registry (§10)
-
-- ✅ Registry format (§10.2, §10.3)
-  - `.warren.json` and `.warren.md`
-  - All required and optional fields
-
-- ✅ Registry entries (§10.5)
-  - `name`, `title`, `summary`, `roots`
-  - Optional: `rid`, `tags`, `updated`
-
-### Well-Known Discovery (§11)
-
-- ✅ `/.well-known/rabit-burrow` (§11.1)
-  - Implementation: `src/client.ts:discoverBurrow()`
-  - Returns manifest location and roots
-
-- ✅ `/.well-known/rabit-warren` (§11.2)
-  - Implementation: `src/client.ts:discoverWarren()`
-  - Returns registry locations (JSON and Markdown)
-
-### Agent Instructions (§13)
-
-- ✅ Standard repository files (§13.3)
-  - `manifest.repo` metadata
-  - README, LICENSE, CONTRIBUTING, CHANGELOG, SECURITY
-
-- ✅ Manifest-based instructions (§13.4)
-  - `manifest.agents` object
-  - `context`, `entryPoint`, `hints`, `ignore`
-
-- ✅ Permissions guidance (§13.5)
-  - `manifest.agents.permissions`
-  - Advisory hints (not enforced)
-
-### Authentication (§14)
-
-- ✅ Authentication metadata
-  - `manifest.auth` object
-  - `required` and `documentation` fields
-  - Uses standard Git and HTTPS authentication
-
-### Security (§15)
-
-- ✅ URL validation (§15.2)
-  - Implementation: `src/utils.ts:validateUrl()`
-  - Rejects non-HTTPS URLs (except git://)
-  - Rejects private IPs and localhost
-  - Rejects URLs with credentials
-
-- ✅ Resource limits (§15.3)
-  - Implementation: `src/utils.ts:RESOURCE_LIMITS`
-  - Maximum manifest size: 10 MB
-  - Maximum entry count: 10,000
-  - Maximum traversal depth: 100
-  - Maximum total entries: 1,000,000
-  - Maximum request timeout: 30 seconds
-
-- ✅ Content handling (§15.4)
-  - Treats content as untrusted
-  - Validates media types
-  - Implements resource limits
+### Burrow Schema (§8)
+
+- ✅ `entries` array with entry objects
+- ✅ `repo` object for repository metadata
+  - `readme`, `license`, `contributing`, `changelog`
+  - Additional custom properties
+- ✅ `agents` object for agent instructions
+  - `context`, `entryPoint`, `hints`
+  - Additional custom properties
+
+### Entry Schema (§9)
+
+- ✅ Required fields: `id`, `kind`, `uri`
+- ✅ Optional fields: `title`, `summary`, `path`, `mediaType`, `sizeBytes`, `modified`, `sha256`, `tags`, `priority`, `metadata`
+- ✅ Entry kind values: `file`, `dir`, `burrow`, `link`
+- ✅ SHA256 content verification (when provided)
+
+### Caching Guidance (§11)
+
+- ✅ Manifest caching
+- ✅ SHA256-based cache validation
+- ✅ ETag support for HTTP transports
+
+### Security Considerations (§12)
+
+- ✅ URL validation (private IP blocking, localhost blocking)
+- ✅ Resource limits (manifest size, entry count, traversal depth)
+- ✅ TLS certificate validation (with optional insecure mode)
+- ✅ SSRF prevention
+- ✅ Credential redaction in logs
+
+### Extensibility (§13)
+
+- ✅ `metadata` field on root documents
+- ✅ `metadata` field on burrow/warren references
+- ✅ `metadata` field on entries
+- ✅ Unknown field tolerance (forward compatibility)
+
+## Transport Support
+
+### Native Transports (CLIENT_SPEC §2.1)
+
+- ✅ HTTPS (`https://`)
+- ✅ HTTP (`http://`) with insecure warning
+- ✅ File (`file://`, absolute paths)
+
+### Plugin Transports (CLIENT_SPEC §2.2)
+
+- ⚠️ Git (`git://`, `git@`) - plugin architecture defined
+- ⚠️ SSH/SFTP (`ssh://`, `sftp://`) - plugin architecture defined
+- ⚠️ FTP/FTPS (`ftp://`, `ftps://`) - plugin architecture defined
+
+## Client Implementation (CLIENT_SPEC)
+
+### Discovery (§3)
+
+- ✅ URI normalization
+- ✅ Parent-walk with configurable depth
+- ✅ Combined warren/burrow result
+
+### Traversal (§4)
+
+- ✅ Breadth-first traversal (default)
+- ✅ Depth-first traversal
+- ✅ Priority-based traversal
+- ✅ Configurable max depth and entry limits
+- ✅ Entry filtering
+- ✅ Cycle detection
+
+### Error Handling (§5)
+
+- ✅ Error categories: `manifest-invalid`, `manifest-not-found`, `entry-not-found`, `transport-error`, `hash-mismatch`, `timeout`, `rate-limited`
+- ✅ Error recovery with retries and backoff
+- ✅ Graceful degradation
+- ✅ Traversal error aggregation
+
+### Caching (§6)
+
+- ✅ Cache key generation (SHA256 of URI)
+- ✅ Cache validation with SHA256
+- ✅ Configurable cache options
+
+### Rate Limiting (§7)
+
+- ✅ Max concurrent requests per host
+- ✅ Min delay between requests
+- ✅ Backoff on 429 responses
+
+### Security (§8)
+
+- ✅ URL validation
+- ✅ Content handling
+- ✅ Credential security
+- ✅ Logging redaction (§8.4)
+- ✅ TLS handling (§8.5)
+- ✅ SSRF prevention (§8.6)
+- ✅ Resource limits (§8.7)
 
 ## API Coverage
 
@@ -271,43 +146,26 @@ All required features for Full Client conformance have been implemented:
 
 - ✅ `RabitClient` class
 - ✅ `createClient()` factory function
-- ✅ `fetchBurrow()` - manifest fetching
-- ✅ `fetchWarren()` - registry fetching
+- ✅ `discover()` - discovery algorithm
+- ✅ `fetchBurrow()` - burrow fetching
+- ✅ `fetchWarren()` - warren fetching
 - ✅ `fetchEntry()` - entry content fetching
-- ✅ `traverseBurrow()` - burrow traversal
-- ✅ `discoverBurrow()` - well-known discovery
-- ✅ `discoverWarren()` - well-known discovery
-- ✅ `generateTraversalReport()` - error reporting
+- ✅ `traverse()` - burrow traversal generator
 
 ### Helper Functions
 
-- ✅ Entry discovery: `findEntry()`, `findEntriesByRel()`, `findEntriesByType()`, `searchEntries()`
-- ✅ Agent helpers: `getEntryPoint()`, `getAgentHints()`, `getAgentContext()`, `checkPermission()`, `getIgnorePatterns()`
-- ✅ Warren helpers: `listBurrows()`, `findBurrow()`, `findBurrowsByTag()`, `getBurrowUrl()`, `getAllTags()`
-- ✅ Burrow metadata: `getBurrowBaseUrl()`, `getRepoFiles()`, `requiresAuth()`, `getCacheDirectives()`, `getBurrowStats()`
-- ✅ Entry helpers: `isCollection()`, `isIndex()`, `hasPagination()`, `getEntriesByRelation()`, `groupByMediaType()`
+- ✅ Entry helpers: `findEntry()`, `findEntriesByKind()`, `findEntriesByTag()`, `findEntriesByMediaType()`, `searchEntries()`
+- ✅ Agent helpers: `getEntryPoint()`, `getAgentHints()`, `getAgentContext()`
+- ✅ Warren helpers: `listBurrows()`, `findBurrow()`, `findBurrowsByTag()`, `getBurrowsByPriority()`
+- ✅ Burrow helpers: `getEntriesByPriority()`, `groupEntriesByKind()`, `getAllTags()`, `getRepoFiles()`, `getBurrowStats()`
 
 ### Utility Functions
 
-- ✅ RID computation: `computeSha256()`, `computeRid()`, `verifyContent()`
-- ✅ Validation: `validateUrl()`, `validateManifestSize()`, `validateEntryCount()`
-- ✅ Error handling: `createError()`
-- ✅ Type guards: `isGitRoot()`, `isHttpsRoot()`, `isHttpRoot()`, `isFtpRoot()`, `isFileRoot()`, `isInsecureRoot()`, `getBaseUrl()`, `detectTransportProtocol()`
-
-### Git Functions
-
-- ✅ `cloneRepository()` - Git repository cloning
-- ✅ `readFileFromRepo()` - File reading from cloned repo
-- ✅ `cleanupRepository()` - Cleanup after use
-- ✅ `isGitAvailable()` - Git availability check
-
-## Testing
-
-- ✅ Comprehensive test suite (`src/client.test.ts`)
-- ✅ Unit tests for core functionality
-- ✅ Type guards and utilities tested
-- ✅ Helper functions tested
-- ✅ All tests passing
+- ✅ URI resolution: `resolveUri()`, `getParentUri()`
+- ✅ Transport detection: `detectTransport()`
+- ✅ Sorting: `sortByPriority()`
+- ✅ Version utilities: `isValidSpecVersion()`, `extractVersion()`
+- ✅ Type guards: `isBurrow()`, `isWarren()`, `isFileEntry()`, `isDirEntry()`, `isBurrowEntry()`, `isLinkEntry()`
 
 ## TypeScript Support
 
@@ -315,56 +173,26 @@ All required features for Full Client conformance have been implemented:
 - ✅ Exported types for all interfaces
 - ✅ Type guards for runtime checks
 - ✅ Declaration files generated
+- ✅ Index signatures for extensible objects
 
 ## CLI Tool
 
-- ✅ Full-featured CLI (`src/cli.ts`)
-- ✅ All major operations supported
-- ✅ Comprehensive help and examples
+- ✅ `rabit discover <uri>` - discovery
+- ✅ `rabit list <uri>` - list entries
+- ✅ `rabit fetch <uri> <entry-id>` - fetch entry
+- ✅ `rabit traverse <uri>` - traverse burrow
+- ✅ `rabit validate <file>` - validate manifest
 - ✅ Rich terminal output with colors
-
-## Documentation
-
-- ✅ Comprehensive README with API reference
-- ✅ Implementor's guide with practical examples
-- ✅ Example code (`examples/basic-usage.ts`)
-- ✅ Inline documentation and JSDoc comments
-
-## Specification Compliance Summary
-
-| Section | Feature | Status |
-|---------|---------|--------|
-| §3.2.1 | Minimal Client | ✅ Fully Implemented |
-| §3.2.2 | Full Client | ✅ Fully Implemented |
-| §4.1 | File Names (.burrow.json, .warren.json) | ✅ Fully Implemented |
-| §4.1.1 | Human-readable companions (.burrow.md, .warren.md) | ✅ Fully Implemented |
-| §5 | Root Descriptors | ✅ Fully Implemented |
-| §5.2.1 | Git Roots | ✅ Fully Implemented |
-| §5.2.2 | HTTPS Roots | ✅ Fully Implemented |
-| §5.2.3 | HTTP Roots (insecure option) | ✅ Fully Implemented |
-| §5.2.4 | FTP/FTPS/SFTP Roots | ⚠️ Not Yet Implemented |
-| §5.2.5 | File Roots (local/SMB/NFS) | ✅ Fully Implemented |
-| §5.4 | Transport Protocol Detection | ✅ Fully Implemented |
-| §6 | Manifest Format | ✅ Fully Implemented |
-| §7 | RID Verification | ✅ Fully Implemented |
-| §8 | Traversal Algorithm | ✅ Fully Implemented |
-| §9 | Error Handling | ✅ Fully Implemented |
-| §10 | Warren Registry | ✅ Fully Implemented |
-| §11 | Well-Known Discovery | ✅ Fully Implemented |
-| §13 | Agent Instructions | ✅ Fully Implemented |
-| §14 | Authentication | ✅ Fully Implemented |
-| §15 | Security | ✅ Fully Implemented |
 
 ## Certification
 
-This implementation has been verified to meet all requirements for **RBT Client (Full)** conformance as defined in:
+This implementation has been verified to meet all requirements for Rabit v0.3.0:
 
-**Rabit Burrow Traversal Specification**
-draft-rabit-rbt-04
-Version 0.2
+**Rabit Burrow & Warren Specification**
+Version: 0.3.0
 Date: 2026-01-13
 
-**Implementation Version:** @rabit/client v0.2.0
+**Implementation Version:** @rabit/client v0.3.0
 **Certification Date:** 2026-01-13
 **Platform:** Bun 1.0+
 **Language:** TypeScript 5.3+
@@ -386,21 +214,19 @@ bun test
 # Type check
 bun x tsc --noEmit
 
-# Test against specification examples
-rabit burrow https://rabit.dev/examples/
-rabit warren https://rabit.dev/registry/
+# Test against examples
+rabit discover https://example.com/
+rabit list https://example.com/docs/
 ```
 
 ## Future Enhancements
 
-While this implementation achieves Full Client conformance, future versions may add:
-
-- [ ] FTP/FTPS/SFTP transport support (§5.2.4)
-- [ ] Manifest signing verification (§15.6 - reserved for future)
-- [ ] Enhanced caching strategies
-- [ ] Additional security hardening
-- [ ] Performance optimizations
+- [ ] Git transport plugin
+- [ ] SSH/SFTP transport plugin
+- [ ] FTP/FTPS transport plugin
 - [ ] Browser support (currently Bun-only)
+- [ ] Enhanced caching strategies
+- [ ] Performance optimizations
 
 ---
 

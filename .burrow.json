@@ -1,357 +1,132 @@
 {
-  "rbt": "0.2",
   "$schema": "./schemas/burrow.schema.json",
-  "manifest": {
-    "title": "Rabit: Burrows for the Agentic Web",
-    "description": "Specification and reference implementation for Rabit Burrow Traversal (RBT), a convention for publishing agent-friendly content spaces. This is a Bun.js monorepo with packages for the client, server, and OpenCode plugin.",
-    "updated": "2026-01-13T00:00:00Z",
-    "rid": "urn:rabit:sha256:rabit-project-manifest",
-    "roots": [
-      {
-        "git": {
-          "remote": "https://github.com/itlackey/rabit.git",
-          "ref": "refs/heads/main",
-          "path": "/"
-        }
-      }
-    ],
-    "repo": {
-      "readme": "README.md",
-      "license": "LICENSE"
-    },
-    "agents": {
-      "context": "This is the official Rabit project repository, structured as a Bun.js monorepo. It contains the RBT specification (draft-rabit-rbt-04) in the docs/ directory, reference implementations in packages/ (rabit-client, rabit-server, opencode-rabit), and example burrows in examples/. The spec supports multiple transport protocols: Git, HTTPS, HTTP (with insecure option for dev/homelab), FTP/FTPS/SFTP, and file paths (local, SMB, NFS). It also supports .burrow.md companion files.",
-      "entryPoint": "readme",
-      "hints": [
-        "The specification document (docs/rabit-spec-draft-2026-01-12.md) contains normative requirements marked with RFC 2119 keywords",
-        "The packages/rabit-client directory contains a full TypeScript/Bun client implementation with Git, HTTPS, HTTP, and file path support",
-        "The packages/rabit-server directory contains a Docker-based server implementation with a read-only Git server example",
-        "The packages/opencode-rabit directory contains an MCP plugin for OpenCode and other MCP-compatible AI tools",
-        "The examples/ directory contains example burrows with .burrow.md companion files",
-        "Transport protocol auto-detection from URL schemes with override capability"
-      ],
-      "ignore": ["*.git*", "node_modules", "dist"]
-    }
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "kind": "burrow",
+  "title": "Rabit: Burrows for the Agentic Web",
+  "description": "Specification and reference implementation for Rabit, a convention for publishing agent-friendly content spaces. This is a Bun.js monorepo with packages for the client, server, and OpenCode plugin.",
+  "updated": "2026-01-13T00:00:00Z",
+  "baseUri": "https://github.com/itlackey/rabit/",
+  "repo": {
+    "readme": "README.md",
+    "license": "LICENSE"
+  },
+  "agents": {
+    "context": "Official Rabit project repository. Contains the v0.3.0 specification (docs/rabit-spec-v0.3.0.md), reference implementations in packages/ (rabit-client, rabit-server, opencode-rabit), and example burrows in examples/.",
+    "entryPoint": "readme",
+    "hints": [
+      "The specification document (docs/rabit-spec-v0.3.0.md) is the authoritative reference",
+      "The packages/rabit-client directory contains a TypeScript/Bun client implementation",
+      "The examples/ directory contains example burrows demonstrating the format"
+    ]
   },
   "entries": [
     {
       "id": "readme",
-      "rid": "urn:rabit:sha256:dbe3341683813b04b5220113aadf202aa851541317c6547559b58febabb387eb",
-      "href": "README.md",
-      "type": "text/markdown",
-      "rel": ["index", "about"],
+      "kind": "file",
+      "uri": "README.md",
       "title": "Rabit: Burrows for the Agentic Web",
-      "summary": "Introduction to Rabit, a specification for publishing content that both humans and AI agents can navigate reliably."
+      "summary": "Introduction to Rabit, a specification for publishing content that both humans and AI agents can navigate reliably.",
+      "mediaType": "text/markdown",
+      "priority": 100
     },
     {
       "id": "license",
-      "rid": "urn:rabit:sha256:2445643fc84926e8de56f3a1fcc50133b8e1244e5f696b6624863cfa2714bf62",
-      "href": "LICENSE",
-      "type": "text/plain",
-      "rel": ["license"],
-      "title": "CC-BY-4.0 License"
-    },
-    {
-      "id": "burrow-md",
-      "rid": "urn:rabit:sha256:burrow-md-companion",
-      "href": ".burrow.md",
-      "type": "text/markdown",
-      "rel": ["about", "index"],
-      "title": "Rabit Project Burrow (Human-Readable)",
-      "summary": "Human-readable companion file for the project burrow, providing navigation and context for humans browsing the repository."
+      "kind": "file",
+      "uri": "LICENSE",
+      "title": "CC-BY-4.0 License",
+      "mediaType": "text/plain",
+      "tags": ["license"]
     },
     {
       "id": "specification",
-      "rid": "urn:rabit:sha256:a99c4b44f532804535b715e43fd06796af56c7dc9ae896db330ff5669f17b471",
-      "href": "docs/rabit-spec-draft-2026-01-12.md",
-      "type": "text/markdown",
-      "rel": ["item"],
-      "title": "RBT Specification Draft",
-      "summary": "The full technical specification for Rabit Burrow Traversal (RBT) v0.2, defining manifest formats, traversal algorithms, and conformance levels."
+      "kind": "file",
+      "uri": "docs/rabit-spec-v0.3.0.md",
+      "title": "Rabit Specification v0.3.0",
+      "summary": "The full technical specification for Rabit Burrow & Warren format, defining manifest formats and schema.",
+      "mediaType": "text/markdown",
+      "priority": 90,
+      "tags": ["spec", "docs"]
+    },
+    {
+      "id": "client-spec",
+      "kind": "file",
+      "uri": "packages/rabit-client/docs/CLIENT_SPEC.md",
+      "title": "Client Implementation Specification",
+      "summary": "Implementation guide for the rabit-client, including transport protocols, traversal algorithms, and caching.",
+      "mediaType": "text/markdown",
+      "priority": 85,
+      "tags": ["spec", "docs", "implementation"]
+    },
+    {
+      "id": "feedback-analysis",
+      "kind": "file",
+      "uri": "docs/spec-feedback-analysis-v0.3.0.md",
+      "title": "v0.3.0 Feedback Analysis",
+      "summary": "Analysis of feedback on the specification and the plan to integrate it.",
+      "mediaType": "text/markdown",
+      "tags": ["docs", "analysis"]
+    },
+    {
+      "id": "packages",
+      "kind": "dir",
+      "uri": "packages/",
+      "title": "Packages",
+      "summary": "Monorepo packages: rabit-client, rabit-server, opencode-rabit.",
+      "priority": 70,
+      "tags": ["code"]
+    },
+    {
+      "id": "client-readme",
+      "kind": "file",
+      "uri": "packages/rabit-client/README.md",
+      "title": "Rabit Client Documentation",
+      "summary": "Documentation for the TypeScript/Bun rabit-client implementation.",
+      "mediaType": "text/markdown",
+      "tags": ["docs", "client"]
     },
     {
       "id": "server-readme",
-      "rid": "urn:rabit:sha256:469dc80c0aca8e60647062c6ba6f7163952bebaf0cf970267593c46bc5dcc27e",
-      "href": "packages/rabit-server/README.md",
-      "type": "text/markdown",
-      "rel": ["item", "about"],
+      "kind": "file",
+      "uri": "packages/rabit-server/README.md",
       "title": "Rabit Server Documentation",
-      "summary": "Documentation for the Docker-based rabit-server implementation."
+      "summary": "Documentation for the Docker-based rabit-server implementation.",
+      "mediaType": "text/markdown",
+      "tags": ["docs", "server"]
     },
     {
-      "id": "server-license",
-      "rid": "urn:rabit:sha256:2445643fc84926e8de56f3a1fcc50133b8e1244e5f696b6624863cfa2714bf62",
-      "href": "packages/rabit-server/LICENSE",
-      "type": "text/plain",
-      "rel": ["license"],
-      "title": "Server License (CC-BY-4.0)"
-    },
-    {
-      "id": "server-dockerfile",
-      "rid": "urn:rabit:sha256:3490f7d1a814c8e1a9bfed4d65dd6cab0b01c172cd247049eabb90ca762b7dd8",
-      "href": "packages/rabit-server/Dockerfile",
-      "type": "text/x-dockerfile",
-      "rel": ["item"],
-      "title": "Server Dockerfile",
-      "summary": "Multi-stage Docker build for the rabit-server using Bun and nginx."
-    },
-    {
-      "id": "server-makefile",
-      "rid": "urn:rabit:sha256:99e7db282029fea0a94c9c04366df0d68872c1d86280dfb46215423a140f1d6e",
-      "href": "packages/rabit-server/Makefile",
-      "type": "text/x-makefile",
-      "rel": ["item"],
-      "title": "Server Makefile",
-      "summary": "Build and deployment automation for rabit-server."
-    },
-    {
-      "id": "server-compose",
-      "rid": "urn:rabit:sha256:4c50ce1fba8fcb5657c09673e689f8a53d10c7d8041d1606bacb99dcda4d756c",
-      "href": "packages/rabit-server/docker-compose.yml",
-      "type": "application/x-yaml",
-      "rel": ["item"],
-      "title": "Docker Compose Configuration",
-      "summary": "Quick start Docker Compose configuration for single-burrow setup."
-    },
-    {
-      "id": "server-compose-examples",
-      "rid": "urn:rabit:sha256:d1c674281daaf859ca53f6e5aa7ec0c4eae37eeecf211658f16c5baa48be9deb",
-      "href": "packages/rabit-server/docker-compose.examples.yml",
-      "type": "application/x-yaml",
-      "rel": ["item"],
-      "title": "Docker Compose Examples",
-      "summary": "Reference configurations showing various deployment patterns including warren mode, production with Traefik, and private burrows."
-    },
-    {
-      "id": "server-entrypoint",
-      "rid": "urn:rabit:sha256:3a7d7c248d51f02d331f118165cc65a0cec08ccd139e58b66cb251501cfcec28",
-      "href": "packages/rabit-server/scripts/entrypoint.sh",
-      "type": "application/x-sh",
-      "rel": ["item"],
-      "title": "Docker Entrypoint Script",
-      "summary": "Container entrypoint that generates nginx configuration and manifests."
-    },
-    {
-      "id": "server-generate-manifest",
-      "rid": "urn:rabit:sha256:5c512e163470479f97eca0df596e7efe0d526f21ced13491f290d8d5d4b59715",
-      "href": "packages/rabit-server/scripts/generate-manifest.ts",
-      "type": "application/typescript",
-      "rel": ["item"],
-      "title": "Manifest Generator",
-      "summary": "TypeScript script that auto-generates .burrow.json and .warren.json from directory contents."
-    },
-    {
-      "id": "opencode-rabit-readme",
-      "href": "packages/opencode-rabit/README.md",
-      "type": "text/markdown",
-      "rel": ["item", "about"],
+      "id": "opencode-readme",
+      "kind": "file",
+      "uri": "packages/opencode-rabit/README.md",
       "title": "OpenCode Rabit Plugin Documentation",
-      "summary": "Documentation for the OpenCode MCP plugin that provides Rabit tools for AI agents."
+      "summary": "Documentation for the OpenCode MCP plugin that provides Rabit tools for AI agents.",
+      "mediaType": "text/markdown",
+      "tags": ["docs", "mcp", "plugin"]
     },
     {
-      "id": "opencode-rabit-index",
-      "href": "packages/opencode-rabit/src/index.ts",
-      "type": "application/typescript",
-      "rel": ["item"],
-      "title": "OpenCode Rabit MCP Server",
-      "summary": "MCP server implementation providing Rabit Burrow Traversal tools for AI agents."
+      "id": "examples",
+      "kind": "dir",
+      "uri": "examples/",
+      "title": "Examples",
+      "summary": "Example burrows, warren setup, and proof-of-concept CLI client.",
+      "priority": 60,
+      "tags": ["examples"]
     },
     {
       "id": "examples-readme",
-      "rid": "urn:rabit:sha256:a8129c39780df86aecbd7701582a19d84b88bf6da5039119d6b89e1e8554bbdc",
-      "href": "examples/README.md",
-      "type": "text/markdown",
-      "rel": ["item", "about"],
-      "title": "Rabit Examples Documentation",
-      "summary": "Documentation for example burrows, warren setup, and the proof-of-concept CLI client."
+      "kind": "file",
+      "uri": "examples/README.md",
+      "title": "Examples Documentation",
+      "summary": "Documentation for example burrows and warren setup.",
+      "mediaType": "text/markdown",
+      "tags": ["docs", "examples"]
     },
     {
-      "id": "examples-compose",
-      "rid": "urn:rabit:sha256:23f643f4975734a57a102275fd8cb73e1287096a53e236b45b51065a45450907",
-      "href": "examples/docker-compose.yml",
-      "type": "application/x-yaml",
-      "rel": ["item"],
-      "title": "Examples Docker Compose",
-      "summary": "Docker Compose configuration hosting three example burrows and a warren."
-    },
-    {
-      "id": "examples-nginx-cors",
-      "rid": "urn:rabit:sha256:a5430e85c75a4a294cc4966d28d43888e19d5a0a4aea19163d23ba13ae09370f",
-      "href": "examples/nginx-cors.conf",
-      "type": "text/plain",
-      "rel": ["item"],
-      "title": "CORS Configuration",
-      "summary": "Nginx CORS configuration snippet for the example servers."
-    },
-    {
-      "id": "client-types",
-      "rid": "urn:rabit:sha256:c97c565f1c27f61be128de73c989231906a48753181dc65b56261c0d5dadf73d",
-      "href": "examples/client/types.ts",
-      "type": "application/typescript",
-      "rel": ["item"],
-      "title": "RBT TypeScript Types",
-      "summary": "TypeScript type definitions for BurrowManifest, WarrenRegistry, entries, and roots."
-    },
-    {
-      "id": "client-cli",
-      "rid": "urn:rabit:sha256:e49aecabbc9436763eee02e5e9550fdcad724c0eb9fa8b2b7b94edad9ad227a5",
-      "href": "examples/client/cli.ts",
-      "type": "application/typescript",
-      "rel": ["item"],
-      "title": "CLI Commands",
-      "summary": "Command-line interface for interacting with burrows and warrens."
-    },
-    {
-      "id": "docs-burrow-license",
-      "rid": "urn:rabit:sha256:2445643fc84926e8de56f3a1fcc50133b8e1244e5f696b6624863cfa2714bf62",
-      "href": "examples/burrows/docs-burrow/LICENSE",
-      "type": "text/plain",
-      "rel": ["license"],
-      "title": "Docs Burrow License (CC-BY-4.0)"
-    },
-    {
-      "id": "docs-burrow-md",
-      "rid": "urn:rabit:sha256:docs-burrow-md-companion",
-      "href": "examples/burrows/docs-burrow/.burrow.md",
-      "type": "text/markdown",
-      "rel": ["about"],
-      "title": "Docs Burrow Companion (Human-Readable)",
-      "summary": "Human-readable companion file for the documentation example burrow."
-    },
-    {
-      "id": "api-burrow-md",
-      "rid": "urn:rabit:sha256:api-burrow-md-companion",
-      "href": "examples/burrows/api-burrow/.burrow.md",
-      "type": "text/markdown",
-      "rel": ["about"],
-      "title": "API Burrow Companion (Human-Readable)",
-      "summary": "Human-readable companion file for the API reference example burrow."
-    },
-    {
-      "id": "blog-burrow-md",
-      "rid": "urn:rabit:sha256:blog-burrow-md-companion",
-      "href": "examples/burrows/blog-burrow/.burrow.md",
-      "type": "text/markdown",
-      "rel": ["about"],
-      "title": "Blog Burrow Companion (Human-Readable)",
-      "summary": "Human-readable companion file for the blog example burrow."
-    },
-    {
-      "id": "docs-burrow-readme",
-      "rid": "urn:rabit:sha256:b0a19c1d9d0781a3e940a07a6a0850f69b79ddf8852a2a9d4600e7cac356f68f",
-      "href": "examples/burrows/docs-burrow/README.md",
-      "type": "text/markdown",
-      "rel": ["item", "about"],
-      "title": "Acme Documentation Example",
-      "summary": "Example documentation burrow for the fictional Acme Platform."
-    },
-    {
-      "id": "docs-burrow-faq",
-      "rid": "urn:rabit:sha256:7f9138d6ab66bebe17ab096ec9139cbcf9999de14226c95305b0f7eefbe2fa49",
-      "href": "examples/burrows/docs-burrow/faq.md",
-      "type": "text/markdown",
-      "rel": ["item"],
-      "title": "Acme FAQ Example",
-      "summary": "Example FAQ document for the fictional Acme Platform."
-    },
-    {
-      "id": "docs-burrow-installation",
-      "rid": "urn:rabit:sha256:369c450116f634c12f723a67a6d52a08f6b41cd9757512eee2f371f9019d869b",
-      "href": "examples/burrows/docs-burrow/guides/installation.md",
-      "type": "text/markdown",
-      "rel": ["item"],
-      "title": "Acme Installation Guide Example",
-      "summary": "Example installation guide for the fictional Acme Platform."
-    },
-    {
-      "id": "docs-burrow-configuration",
-      "rid": "urn:rabit:sha256:da39b0b56c5a1eb2878abe7e652cca9c0c473bc9eba8ca02b5440dd0f6dede91",
-      "href": "examples/burrows/docs-burrow/guides/configuration.md",
-      "type": "text/markdown",
-      "rel": ["item"],
-      "title": "Acme Configuration Guide Example",
-      "summary": "Example configuration guide for the fictional Acme Platform."
-    },
-    {
-      "id": "docs-burrow-api-overview",
-      "rid": "urn:rabit:sha256:74c5644c89ef0be0c227747fafe73e79275d9fa8a6046ea33c70872d262d31be",
-      "href": "examples/burrows/docs-burrow/api/overview.md",
-      "type": "text/markdown",
-      "rel": ["item"],
-      "title": "Acme API Overview Example",
-      "summary": "Example API overview for the fictional Acme Platform."
-    },
-    {
-      "id": "api-burrow-readme",
-      "rid": "urn:rabit:sha256:ac23c03fd85b3b9cc63431840bdf4012a8ff8e04dc8f8710218428346841c5dc",
-      "href": "examples/burrows/api-burrow/README.md",
-      "type": "text/markdown",
-      "rel": ["item", "about"],
-      "title": "Acme API Reference Example",
-      "summary": "Example API reference burrow for the fictional Acme Platform."
-    },
-    {
-      "id": "api-burrow-auth",
-      "rid": "urn:rabit:sha256:431ec6283ae2ab3fae65efbacac08a706e8d18cb2c6b0f9653a314889e3030fb",
-      "href": "examples/burrows/api-burrow/auth.md",
-      "type": "text/markdown",
-      "rel": ["item"],
-      "title": "Acme Authentication Example",
-      "summary": "Example authentication documentation for the fictional Acme API."
-    },
-    {
-      "id": "api-burrow-endpoints",
-      "rid": "urn:rabit:sha256:a1110f40444dbd5fa71b6185e63183e4aea8b49f4428e8114e8b46ebe27632d0",
-      "href": "examples/burrows/api-burrow/endpoints.md",
-      "type": "text/markdown",
-      "rel": ["item"],
-      "title": "Acme API Endpoints Example",
-      "summary": "Example API endpoints documentation for the fictional Acme API."
-    },
-    {
-      "id": "api-burrow-openapi",
-      "rid": "urn:rabit:sha256:ec95a878b847b3da8cbed97b03f8b674594d75df520fef48febfcd840caa51e8",
-      "href": "examples/burrows/api-burrow/openapi.yaml",
-      "type": "application/x-yaml",
-      "rel": ["item"],
-      "title": "Acme OpenAPI Specification Example",
-      "summary": "Example OpenAPI specification for the fictional Acme API."
-    },
-    {
-      "id": "blog-burrow-readme",
-      "rid": "urn:rabit:sha256:83c77bf00f2e5a4fa7a2e87823d6881a0b916028454a73e50f37f3d455d81ef0",
-      "href": "examples/burrows/blog-burrow/README.md",
-      "type": "text/markdown",
-      "rel": ["item", "about"],
-      "title": "Acme Engineering Blog Example",
-      "summary": "Example blog burrow for the fictional Acme engineering team."
-    },
-    {
-      "id": "blog-burrow-scaling",
-      "rid": "urn:rabit:sha256:1d448475e1fa75d0c8da7aef6e9ea3c980112c33aaf85df62cac8f11a7fe252b",
-      "href": "examples/burrows/blog-burrow/posts/scaling-million-users.md",
-      "type": "text/markdown",
-      "rel": ["item"],
-      "title": "Scaling to a Million Users Example",
-      "summary": "Example blog post about scaling infrastructure."
-    },
-    {
-      "id": "blog-burrow-introducing",
-      "rid": "urn:rabit:sha256:5fc91be4920dca3945ac081321f3832fb343196376eed33a54bcaabe71ab99fe",
-      "href": "examples/burrows/blog-burrow/posts/introducing-acme-2.md",
-      "type": "text/markdown",
-      "rel": ["item"],
-      "title": "Introducing Acme 2.0 Example",
-      "summary": "Example product announcement blog post."
-    },
-    {
-      "id": "blog-burrow-kubernetes",
-      "rid": "urn:rabit:sha256:251e2c0e7d5aecec58ba9b2837f07332a06b23c0e0bc060650f2c881a88b7c3f",
-      "href": "examples/burrows/blog-burrow/posts/kubernetes-journey.md",
-      "type": "text/markdown",
-      "rel": ["item"],
-      "title": "Our Kubernetes Journey Example",
-      "summary": "Example technical blog post about Kubernetes migration."
+      "id": "schemas",
+      "kind": "dir",
+      "uri": "schemas/",
+      "title": "JSON Schemas",
+      "summary": "JSON Schema files for validating .burrow.json and .warren.json files.",
+      "tags": ["schemas"]
     }
   ]
 }

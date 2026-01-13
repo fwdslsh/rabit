@@ -1,0 +1,101 @@
+{
+  "$schema": "../../../schemas/burrow.schema.json",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "kind": "burrow",
+  "title": "Acme Documentation",
+  "description": "Example documentation burrow demonstrating the Rabit specification.",
+  "updated": "2026-01-13T00:00:00Z",
+  "repo": {
+    "readme": "README.md",
+    "license": "LICENSE"
+  },
+  "agents": {
+    "context": "Example documentation for the fictional Acme Platform. Demonstrates standard documentation structure with guides, FAQ, and API docs.",
+    "entryPoint": "readme",
+    "hints": [
+      "Start with README.md for an overview",
+      "Installation guide is in guides/installation.md"
+    ]
+  },
+  "entries": [
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "README.md",
+      "title": "Welcome to Acme",
+      "summary": "Overview and introduction to the Acme Platform.",
+      "mediaType": "text/markdown",
+      "priority": 100,
+      "tags": ["start-here"]
+    },
+    {
+      "id": "faq",
+      "kind": "file",
+      "uri": "faq.md",
+      "title": "Frequently Asked Questions",
+      "summary": "Common questions and answers about the Acme Platform.",
+      "mediaType": "text/markdown",
+      "priority": 50,
+      "tags": ["faq"]
+    },
+    {
+      "id": "guides",
+      "kind": "dir",
+      "uri": "guides/",
+      "title": "Guides",
+      "summary": "Step-by-step guides for installation and configuration.",
+      "priority": 80,
+      "tags": ["guides"]
+    },
+    {
+      "id": "installation",
+      "kind": "file",
+      "uri": "guides/installation.md",
+      "path": "guides/installation.md",
+      "title": "Installation Guide",
+      "summary": "How to install the Acme Platform.",
+      "mediaType": "text/markdown",
+      "priority": 75,
+      "tags": ["guides", "installation"]
+    },
+    {
+      "id": "configuration",
+      "kind": "file",
+      "uri": "guides/configuration.md",
+      "path": "guides/configuration.md",
+      "title": "Configuration Guide",
+      "summary": "Configuration options and settings.",
+      "mediaType": "text/markdown",
+      "priority": 70,
+      "tags": ["guides", "configuration"]
+    },
+    {
+      "id": "api",
+      "kind": "dir",
+      "uri": "api/",
+      "title": "API Reference",
+      "summary": "API documentation and reference.",
+      "priority": 60,
+      "tags": ["api", "reference"]
+    },
+    {
+      "id": "api-overview",
+      "kind": "file",
+      "uri": "api/overview.md",
+      "path": "api/overview.md",
+      "title": "API Overview",
+      "summary": "Introduction to the Acme API.",
+      "mediaType": "text/markdown",
+      "priority": 55,
+      "tags": ["api"]
+    },
+    {
+      "id": "license",
+      "kind": "file",
+      "uri": "LICENSE",
+      "title": "License",
+      "mediaType": "text/plain",
+      "tags": ["license"]
+    }
+  ]
+}
