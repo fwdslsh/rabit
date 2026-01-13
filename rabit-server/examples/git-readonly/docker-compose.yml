@@ -1,0 +1,66 @@
+# Git Server for Read-Only Burrow Sharing
+#
+# This configuration provides SSH-based Git access to burrows with:
+# - Read-only access (clone/fetch only, no push)
+# - SSH key authentication (no passwords)
+# - Host-mounted repositories (work with repos normally on host)
+# - Host-mounted authorized_keys (manage access without root)
+#
+# Usage:
+#   1. Run ./setup.sh to initialize directories
+#   2. Add public keys to ./ssh-keys/authorized_keys
+#   3. Copy or symlink your burrow to ./repos/my-burrow.git
+#   4. docker compose up -d
+#   5. Clients clone: git clone ssh://git@localhost:2222/srv/git/my-burrow.git
+
+services:
+  git-server:
+    image: rockstorm/git-server:latest
+    container_name: rabit-git-server
+    restart: unless-stopped
+    ports:
+      - "${GIT_SSH_PORT:-2222}:22"
+    environment:
+      # Match host user's UID/GID for seamless file access
+      - GIT_USER_UID=${HOST_UID:-1000}
+      - GIT_USER_GID=${HOST_GID:-1000}
+      # Disable password authentication - SSH keys only
+      - SSH_AUTH_METHODS=publickey
+    volumes:
+      # Mount repositories - read-only inside container
+      - ./repos:/srv/git:ro
+      # Mount authorized keys from host
+      - ./ssh-keys/authorized_keys:/home/git/.ssh/authorized_keys:ro
+      # Mount custom git-shell-commands to enforce read-only
+      - ./git-shell-commands:/home/git/git-shell-commands:ro
+      # Persist SSH host keys to avoid fingerprint changes
+      - ./ssh-keys/host-keys:/tmp/host-keys:ro
+    healthcheck:
+      test: ["CMD", "pgrep", "sshd"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Rabit web server alongside Git server
+  # Provides HTTPS access + manifest serving
+  rabit-web:
+    image: rabit-server:latest
+    container_name: rabit-web-server
+    restart: unless-stopped
+    profiles:
+      - web  # Only starts with: docker compose --profile web up
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    environment:
+      - RABIT_MODE=burrow
+      - RABIT_TITLE=${BURROW_TITLE:-My Burrow}
+      - RABIT_AUTO_GENERATE=true
+    volumes:
+      # Mount same repos directory
+      - ./repos/${BURROW_NAME:-my-burrow.git}:/data/burrow:ro
+    depends_on:
+      - git-server
+
+networks:
+  default:
+    name: rabit-git-network

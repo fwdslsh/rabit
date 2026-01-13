@@ -214,14 +214,61 @@ docker build -t rabit/server .
 | Endpoint | Mode | Description |
 |----------|------|-------------|
 | `/.burrow.json` | burrow, both | Burrow manifest |
+| `/.burrow.md` | burrow, both | Human-readable burrow companion |
 | `/.warren.json` | warren, both | Warren registry |
 | `/.warren.md` | warren, both | Human-readable registry |
 | `/health` | all | Health check |
 | `/*` | all | Static content |
 
+## Examples
+
+### Read-Only Git Server
+
+Share burrows via Git with SSH key authentication and read-only access:
+
+```bash
+cd examples/git-readonly
+./setup.sh /path/to/your/burrow
+docker compose up -d
+
+# Clients can clone but not push:
+git clone ssh://git@localhost:2222/srv/git/my-burrow.git
+```
+
+This is ideal for:
+- Internal documentation sharing
+- Authenticated access without passwords
+- Maintaining read/write access on host while sharing read-only
+
+See [examples/git-readonly/README.md](examples/git-readonly/README.md) for full documentation.
+
+### Using with File Roots
+
+The Rabit spec (draft-rabit-rbt-03) supports file paths for local/network access:
+
+```json
+{
+  "manifest": {
+    "roots": [
+      {
+        "file": {
+          "path": "/mnt/shared/documentation/"
+        }
+      },
+      {
+        "git": {
+          "remote": "https://github.com/org/docs.git",
+          "ref": "refs/heads/main"
+        }
+      }
+    ]
+  }
+}
+```
+
 ## License
 
-MIT License - See LICENSE file for details.
+CC-BY-4.0 License - See LICENSE file for details.
 
 ## Links
 
