@@ -5,12 +5,11 @@ This directory contains example burrows, a warren, and a proof-of-concept CLI cl
 ## Structure
 
 ```
-rabit-examples/
-├── docker-compose.yml      # Hosts all burrows and warren
-├── nginx-cors.conf         # CORS configuration for nginx
-├── warren/                  # Registry of burrows
-│   ├── .warren.json        # Machine-readable registry
-│   └── .warren.md          # Human-readable companion
+examples/
+├── server/
+│   ├── docker-compose.yml  # Hosts all burrows and warren
+│   └── nginx-cors.conf     # CORS configuration for nginx
+├── .warren.json             # Warren (registry) manifest
 ├── burrows/
 │   ├── docs-burrow/        # Documentation example
 │   │   ├── .burrow.json    # Burrow manifest
@@ -60,6 +59,7 @@ These companion files make burrows browsable via GitHub, file managers, or any M
 ### 1. Start the Burrows and Warren
 
 ```bash
+cd server
 docker compose up -d
 ```
 
@@ -120,13 +120,13 @@ cd ../rabit-client
 bun install
 
 # Access burrow via file path
-bun run src/cli.ts burrow ../rabit-examples/burrows/docs-burrow/
+bun run src/cli.ts burrow ../examples/burrows/docs-burrow/
 
 # List entries via file path
-bun run src/cli.ts entries ../rabit-examples/burrows/api-burrow/
+bun run src/cli.ts entries ../examples/burrows/api-burrow/
 
 # Traverse via file path
-bun run src/cli.ts traverse ../rabit-examples/burrows/blog-burrow/
+bun run src/cli.ts traverse ../examples/burrows/blog-burrow/
 ```
 
 This demonstrates RBT's file root support, which works with local paths, SMB shares, and NFS mounts.
@@ -191,6 +191,7 @@ Traversed 4 entries
 ## Stopping the Services
 
 ```bash
+cd server
 docker compose down
 ```
 

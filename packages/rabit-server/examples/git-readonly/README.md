@@ -320,6 +320,6 @@ BURROW_DIR=my-burrow.git
 
 ## See Also
 
-- [Rabit Specification](../../../rabit-spec-draft-2026-01-12.md) — Full RBT spec with transport protocol details
+- [Rabit Specification](../../../../docs/rabit-spec-v0.3.0.md) — Full RBT spec with transport protocol details
 - [rockstorm/git-server](https://github.com/rockstorm101/git-server-docker) — Base Docker image
 - [Rabit Client](../../../rabit-client/) — TypeScript client implementation

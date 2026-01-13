@@ -1,5 +1,5 @@
 {
-  "$schema": "./schemas/burrow.schema.json",
+  "$schema": "./schemas/burrow.json",
   "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
   "kind": "burrow",
   "title": "Rabit: Burrows for the Agentic Web",
@@ -56,15 +56,6 @@
       "mediaType": "text/markdown",
       "priority": 85,
       "tags": ["spec", "docs", "implementation"]
-    },
-    {
-      "id": "feedback-analysis",
-      "kind": "file",
-      "uri": "docs/spec-feedback-analysis-v0.3.0.md",
-      "title": "v0.3.0 Feedback Analysis",
-      "summary": "Analysis of feedback on the specification and the plan to integrate it.",
-      "mediaType": "text/markdown",
-      "tags": ["docs", "analysis"]
     },
     {
       "id": "packages",

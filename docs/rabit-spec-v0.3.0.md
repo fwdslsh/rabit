@@ -54,13 +54,16 @@ A location MAY contain any of these files:
 ### 4.1 Placement Rules
 
 **Git repositories:**
+
 - Place `.warren.*` and/or `.burrow.*` at the repository root
 - Optionally place `.burrow.*` in key subdirectories to define sub-burrows (e.g., `docs/.burrow.json`)
 
 **Filesystem directories:**
+
 - Same as Git: place files in the directory being described
 
 **HTTP(S):**
+
 - Serve the files from the corresponding path location
 - Example: if a directory is browsed at `https://example.com/docs/`, the burrow menu should be at `https://example.com/docs/.burrow.json`
 - Note: some web servers block dotfiles by default; operators may need an explicit allowlist
@@ -68,6 +71,7 @@ A location MAY contain any of these files:
 ### 4.2 Precedence
 
 If both `.warren.json` and `.burrow.json` exist at the same location:
+
 - Clients should treat the location as both a warren (registry) and a burrow (browsable collection)
 - If a client must choose a single "landing" view, it should prefer `.warren.md` / `.warren.json` as the top-level entry
 
@@ -116,6 +120,7 @@ fwdslsh.dev/rabit/schemas/0.3.0/{kind}
 Where `{kind}` is either `burrow` or `warren`.
 
 Examples:
+
 - `fwdslsh.dev/rabit/schemas/0.3.0/burrow`
 - `fwdslsh.dev/rabit/schemas/0.3.0/warren`
 
@@ -443,6 +448,7 @@ Publishers may add custom data under the `metadata` field for forward compatibil
 ```
 
 The `metadata` field is available on:
+
 - Root documents (burrow and warren)
 - Burrow reference objects (in warrens)
 - Warren reference objects (in warrens)
@@ -584,6 +590,7 @@ For implementations migrating from the v0.2 (draft-rabit-rbt-04) specification:
 ### B.2 Structural Changes
 
 **Before (v0.2):**
+
 ```json
 {
   "rbt": "0.2",
@@ -598,6 +605,7 @@ For implementations migrating from the v0.2 (draft-rabit-rbt-04) specification:
 ```
 
 **After (v0.3):**
+
 ```json
 {
   "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",

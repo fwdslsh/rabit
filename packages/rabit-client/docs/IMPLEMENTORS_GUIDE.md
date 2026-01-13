@@ -1000,7 +1000,7 @@ Link to standard files:
       "readme": "README.md",
       "license": "LICENSE",
       "contributing": "CONTRIBUTING.md",
-      "security": "SECURITY.md",
+      "security": "docs/SECURITY.md",
       "changelog": "CHANGELOG.md"
     }
   }
@@ -1162,9 +1162,9 @@ rabit report https://yourdomain.com/
 
 ## Additional Resources
 
-- **RBT Specification**: [rabit-spec-draft-2026-01-12.md](../../rabit-spec-draft-2026-01-12.md)
+- **RBT Specification**: [rabit-spec-v0.3.0.md](../../../docs/rabit-spec-v0.3.0.md)
 - **Client README**: [README.md](../README.md)
-- **Example Burrows**: [../../rabit-examples/burrows/](../../rabit-examples/burrows/)
+- **Example Burrows**: [../../examples/burrows/](../../examples/burrows/)
 - **Server Implementation**: [../../rabit-server/](../../rabit-server/)
 
 ---

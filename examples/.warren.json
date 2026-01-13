@@ -1,5 +1,5 @@
 {
-  "$schema": "../schemas/warren.schema.json",
+  "$schema": "../schemas/warren.json",
   "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/warren",
   "kind": "warren",
   "title": "Acme Warren",

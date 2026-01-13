@@ -1,4 +1,5 @@
 rabit-client/dist/
 ralph*
 .ralph*
+.drafts/
 node_modules/

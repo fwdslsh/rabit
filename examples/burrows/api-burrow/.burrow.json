@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../schemas/burrow.schema.json",
+  "$schema": "../../../schemas/burrow.json",
   "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
   "kind": "burrow",
   "title": "Acme API Reference",

@@ -22,7 +22,7 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./warren:/usr/share/nginx/html:ro
+      - ../:/usr/share/nginx/html:ro
       - ./nginx-cors.conf:/etc/nginx/conf.d/cors.conf:ro
     networks:
       - rabit-network
@@ -39,7 +39,7 @@ services:
     ports:
       - "8081:80"
     volumes:
-      - ./burrows/docs-burrow:/usr/share/nginx/html:ro
+      - ../burrows/docs-burrow:/usr/share/nginx/html:ro
       - ./nginx-cors.conf:/etc/nginx/conf.d/cors.conf:ro
     networks:
       - rabit-network
@@ -56,7 +56,7 @@ services:
     ports:
       - "8082:80"
     volumes:
-      - ./burrows/api-burrow:/usr/share/nginx/html:ro
+      - ../burrows/api-burrow:/usr/share/nginx/html:ro
       - ./nginx-cors.conf:/etc/nginx/conf.d/cors.conf:ro
     networks:
       - rabit-network
@@ -73,7 +73,7 @@ services:
     ports:
       - "8083:80"
     volumes:
-      - ./burrows/blog-burrow:/usr/share/nginx/html:ro
+      - ../burrows/blog-burrow:/usr/share/nginx/html:ro
       - ./nginx-cors.conf:/etc/nginx/conf.d/cors.conf:ro
     networks:
       - rabit-network
