@@ -1,5 +1,5 @@
 # Internet-Draft: Rabit Burrow Traversal (RBT)
-## draft-rabit-rbt-03 (Work in Progress)
+## draft-rabit-rbt-04 (Work in Progress)
 
 **Intended status:** Informational (candidate for Standards Track)  
 **Expires:** 6 months after publication
@@ -77,7 +77,7 @@ RBT aims to provide:
 
 ### 2.2 Non-Goals
 
-- RBT does not define a new transport protocol; it uses Git transports and HTTPS.
+- RBT does not define a new transport protocol; it uses existing transports (Git, HTTP/HTTPS, FTP/FTPS/SFTP, file paths).
 - RBT does not standardize embeddings, vector stores, or LLM APIs.
 - RBT does not define authentication or authorization mechanisms.
 
@@ -124,10 +124,14 @@ A Full Client:
 
 - MUST meet all Minimal Client requirements
 - MUST support Git transports (HTTPS and SSH remotes)
+- MUST support HTTP/HTTPS roots with certificate validation bypass option
 - MUST support file roots using native OS file access (including network mounts)
+- MUST implement automatic transport protocol detection per §5.4
+- MUST support transport protocol override per §5.4.1
 - MUST verify RIDs when fetching resources
 - MUST support mirror fallback per §7.4
 - MUST implement cycle detection per §8.4
+- SHOULD support FTP/FTPS/SFTP roots
 - SHOULD support `.burrow.md` and `.warren.md` discovery and display
 - SHOULD respect cache directives per §8.5
 
@@ -265,7 +269,92 @@ Example:
 }
 ```
 
-#### 5.2.3 File Root Descriptor
+#### 5.2.3 HTTP Root Descriptor
+
+For development environments, home labs, and internal networks where TLS is not required or where self-signed certificates are used, RBT supports HTTP root descriptors.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `base` | string | REQUIRED | HTTP or HTTPS URL to the burrow root (MUST end with `/`) |
+| `insecure` | boolean | OPTIONAL | If `true`, accept invalid/self-signed TLS certificates (default: `false`) |
+
+The manifest is located at `${base}.burrow.json`.
+
+**Security Warning:** HTTP roots transmit data unencrypted. The `insecure` option bypasses certificate validation. These options are intended for:
+- Local development (`http://localhost/`)
+- Home lab environments with self-signed certificates
+- Internal networks with enterprise CAs not in the system trust store
+- Air-gapped environments
+
+Clients SHOULD warn users when accessing HTTP roots or when `insecure: true` is set.
+
+Examples:
+
+```json
+{
+  "http": {
+    "base": "http://localhost:8080/docs/"
+  }
+}
+```
+
+```json
+{
+  "http": {
+    "base": "https://homelab.local/burrow/",
+    "insecure": true
+  }
+}
+```
+
+#### 5.2.4 FTP Root Descriptor
+
+For environments using FTP-based file transfer, RBT supports FTP, FTPS (FTP over TLS), and SFTP (SSH File Transfer Protocol) root descriptors.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `url` | string | REQUIRED | FTP/FTPS/SFTP URL to the burrow root (MUST end with `/`) |
+| `protocol` | string | OPTIONAL | Force protocol: `ftp`, `ftps`, or `sftp` (auto-detected from URL scheme if omitted) |
+| `insecure` | boolean | OPTIONAL | If `true`, accept invalid TLS certificates for FTPS (default: `false`) |
+
+The manifest is located at `${url}.burrow.json`.
+
+**Protocol Detection:**
+- `ftp://` — Plain FTP (unencrypted, not recommended for production)
+- `ftps://` — FTP over implicit TLS
+- `sftp://` — SSH File Transfer Protocol (recommended for security)
+
+Examples:
+
+```json
+{
+  "ftp": {
+    "url": "sftp://files.example.org/burrows/docs/"
+  }
+}
+```
+
+```json
+{
+  "ftp": {
+    "url": "ftps://internal.company.local/documentation/",
+    "insecure": true
+  }
+}
+```
+
+```json
+{
+  "ftp": {
+    "url": "ftp://legacy-server.local/public/",
+    "protocol": "ftp"
+  }
+}
+```
+
+**Note:** SFTP (SSH File Transfer Protocol) is distinct from FTPS (FTP over TLS). SFTP uses SSH for transport and is generally preferred for its security model. Clients implementing FTP support SHOULD prioritize SFTP.
+
+#### 5.2.5 File Root Descriptor
 
 For burrows accessed via local file systems or network file shares, RBT supports file-based root descriptors. This enables burrows to be hosted on:
 
@@ -332,6 +421,58 @@ When multiple roots are available, clients SHOULD prefer them in this order:
 File roots are preferred when available because they typically offer the lowest latency and highest throughput, especially for local files or mounted network shares. However, clients MAY allow user configuration to override this preference based on specific use cases (e.g., preferring Git for version control workflows).
 
 Clients SHOULD verify that file paths are accessible before attempting to use them; if a file root is inaccessible (e.g., network share unavailable), the client MUST fall back to the next available root type.
+
+### 5.4 Transport Protocol Detection (Normative)
+
+Clients MUST automatically detect the appropriate transport protocol based on the URL scheme or root descriptor type. The following detection rules apply:
+
+| Input | Detected Transport |
+|-------|-------------------|
+| `https://...` | HTTPS |
+| `http://...` | HTTP |
+| `git://...` | Git protocol |
+| `git@host:...` | Git over SSH |
+| `ssh://...` | Git over SSH (or SFTP if path suggests file access) |
+| `ftp://...` | FTP |
+| `ftps://...` | FTPS (FTP over TLS) |
+| `sftp://...` | SFTP (SSH File Transfer) |
+| `file://...` | Local file system |
+| `/path/...` or `C:\...` | Local file system |
+| `\\server\share\...` | SMB/CIFS (via OS) |
+
+#### 5.4.1 Protocol Override
+
+Clients MUST support overriding automatic protocol detection. This is necessary when:
+- URL schemes are ambiguous (e.g., `ssh://` could be Git or SFTP)
+- A server uses non-standard ports or configurations
+- Testing or debugging transport issues
+
+Clients SHOULD provide protocol override through:
+1. **Root descriptor fields** — The `protocol` field in FTP roots
+2. **Client configuration** — Global or per-burrow transport settings
+3. **Command-line flags** — For CLI clients (e.g., `--transport=sftp`)
+
+Example client invocation with override:
+```bash
+rabit fetch --transport=sftp ssh://server.local/docs/
+rabit fetch --insecure https://homelab.local/burrow/
+```
+
+#### 5.4.2 Certificate Validation Override
+
+For HTTPS, FTPS, and other TLS-based transports, clients MUST support an option to bypass certificate validation. This option:
+- MUST be explicitly enabled by the user (not default)
+- SHOULD display a warning when used
+- MAY be specified per-root via the `insecure` field
+- MAY be specified globally via client configuration
+
+Use cases for bypassing certificate validation:
+- Self-signed certificates in home lab environments
+- Enterprise CAs not in system trust stores
+- Development and testing environments
+- Air-gapped networks with internal PKI
+
+Clients SHOULD support adding custom CA certificates as an alternative to disabling validation entirely.
 
 ---
 
@@ -1283,9 +1424,17 @@ JSON Schema documents for `.burrow.json` and `.warren.json` are published at:
 
 ## Appendix C: Changelog
 
-### C.1 Changes from draft-rabit-rbt-02
+### C.1 Changes from draft-rabit-rbt-03
 
-1. **File Root Descriptor:** Added §5.2.3 defining file-based root descriptors for local and network file paths
+1. **HTTP Root Descriptor:** Added §5.2.3 for HTTP and HTTPS with `insecure` option for self-signed certificates
+2. **FTP Root Descriptor:** Added §5.2.4 supporting FTP, FTPS, and SFTP protocols
+3. **Transport Protocol Detection:** Added §5.4 with automatic protocol detection from URL schemes
+4. **Protocol Override:** Added §5.4.1 requiring clients to support transport override
+5. **Certificate Validation Override:** Added §5.4.2 for bypassing TLS certificate validation in dev/homelab environments
+
+### C.2 Changes from draft-rabit-rbt-02
+
+1. **File Root Descriptor:** Added §5.2.5 defining file-based root descriptors for local and network file paths
 2. **Native OS File Access:** Clients use native OS features for accessing SMB, NFS, and local file paths
 3. **Human-Readable Companion:** Added `.burrow.md` support (§4.1.1) as human-readable companion to `.burrow.json`, following the `.warren.md` pattern
 4. **Root Selection:** Updated §5.3 to include file roots with highest priority for local/network access

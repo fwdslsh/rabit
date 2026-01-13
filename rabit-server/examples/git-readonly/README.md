@@ -1,58 +1,69 @@
 # Read-Only Git Server for Rabit Burrows
 
-Share your Rabit burrows via Git with authenticated clients while maintaining read-only access. This setup provides:
+Share your Rabit burrows via Git with authenticated clients while enforcing read-only access. Perfect for:
 
-- **SSH key authentication** — No passwords, secure access
-- **Read-only access** — Clients can clone/fetch but not push
-- **Host-friendly** — Work with repos normally on your machine (no root required)
-- **Thin wrapper** — Your existing workflow unchanged, server adds read-only layer
+- Sharing documentation with team members
+- Publishing burrows to authenticated clients
+- Home lab and internal network deployments
+- Maintaining your normal workflow (edit freely on host)
+
+## Features
+
+- **Clean URLs** — `git clone git@server:my-burrow.git` (no `/srv/git` prefix)
+- **SSH key auth** — No passwords, secure access via `authorized_keys`
+- **Read-only** — Clients can clone/fetch but not push
+- **No symlinks** — Mount your repos directory directly
+- **No root** — Files accessible with your normal user account
+- **Standard ports** — Use port 22 by default, or any port you choose
 
 ## Quick Start
 
 ```bash
-# 1. Initialize the server
+# 1. Initialize
 ./setup.sh
 
-# 2. Add your SSH public key (for testing)
+# 2. Add your SSH public key
 cat ~/.ssh/id_ed25519.pub >> ssh-keys/authorized_keys
 
-# 3. Link an existing burrow/repo
-ln -s /path/to/my-burrow repos/my-burrow.git
+# 3. Add a repository
+cp -r /path/to/my-project.git repos/
+# Or create a bare clone:
+git clone --bare https://github.com/you/project repos/project.git
 
-# 4. Start the server
+# 4. Start
 docker compose up -d
 
-# 5. Test cloning (from any machine with the private key)
-git clone ssh://git@localhost:2222/srv/git/my-burrow.git
+# 5. Clone from any machine with the private key
+git clone git@your-server:project.git
 ```
 
 ## How It Works
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Host Machine                              │
+│                         Host Machine                             │
 │                                                                  │
-│  ┌──────────────────┐    ┌──────────────────────────────────┐   │
-│  │  Your Burrow     │    │  Git Server Container            │   │
-│  │  /home/you/docs  │◄───┤  (rockstorm/git-server)          │   │
-│  │                  │ ro │                                   │   │
-│  │  - Edit freely   │    │  - SSH on port 2222              │   │
-│  │  - git commit    │    │  - Blocks push (read-only)       │   │
-│  │  - git push      │    │  - Serves clone/fetch            │   │
-│  └──────────────────┘    └──────────────────────────────────┘   │
+│  ┌──────────────────┐    ┌────────────────────────────────────┐ │
+│  │  Your Repos      │    │  Git Server Container              │ │
+│  │  ~/repos/        │◄───┤  (rockstorm/git-server)            │ │
+│  │                  │ ro │                                     │ │
+│  │  Edit & commit   │    │  - SSH on port 22                  │ │
+│  │  as usual        │    │  - Rejects push (read-only)        │ │
+│  └──────────────────┘    │  - Serves clone/fetch              │ │
+│                          └────────────────────────────────────┘ │
 │                                      │                           │
 │  ┌──────────────────┐                │                           │
-│  │  ssh-keys/       │◄───────────────┘                           │
-│  │  authorized_keys │  (managed by you, no root)                 │
+│  │  authorized_keys │◄───────────────┘                           │
+│  │  (you manage)    │                                            │
 │  └──────────────────┘                                            │
 └─────────────────────────────────────────────────────────────────┘
                                 │
-                                │ SSH (port 2222)
+                                │ SSH
                                 ▼
                     ┌───────────────────────┐
                     │  Authorized Clients   │
-                    │  git clone ssh://...  │
-                    │  git fetch            │
+                    │  ✓ git clone          │
+                    │  ✓ git fetch          │
                     │  ✗ git push (blocked) │
                     └───────────────────────┘
 ```
@@ -61,50 +72,57 @@ git clone ssh://git@localhost:2222/srv/git/my-burrow.git
 
 ```
 git-readonly/
-├── docker-compose.yml          # Server configuration
-├── setup.sh                    # Initialization script
-├── .env                        # Generated configuration
-├── repos/                      # Your burrow repositories
-│   └── my-burrow.git -> ...    # Symlink to your actual repo
+├── docker-compose.yml      # Server configuration
+├── setup.sh                # One-command initialization
+├── .env                    # Generated config (ports, paths, UID/GID)
+├── repos/                  # Your Git repositories
+│   ├── project-a.git/
+│   └── docs.git/
 ├── ssh-keys/
-│   ├── authorized_keys         # Public keys of allowed clients
-│   └── host-keys/              # SSH host keys (persistent)
-│       ├── ssh_host_rsa_key
-│       ├── ssh_host_ed25519_key
-│       └── ssh_host_ecdsa_key
-└── git-shell-commands/         # Read-only enforcement
-    ├── no-interactive-login    # Block shell access
-    └── git-receive-pack        # Block push operations
+│   ├── authorized_keys     # Public keys of allowed clients
+│   └── host-keys/          # SSH host keys (generated)
+├── config/
+│   └── sshd_config         # SSH server configuration
+└── git-shell-commands/     # Read-only enforcement scripts
 ```
 
 ## Configuration
 
-### Environment Variables (.env)
+### Using a Different Port
 
-Generated by `setup.sh`, but can be customized:
+If port 22 is already in use:
 
 ```bash
-# Match your user's UID/GID for file access
-HOST_UID=1000
-HOST_GID=1000
+./setup.sh --port 2222
+```
 
-# SSH port for Git access
-GIT_SSH_PORT=2222
+Or edit `.env`:
+```bash
+SSH_PORT=2222
+```
 
-# Web server port (optional, with --profile web)
-WEB_PORT=8080
+Clients then use:
+```bash
+git clone ssh://git@server:2222/project.git
+```
 
-# Burrow metadata (for web server)
-BURROW_TITLE=My Burrow
-BURROW_NAME=my-burrow.git
+### Using an Existing Repos Directory
+
+Point to your existing bare repositories:
+
+```bash
+./setup.sh /home/user/git-repos
+```
+
+Or edit `.env`:
+```bash
+REPOS_PATH=/home/user/git-repos
 ```
 
 ### Adding Authorized Keys
 
-Add public keys to `ssh-keys/authorized_keys`:
-
 ```bash
-# From a file
+# Your own key
 cat ~/.ssh/id_ed25519.pub >> ssh-keys/authorized_keys
 
 # From GitHub
@@ -113,78 +131,46 @@ curl https://github.com/username.keys >> ssh-keys/authorized_keys
 # From GitLab
 curl https://gitlab.com/username.keys >> ssh-keys/authorized_keys
 
-# Multiple keys (one per line)
+# Multiple people
 cat >> ssh-keys/authorized_keys << 'EOF'
-ssh-ed25519 AAAAC3NzaC1... alice@example.com
-ssh-ed25519 AAAAC3NzaC1... bob@example.com
+ssh-ed25519 AAAAC3... alice@example.com
+ssh-rsa AAAAB3... bob@example.com
 EOF
 ```
 
 ### Adding Repositories
 
-**Option 1: Symlink existing repo (recommended)**
-
+**Option 1: Copy bare repository**
 ```bash
-# Link a regular git repo (with .git directory)
-ln -s /home/user/my-project repos/my-project.git
-
-# Link a bare repo
-ln -s /home/user/repos/my-burrow.git repos/my-burrow.git
+cp -r /path/to/project.git repos/
 ```
 
-**Option 2: Create a bare clone**
-
+**Option 2: Create bare clone**
 ```bash
-git clone --bare /path/to/repo repos/my-burrow.git
+git clone --bare https://github.com/org/project repos/project.git
 ```
 
-**Option 3: Initialize new repo**
-
+**Option 3: Create from working directory**
 ```bash
-mkdir repos/new-burrow.git
-cd repos/new-burrow.git
-git init --bare
+cd /path/to/project
+git clone --bare . /path/to/git-readonly/repos/project.git
 ```
 
-## Usage
+## Client Usage
 
-### Starting the Server
-
-```bash
-# Start Git server only
-docker compose up -d
-
-# Start with web server (for HTTPS access)
-docker compose --profile web up -d
-
-# View logs
-docker compose logs -f
-
-# Stop
-docker compose down
-```
-
-### Client Access
-
-Clients clone using SSH:
+### Standard Port (22)
 
 ```bash
-# Clone a burrow
-git clone ssh://git@your-server:2222/srv/git/my-burrow.git
-
-# Or with standard Git URL format
-git clone git@your-server:2222/srv/git/my-burrow.git
-
-# Fetch updates
-cd my-burrow
-git fetch origin
-git pull origin main
-
-# Push will be rejected
-git push  # ERROR: Push access is disabled
+git clone git@your-server:my-burrow.git
 ```
 
-### Using with .burrow.json
+### Custom Port
+
+```bash
+git clone ssh://git@your-server:2222/my-burrow.git
+```
+
+### In .burrow.json
 
 Reference the Git server in your burrow manifest:
 
@@ -196,9 +182,8 @@ Reference the Git server in your burrow manifest:
     "roots": [
       {
         "git": {
-          "remote": "ssh://git@your-server:2222/srv/git/my-burrow.git",
-          "ref": "refs/heads/main",
-          "path": "/"
+          "remote": "git@docs.company.com:api-docs.git",
+          "ref": "refs/heads/main"
         }
       }
     ]
@@ -206,83 +191,68 @@ Reference the Git server in your burrow manifest:
 }
 ```
 
-For public access alongside private Git:
+For home lab with self-signed certs, add HTTPS fallback:
 
 ```json
 {
   "roots": [
     {
       "git": {
-        "remote": "ssh://git@internal.company.com:2222/srv/git/docs.git",
+        "remote": "git@homelab.local:docs.git",
         "ref": "refs/heads/main"
       }
     },
     {
-      "https": {
-        "base": "https://docs.company.com/"
+      "http": {
+        "base": "https://homelab.local/docs/",
+        "insecure": true
       }
     }
   ]
 }
 ```
 
-## Security
-
-### Read-Only Enforcement
+## Read-Only Enforcement
 
 Push operations are blocked at multiple levels:
 
-1. **Repository mounted read-only** (`/srv/git:ro`)
-2. **git-receive-pack blocked** via custom git-shell command
-3. **No interactive shell** access
+1. **Repository mounted read-only** — Container can't write to `/repos`
+2. **git-receive-pack blocked** — Custom script rejects push commands
+3. **No shell access** — Users can only execute git commands
 
-### SSH Key Authentication
-
-- Password authentication is disabled (`SSH_AUTH_METHODS=publickey`)
-- Only users with keys in `authorized_keys` can connect
-- Host keys are persisted to prevent MITM warnings
-
-### File Permissions
-
-The container runs with your UID/GID, so:
-- You can edit `repos/` and `ssh-keys/` without sudo
-- File permissions match your normal user
-- No root access required on the host
-
-## Workflow Example
-
-### Publisher Workflow (Host Machine)
-
-```bash
-# Work on your burrow as normal
-cd ~/my-documentation
-
-# Edit files
-vim guides/new-feature.md
-
-# Commit changes
-git add -A
-git commit -m "Add new feature guide"
-
-# Push to your main remote (GitHub, etc.)
-git push origin main
-
-# The Git server automatically serves the updated content
-# (since it's a symlink to your working directory)
+When a client tries to push:
+```
+$ git push
+fatal: Push access is disabled on this read-only server.
+This Rabit Git server only allows clone and fetch operations.
 ```
 
-### Consumer Workflow (Client Machine)
+## Publisher Workflow
+
+Your workflow on the host machine is unchanged:
 
 ```bash
-# Initial clone
-git clone ssh://git@docs.company.com:2222/srv/git/docs.git
+# Edit your burrow
+cd ~/my-project
+vim docs/new-feature.md
 
-# Later - get updates
-cd docs
-git pull origin main
+# Commit and push to your main remote
+git add -A
+git commit -m "Add new feature docs"
+git push origin main   # Push to GitHub/GitLab as usual
 
-# Use Rabit client to traverse
-rabit traverse ssh://git@docs.company.com:2222/srv/git/docs.git
+# Update the bare repo for the Git server
+cd ~/git-readonly/repos/my-project.git
+git fetch origin main:main   # Or set up a post-receive hook
+```
+
+Or simply work directly in a repo that's served:
+```bash
+# If repos/ contains your working repos (not just bare)
+cd ~/git-readonly/repos/my-project
+vim docs/new-feature.md
+git add -A && git commit -m "Update"
+# Changes are immediately available to clients
 ```
 
 ## Troubleshooting
@@ -293,9 +263,9 @@ rabit traverse ssh://git@docs.company.com:2222/srv/git/docs.git
 Permission denied (publickey).
 ```
 
-- Ensure your public key is in `ssh-keys/authorized_keys`
-- Check file permissions: `chmod 600 ssh-keys/authorized_keys`
-- Verify UID/GID in `.env` matches your user: `id -u && id -g`
+- Check your public key is in `ssh-keys/authorized_keys`
+- Verify file permissions: `chmod 600 ssh-keys/authorized_keys`
+- Check UID/GID in `.env` matches your user: `id -u && id -g`
 
 ### Host Key Verification Failed
 
@@ -303,8 +273,12 @@ Permission denied (publickey).
 Host key verification failed.
 ```
 
-- First connection? Add to known_hosts: `ssh-keyscan -p 2222 localhost >> ~/.ssh/known_hosts`
-- If keys changed, remove old entry: `ssh-keygen -R "[localhost]:2222"`
+First connection — add to known_hosts:
+```bash
+ssh-keyscan your-server >> ~/.ssh/known_hosts
+# Or with custom port:
+ssh-keyscan -p 2222 your-server >> ~/.ssh/known_hosts
+```
 
 ### Connection Refused
 
@@ -312,66 +286,40 @@ Host key verification failed.
 Connection refused
 ```
 
-- Check if container is running: `docker compose ps`
-- Verify port mapping: `docker compose port git-server 22`
-- Check logs: `docker compose logs git-server`
+- Is container running? `docker compose ps`
+- Is port correct? Check `.env` and `docker compose port git-server 22`
+- Firewall blocking? `sudo ufw allow 22/tcp`
 
-### Push Rejected
+### Push Rejected (Expected!)
 
 ```
-fatal: Push access is disabled on this read-only server.
+fatal: Push access is disabled
 ```
 
-This is expected behavior! The server is intentionally read-only.
+This is correct behavior — the server is read-only by design.
 
-## Advanced Configuration
+## Advanced: With Web Server
 
-### Custom SSH Port
-
-Edit `.env`:
+Add HTTPS access alongside Git:
 
 ```bash
-GIT_SSH_PORT=2222
+# Start both Git and web servers
+docker compose --profile web up -d
+
+# Now accessible via:
+# - Git: git@server:my-burrow.git
+# - Web: http://localhost:8080/.burrow.json
 ```
 
-Or use environment variable:
-
+Configure in `.env`:
 ```bash
-GIT_SSH_PORT=22222 docker compose up -d
+WEB_PORT=8080
+BURROW_TITLE=My Documentation
+BURROW_DIR=my-burrow.git
 ```
-
-### Multiple Repositories
-
-Simply add more symlinks or directories to `repos/`:
-
-```bash
-ln -s ~/project-a repos/project-a.git
-ln -s ~/project-b repos/project-b.git
-ln -s ~/docs repos/documentation.git
-```
-
-### External Network Access
-
-For access from outside localhost, ensure:
-
-1. Port is open in firewall
-2. DNS/IP is accessible
-3. Update clone URLs accordingly
-
-```bash
-# Firewall (example for ufw)
-sudo ufw allow 2222/tcp
-
-# Clone from external
-git clone ssh://git@your-domain.com:2222/srv/git/my-burrow.git
-```
-
-### With Reverse Proxy (HTTPS)
-
-See `docker-compose.examples.yml` in parent directory for Traefik integration.
 
 ## See Also
 
-- [Rabit Specification](../../../rabit-spec-draft-2026-01-12.md) — Full RBT spec
+- [Rabit Specification](../../../rabit-spec-draft-2026-01-12.md) — Full RBT spec with transport protocol details
 - [rockstorm/git-server](https://github.com/rockstorm101/git-server-docker) — Base Docker image
 - [Rabit Client](../../../rabit-client/) — TypeScript client implementation

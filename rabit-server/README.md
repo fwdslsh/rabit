@@ -228,23 +228,32 @@ Share burrows via Git with SSH key authentication and read-only access:
 
 ```bash
 cd examples/git-readonly
-./setup.sh /path/to/your/burrow
+./setup.sh
+
+# Add your SSH key
+cat ~/.ssh/id_ed25519.pub >> ssh-keys/authorized_keys
+
+# Add a repository
+git clone --bare https://github.com/you/docs repos/docs.git
+
+# Start
 docker compose up -d
 
-# Clients can clone but not push:
-git clone ssh://git@localhost:2222/srv/git/my-burrow.git
+# Clients clone with clean URLs:
+git clone git@your-server:docs.git
 ```
 
-This is ideal for:
-- Internal documentation sharing
-- Authenticated access without passwords
-- Maintaining read/write access on host while sharing read-only
+Features:
+- Clean URLs (`git@server:repo.git`) — no `/srv/git` prefix
+- Standard port 22 by default (configurable with `--port`)
+- No symlinks required — mount repos directly
+- No root access needed on host
 
 See [examples/git-readonly/README.md](examples/git-readonly/README.md) for full documentation.
 
 ### Using with File Roots
 
-The Rabit spec (draft-rabit-rbt-03) supports file paths for local/network access:
+The Rabit spec (draft-rabit-rbt-04) supports file paths for local/network access:
 
 ```json
 {
