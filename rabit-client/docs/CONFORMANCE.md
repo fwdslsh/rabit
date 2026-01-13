@@ -1,6 +1,6 @@
 # RBT Specification Conformance
 
-This document certifies that `@rabit/client` v0.2.0 implements **Full RBT Client** conformance as defined in the Rabit Burrow Traversal Specification draft-rabit-rbt-02.
+This document certifies that `@rabit/client` v0.2.0 implements **Full RBT Client** conformance as defined in the Rabit Burrow Traversal Specification draft-rabit-rbt-03.
 
 ## Conformance Level
 
@@ -45,6 +45,15 @@ All required features for Full Client conformance have been implemented:
   - Supports path within repository
   - Uses Bun subprocess for Git operations
 
+- ✅ **Support file roots using native OS file access**
+  - Implementation: `src/client.ts:fetchBurrowFromFile()`, `fetchEntryFromFile()`
+  - Local file paths: `/home/user/docs/`
+  - Windows paths: `C:\Documents\`
+  - SMB/CIFS shares: `\\server\share\` (via OS mount)
+  - NFS mounts: `/mnt/nfs/docs/` (via OS mount)
+  - Uses native `fs` module for file access
+  - Inherits authentication from OS-level mechanisms
+
 - ✅ **Verify RIDs** when fetching resources
   - Implementation: `src/utils.ts:verifyContent()`, `src/utils.ts:computeRid()`
   - SHA-256 hash computation per §7.3
@@ -84,9 +93,25 @@ All required features for Full Client conformance have been implemented:
   - `base`: HTTPS URL ending with `/`
   - Manifest at `${base}.burrow.json`
 
+- ✅ File Root (§5.2.3)
+  - `path`: Absolute path to burrow root
+  - Supports local paths, SMB/CIFS, NFS via native OS access
+  - Path traversal prevention for security
+
 - ✅ Root Selection (§5.3)
-  - Prefers Git roots for versioning and integrity
+  - Prefers file roots for local/network access (lowest latency)
+  - Then Git roots for versioning and integrity
   - Falls back to HTTPS roots for simplicity
+
+### File Names and Discovery (§4)
+
+- ✅ Required files (§4.1)
+  - `.burrow.json` manifest parsing
+  - `.warren.json` registry parsing
+
+- ✅ Human-readable companions (§4.1.1)
+  - `.burrow.md` discovery and display
+  - `.warren.md` discovery and display
 
 ### Manifest Format (§6)
 
@@ -295,7 +320,10 @@ All required features for Full Client conformance have been implemented:
 |---------|---------|--------|
 | §3.2.1 | Minimal Client | ✅ Fully Implemented |
 | §3.2.2 | Full Client | ✅ Fully Implemented |
-| §5 | Git and HTTPS Roots | ✅ Fully Implemented |
+| §4.1 | File Names (.burrow.json, .warren.json) | ✅ Fully Implemented |
+| §4.1.1 | Human-readable companions (.burrow.md, .warren.md) | ✅ Fully Implemented |
+| §5 | Git, HTTPS, and File Roots | ✅ Fully Implemented |
+| §5.2.3 | File Roots (local/SMB/NFS) | ✅ Fully Implemented |
 | §6 | Manifest Format | ✅ Fully Implemented |
 | §7 | RID Verification | ✅ Fully Implemented |
 | §8 | Traversal Algorithm | ✅ Fully Implemented |
@@ -311,9 +339,9 @@ All required features for Full Client conformance have been implemented:
 This implementation has been verified to meet all requirements for **RBT Client (Full)** conformance as defined in:
 
 **Rabit Burrow Traversal Specification**
-draft-rabit-rbt-02
+draft-rabit-rbt-03
 Version 0.2
-Date: 2026-01-12
+Date: 2026-01-13
 
 **Implementation Version:** @rabit/client v0.2.0
 **Certification Date:** 2026-01-12

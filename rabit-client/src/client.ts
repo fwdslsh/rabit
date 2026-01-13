@@ -9,6 +9,7 @@ import type {
   Entry,
   Root,
   GitRoot,
+  FileRoot,
   TraversalOptions,
   TraversalResult,
   FetchResult,
@@ -20,8 +21,12 @@ import type {
 import {
   isGitRoot,
   isHttpsRoot,
+  isFileRoot,
   getBaseUrl,
+  getFilePath,
 } from './types';
+import { readFile } from 'fs/promises';
+import { join, resolve, normalize } from 'path';
 import {
   validateUrl,
   validateManifestSize,
@@ -260,25 +265,36 @@ export class RabitClient {
   }
 
   /**
-   * Fetch burrow manifest from URL or Git root
+   * Fetch burrow manifest from URL, file path, or Root descriptor
    * Implements root selection and fallback per §5.3
+   * Priority: File roots > Git roots > HTTPS roots
    */
   async fetchBurrow(urlOrRoot: string | Root): Promise<FetchResult<BurrowManifest>> {
-    // Handle string URL
+    // Handle string URL or path
     if (typeof urlOrRoot === 'string') {
+      // Check if it's a file:// URL or local path
+      if (urlOrRoot.startsWith('file://') || urlOrRoot.startsWith('/') || /^[a-zA-Z]:/.test(urlOrRoot) || urlOrRoot.startsWith('\\\\')) {
+        return this.fetchBurrowFromFile(urlOrRoot);
+      }
       return this.fetchBurrowFromUrl(urlOrRoot);
     }
 
-    // Handle Root descriptor
+    // Handle Root descriptor - try in priority order per §5.3
     const root = urlOrRoot;
 
-    // Try Git root first (§5.3)
+    // Try File root first (highest priority for local/network access)
+    if (isFileRoot(root)) {
+      const result = await this.fetchBurrowFromFile(root.file.path);
+      if (result.ok) return result;
+    }
+
+    // Try Git root second (for versioning and integrity)
     if (isGitRoot(root)) {
       const result = await this.fetchBurrowFromGit(root.git);
       if (result.ok) return result;
     }
 
-    // Try HTTPS root
+    // Try HTTPS root (fallback for simplicity)
     if (isHttpsRoot(root)) {
       return this.fetchBurrowFromUrl(root.https.base);
     }
@@ -287,6 +303,114 @@ export class RabitClient {
       ok: false,
       error: createError('transport_error', 'No usable root available'),
     };
+  }
+
+  /**
+   * Fetch burrow manifest from local or network file path
+   * Uses native OS file access for SMB, NFS, and local paths
+   * @see Specification §5.2.3
+   */
+  private async fetchBurrowFromFile(pathOrUrl: string): Promise<FetchResult<BurrowManifest>> {
+    try {
+      // Convert file:// URL to path if needed
+      let filePath = pathOrUrl;
+      if (filePath.startsWith('file://')) {
+        filePath = filePath.replace(/^file:\/\//, '');
+        // Handle Windows file URLs (file:///C:/...)
+        if (filePath.startsWith('/') && /^\/[a-zA-Z]:/.test(filePath)) {
+          filePath = filePath.slice(1);
+        }
+      }
+
+      // Normalize the path and construct manifest path
+      filePath = normalize(filePath);
+      const manifestPath = filePath.endsWith('.burrow.json')
+        ? filePath
+        : join(filePath, '.burrow.json');
+
+      // Validate path is absolute
+      if (!resolve(manifestPath).startsWith(resolve(filePath.replace(/\.burrow\.json$/, '')))) {
+        return {
+          ok: false,
+          error: createError(
+            'transport_error',
+            'Path traversal detected - path must stay within burrow root'
+          ),
+        };
+      }
+
+      // Read the manifest file using native OS file access
+      // This automatically handles SMB, NFS, and other mounted file systems
+      const content = await readFile(manifestPath, 'utf-8');
+
+      // Validate size
+      validateManifestSize(Buffer.byteLength(content, 'utf-8'));
+
+      const data = JSON.parse(content) as BurrowManifest;
+
+      // Validate required fields
+      if (!data.rbt || !data.manifest || !data.entries) {
+        return {
+          ok: false,
+          error: createError(
+            'manifest_invalid',
+            'Invalid burrow format: missing required fields'
+          ),
+        };
+      }
+
+      validateEntryCount(data.entries.length);
+
+      return { ok: true, data };
+    } catch (error) {
+      if ((error as RbtError).category) {
+        return { ok: false, error: error as RbtError };
+      }
+
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Provide helpful error messages for common issues
+      if (errorMessage.includes('ENOENT')) {
+        return {
+          ok: false,
+          error: createError(
+            'manifest_not_found',
+            `Manifest not found at path: ${pathOrUrl}`,
+            undefined,
+            pathOrUrl
+          ),
+        };
+      }
+
+      if (errorMessage.includes('EACCES') || errorMessage.includes('EPERM')) {
+        return {
+          ok: false,
+          error: createError(
+            'transport_error',
+            `Permission denied accessing path: ${pathOrUrl}. Ensure the path is accessible.`,
+            undefined,
+            pathOrUrl
+          ),
+        };
+      }
+
+      if (errorMessage.includes('ENOTDIR')) {
+        return {
+          ok: false,
+          error: createError(
+            'transport_error',
+            `Path is not a directory: ${pathOrUrl}`,
+            undefined,
+            pathOrUrl
+          ),
+        };
+      }
+
+      return {
+        ok: false,
+        error: createError('transport_error', `Failed to fetch burrow from file: ${error}`),
+      };
+    }
   }
 
   /**
@@ -476,6 +600,7 @@ export class RabitClient {
 
   /**
    * Fetch entry from a specific root
+   * Supports File, Git, and HTTPS roots
    */
   private async fetchEntryFromRoot(
     burrow: BurrowManifest,
@@ -483,6 +608,10 @@ export class RabitClient {
     root: Root,
     verifyRid: boolean
   ): Promise<FetchResult<Uint8Array>> {
+    if (isFileRoot(root)) {
+      return this.fetchEntryFromFile(root.file.path, entry, verifyRid);
+    }
+
     if (isHttpsRoot(root)) {
       return this.fetchEntryFromHttps(root.https.base, entry, verifyRid);
     }
@@ -495,6 +624,87 @@ export class RabitClient {
       ok: false,
       error: createError('transport_error', 'Unsupported root type'),
     };
+  }
+
+  /**
+   * Fetch entry via native file system access
+   * Uses OS file APIs for local paths and mounted network shares (SMB, NFS)
+   * @see Specification §5.2.3
+   */
+  private async fetchEntryFromFile(
+    basePath: string,
+    entry: Entry,
+    verifyRid: boolean
+  ): Promise<FetchResult<Uint8Array>> {
+    try {
+      // Normalize and join paths
+      const normalizedBase = normalize(basePath);
+      const entryPath = join(normalizedBase, entry.href);
+
+      // Security: Validate path stays within burrow root (prevent directory traversal)
+      const resolvedBase = resolve(normalizedBase);
+      const resolvedEntry = resolve(entryPath);
+      if (!resolvedEntry.startsWith(resolvedBase)) {
+        return {
+          ok: false,
+          error: createError(
+            'transport_error',
+            'Path traversal detected - entry path must stay within burrow root',
+            entry.id,
+            entry.href
+          ),
+        };
+      }
+
+      // Read the file using native OS file access
+      const content = await readFile(entryPath);
+
+      // Verify RID if requested (§7.4)
+      if (verifyRid && (entry.rid || entry.hash)) {
+        const valid = await verifyContent(content, entry.rid, entry.hash);
+        if (!valid) {
+          return {
+            ok: false,
+            error: createError(
+              'verification_failed',
+              'Content hash verification failed',
+              entry.id,
+              entry.href
+            ),
+          };
+        }
+      }
+
+      return { ok: true, data: new Uint8Array(content) };
+    } catch (error) {
+      if ((error as RbtError).category) {
+        return { ok: false, error: error as RbtError };
+      }
+
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      if (errorMessage.includes('ENOENT')) {
+        return {
+          ok: false,
+          error: createError(
+            'entry_not_found',
+            `Entry file not found: ${entry.href}`,
+            entry.id,
+            entry.href
+          ),
+        };
+      }
+
+      return {
+        ok: false,
+        error: createError(
+          'transport_error',
+          `Failed to fetch entry from file: ${error}`,
+          entry.id,
+          entry.href
+        ),
+      };
+    }
   }
 
   /**

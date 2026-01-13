@@ -56,7 +56,7 @@
   "$defs": {
     "root": {
       "type": "object",
-      "description": "Root descriptor (Git or HTTPS)",
+      "description": "Root descriptor (Git, HTTPS, or File)",
       "oneOf": [
         {
           "type": "object",
@@ -97,6 +97,23 @@
                   "format": "uri",
                   "description": "HTTPS URL to the burrow root (must end with /)",
                   "pattern": "^https://.+/$"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["file"],
+          "properties": {
+            "file": {
+              "type": "object",
+              "required": ["path"],
+              "description": "File-based root for local or network file system access (SMB, NFS, local paths)",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Absolute path to the burrow root (local path, SMB share, or NFS mount). Must end with path separator."
                 }
               }
             }

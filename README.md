@@ -37,17 +37,20 @@ We're entering an era where AI agents will consume as much web content as humans
 Rabit provides:
 
 1. **A manifest** (`.burrow.json`) — a machine-readable index of your content
-2. **Stable identifiers** (RIDs) — content-addressed IDs that survive moves and mirrors
-3. **Git-first distribution** — versioning, collaboration, and integrity built in
-4. **Optional agent guidance** — hints for how AI should interpret your content
+2. **A human-readable companion** (`.burrow.md`) — documentation for humans browsing your burrow
+3. **Stable identifiers** (RIDs) — content-addressed IDs that survive moves and mirrors
+4. **Flexible access** — Git-first distribution, HTTPS fallback, or local/network file paths
+5. **Optional agent guidance** — hints for how AI should interpret your content
 
 One file. Standard formats. No new infrastructure required.
 
 ## Core Principles
 
-### Git-First
+### Git-First (with Flexible Access)
 
-Rabit treats Git repositories as first-class content sources. This gives you versioning, collaboration, mirroring, and cryptographic integrity for free. HTTPS fallback exists for simpler deployments, but Git is the recommended path.
+Rabit treats Git repositories as first-class content sources. This gives you versioning, collaboration, mirroring, and cryptographic integrity for free.
+
+For simpler deployments, HTTPS fallback is available. For local or enterprise scenarios, burrows can be accessed directly via file paths—including network shares (SMB/CIFS, NFS). The client uses your operating system's native file access, so mounted network drives work seamlessly.
 
 ### Human and Agent Friendly
 
@@ -59,7 +62,7 @@ Every resource has a RID (Resource Identifier) based on its content hash. Move a
 
 ### Minimal Footprint
 
-Rabit is "one file in one place." No servers to run, no databases to maintain, no protocols to implement. If you can host static files or push to a Git repository, you can publish a burrow.
+Rabit is "one file in one place." No servers to run, no databases to maintain, no protocols to implement. If you can host static files, push to a Git repository, or share a folder on your network, you can publish a burrow.
 
 ## The Terminology
 
@@ -85,9 +88,10 @@ Rabit uses playful terminology that maps to familiar concepts:
 Publishing a burrow is simple:
 
 1. Create a `.burrow.json` at your content root
-2. List your entries with titles, paths, and types
-3. Optionally add a Git root for versioned access
-4. That's it—you have a burrow
+2. Optionally create a `.burrow.md` for human readers
+3. List your entries with titles, paths, and types
+4. Add roots for Git, HTTPS, and/or file access
+5. That's it—you have a burrow
 
 ```json
 {
@@ -97,7 +101,9 @@ Publishing a burrow is simple:
     "updated": "2025-01-15T12:00:00Z",
     "rid": "urn:rabit:sha256:...",
     "roots": [
-      { "git": { "remote": "https://github.com/me/docs.git", "ref": "refs/heads/main" } }
+      { "git": { "remote": "https://github.com/me/docs.git", "ref": "refs/heads/main" } },
+      { "https": { "base": "https://docs.example.com/" } },
+      { "file": { "path": "/mnt/shared/docs/" } }
     ]
   },
   "entries": [

@@ -2,8 +2,8 @@
  * Utility functions for RBT client
  */
 
-import type { Root, GitRoot, HttpsRoot, RbtError } from './types';
-import { isGitRoot, isHttpsRoot } from './types';
+import type { Root, GitRoot, HttpsRoot, FileRoot, RbtError } from './types';
+import { isGitRoot, isHttpsRoot, isFileRoot } from './types';
 
 // ============================================================================
 // RID Computation (§7)
@@ -122,9 +122,22 @@ export function validateUrl(urlString: string, allowGit = false): URL {
 // ============================================================================
 
 /**
- * Get the base URL for HTTPS access from a root
+ * Get the base URL/path for resource access from a root
+ * Returns file:// URL for file roots, HTTPS URL for https roots, null for git roots
  */
 export function getRootBaseUrl(root: Root): string | null {
+  if (isFileRoot(root)) {
+    // Return as file:// URL for consistency
+    const path = root.file.path;
+    if (path.startsWith('/')) {
+      return `file://${path}`;
+    } else if (/^[a-zA-Z]:/.test(path)) {
+      return `file:///${path.replace(/\\/g, '/')}`;
+    } else if (path.startsWith('\\\\')) {
+      return `file:${path.replace(/\\/g, '/')}`;
+    }
+    return `file://${path}`;
+  }
   if (isHttpsRoot(root)) {
     return root.https.base;
   }
@@ -135,6 +148,9 @@ export function getRootBaseUrl(root: Root): string | null {
  * Get display name for a root (for logging)
  */
 export function getRootDisplayName(root: Root): string {
+  if (isFileRoot(root)) {
+    return `file:${root.file.path}`;
+  }
   if (isGitRoot(root)) {
     return `git:${root.git.remote}@${root.git.ref}`;
   }

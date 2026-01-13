@@ -12,6 +12,7 @@ A production-ready TypeScript/Bun client for traversing and consuming Rabit burr
 ✅ **Full RBT Client Conformance** (Specification §3.2.2)
 - ✅ Git transport support (HTTPS and SSH remotes)
 - ✅ HTTPS static hosting support
+- ✅ File path support (local, SMB/CIFS, NFS via native OS access)
 - ✅ RID verification for content integrity
 - ✅ Automatic mirror fallback on failure
 - ✅ Cycle detection during traversal
@@ -20,6 +21,7 @@ A production-ready TypeScript/Bun client for traversing and consuming Rabit burr
 - ✅ Resource limits and security validations
 - ✅ Rate limiting and exponential backoff
 - ✅ Well-known endpoint discovery
+- ✅ `.burrow.md` and `.warren.md` companion file support
 
 ## Installation
 
@@ -122,6 +124,12 @@ Fetch a burrow manifest from a URL or Root descriptor. Supports Git and HTTPS ro
 // From HTTPS URL
 const result = await fetchBurrow('https://example.org/burrow/');
 
+// From local file path
+const result = await fetchBurrow('/home/user/documentation/');
+
+// From network share (SMB/NFS - uses native OS access)
+const result = await fetchBurrow('/mnt/shared/docs/');
+
 // From Git root
 const result = await fetchBurrow({
   git: {
@@ -135,6 +143,13 @@ const result = await fetchBurrow({
 const result = await fetchBurrow({
   https: {
     base: 'https://example.org/burrow/',
+  },
+});
+
+// From file root descriptor (local or network path)
+const result = await fetchBurrow({
+  file: {
+    path: '/mnt/nfs/documentation/',  // NFS mount
   },
 });
 ```
@@ -347,6 +362,33 @@ client.clearCache();
 
 ## Advanced Usage
 
+### File Transport (Local and Network Paths)
+
+The client supports local file paths and network file shares using the operating system's native file access. This means SMB/CIFS and NFS shares work automatically when mounted:
+
+```typescript
+// Local file system
+const result = await fetchBurrow('/home/user/docs/');
+
+// NFS mount
+const result = await fetchBurrow('/mnt/nfs/shared-docs/');
+
+// Windows UNC path (when running on Windows)
+const result = await fetchBurrow('\\\\fileserver\\docs\\');
+
+// Using file root descriptor
+const result = await fetchBurrow({
+  file: {
+    path: '/mnt/shared/documentation/',
+  },
+});
+```
+
+**Important:** The client does not implement SMB or NFS protocols directly. It relies on the operating system having access to these paths (via mount points, mapped drives, or direct UNC path access on Windows). This ensures:
+- Proper authentication through OS-level mechanisms (Kerberos, NTLM)
+- Consistent behavior with other applications
+- Access control managed at the OS/network level
+
 ### Git Transport
 
 The client automatically uses Git transport when available:
@@ -508,8 +550,10 @@ This project is licensed under [CC-BY-4.0](LICENSE).
 This implementation conforms to:
 - ✅ RBT Client (Full) - Specification §3.2.2
 - ✅ Git Transport - Specification §5.1
+- ✅ File Transport (local/SMB/NFS) - Specification §5.2.3
 - ✅ RID Verification - Specification §7.3, §7.4
 - ✅ Traversal Algorithm - Specification §8
 - ✅ Error Handling - Specification §9
 - ✅ Well-Known Discovery - Specification §11
 - ✅ Security Considerations - Specification §15
+- ✅ Human-readable companions (.burrow.md, .warren.md) - Specification §4.1.1

@@ -12,6 +12,7 @@ export type {
   // Root descriptors
   GitRoot,
   HttpsRoot,
+  FileRoot,
   Root,
   // Entries and pagination
   Entry,
@@ -49,7 +50,9 @@ export type {
 export {
   isGitRoot,
   isHttpsRoot,
+  isFileRoot,
   getBaseUrl,
+  getFilePath,
 } from './types';
 
 // Export main client class

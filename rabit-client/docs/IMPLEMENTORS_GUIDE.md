@@ -11,6 +11,8 @@ This guide helps you publish Rabit burrows using tools and platforms you're like
 - [Publishing with GitLab](#publishing-with-gitlab)
 - [Publishing with Azure DevOps](#publishing-with-azure-devops)
 - [Static Hosting](#static-hosting)
+- [Local and Network File Shares](#local-and-network-file-shares)
+- [Human-Readable Companion Files](#human-readable-companion-files)
 - [Enterprise Warrens](#enterprise-warrens)
 - [Automation](#automation)
 - [Best Practices](#best-practices)
@@ -387,6 +389,208 @@ aws s3 sync ./docs s3://my-burrow/ --acl public-read
 
 # Ensure .burrow.json is at root
 aws s3 cp .burrow.json s3://my-burrow/.burrow.json --acl public-read --content-type application/json
+```
+
+---
+
+## Local and Network File Shares
+
+RBT supports accessing burrows directly via file paths. This is ideal for:
+- Local development
+- Internal documentation on network shares
+- Air-gapped environments
+- High-performance local access
+
+The client uses **native OS file access**, which means network shares (SMB/CIFS, NFS) work automatically when mounted on the system.
+
+### Local File System
+
+For burrows on the local file system:
+
+```json
+{
+  "manifest": {
+    "roots": [
+      {
+        "file": {
+          "path": "/home/user/documentation/"
+        }
+      }
+    ]
+  }
+}
+```
+
+**Accessing your burrow:**
+```bash
+rabit burrow /home/user/documentation/
+```
+
+### Network File Shares (SMB/CIFS)
+
+For burrows on Windows file shares:
+
+**Windows (mapped drive or UNC path):**
+```json
+{
+  "manifest": {
+    "roots": [
+      {
+        "file": {
+          "path": "\\\\fileserver\\docs\\api-reference\\"
+        }
+      }
+    ]
+  }
+}
+```
+
+**Linux (mounted share):**
+```bash
+# First, mount the SMB share
+sudo mount -t cifs //fileserver/docs /mnt/docs -o username=user
+
+# Then access the burrow
+rabit burrow /mnt/docs/api-reference/
+```
+
+**.burrow.json for cross-platform access:**
+```json
+{
+  "manifest": {
+    "roots": [
+      {
+        "file": {
+          "path": "/mnt/docs/api-reference/"
+        }
+      },
+      {
+        "git": {
+          "remote": "https://github.com/org/api-docs.git",
+          "ref": "refs/heads/main"
+        }
+      }
+    ]
+  }
+}
+```
+
+### NFS Mounts
+
+For burrows on NFS shares:
+
+```bash
+# Mount the NFS share
+sudo mount -t nfs nfsserver:/exports/docs /mnt/nfs-docs
+
+# Access the burrow
+rabit burrow /mnt/nfs-docs/
+```
+
+**.burrow.json:**
+```json
+{
+  "manifest": {
+    "roots": [
+      {
+        "file": {
+          "path": "/mnt/nfs-docs/"
+        }
+      }
+    ]
+  }
+}
+```
+
+### Authentication Note
+
+File roots rely on the operating system for authentication:
+- **SMB/CIFS**: Uses Windows credentials, Kerberos, or mount credentials
+- **NFS**: Uses NFSv4 authentication or host-based access
+- **Local**: Uses standard POSIX file permissions
+
+The RBT client does not implement these protocols directly—it simply uses the paths as they appear to the file system.
+
+---
+
+## Human-Readable Companion Files
+
+Both `.burrow.md` and `.warren.md` serve as human-readable companions to their JSON counterparts. These files are recommended for publisher friendliness.
+
+### Creating .burrow.md
+
+The `.burrow.md` file helps humans understand your burrow when browsing via file managers, GitHub, or text editors.
+
+**Example `.burrow.md`:**
+
+```markdown
+# Acme API Documentation
+
+Welcome to the Acme API documentation burrow.
+
+## Contents
+
+- **[Getting Started](guides/quickstart.md)** — Installation and first API call
+- **[Authentication](auth.md)** — API keys and OAuth setup
+- **[API Reference](endpoints.md)** — Complete endpoint documentation
+- **[OpenAPI Spec](openapi.yaml)** — Machine-readable API specification
+
+## About This Burrow
+
+This burrow contains official documentation for the Acme API v2.0.
+
+**Machine-readable manifest:** [.burrow.json](.burrow.json)
+
+## Access Methods
+
+| Method | URL |
+|--------|-----|
+| Git | `https://github.com/acme/api-docs.git` |
+| Web | `https://docs.acme.com/api/` |
+| File | `/mnt/shared/api-docs/` (internal only) |
+
+## Contact
+
+Questions? Open an issue at https://github.com/acme/api-docs/issues
+```
+
+### Creating .warren.md
+
+The `.warren.md` file helps humans discover burrows in your registry.
+
+**Example `.warren.md`:**
+
+```markdown
+# Acme Corp Documentation Registry
+
+Welcome to Acme's central documentation hub!
+
+## Public Documentation
+
+| Burrow | Description |
+|--------|-------------|
+| [API Reference](https://docs.acme.com/api/) | REST API documentation |
+| [User Guide](https://docs.acme.com/guide/) | End-user tutorials |
+| [SDK Docs](https://docs.acme.com/sdk/) | Client library reference |
+
+## Internal Resources
+
+*(Requires VPN or internal network access)*
+
+| Burrow | Description |
+|--------|-------------|
+| [Internal Wiki](smb://wiki.acme.internal/docs/) | Employee-only docs |
+| [Architecture Docs](smb://arch.acme.internal/docs/) | System design documents |
+
+## Machine-Readable Registry
+
+For programmatic access, see [.warren.json](.warren.json).
+
+## Access Help
+
+- **Public docs**: Open to all
+- **Internal docs**: Requires Acme network access
+- **Questions**: Contact docs-team@acme.com
 ```
 
 ---

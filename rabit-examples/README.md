@@ -14,7 +14,9 @@ rabit-examples/
 ├── burrows/
 │   ├── docs-burrow/        # Documentation example
 │   │   ├── .burrow.json    # Burrow manifest
+│   │   ├── .burrow.md      # Human-readable companion
 │   │   ├── README.md
+│   │   ├── LICENSE
 │   │   ├── faq.md
 │   │   ├── guides/
 │   │   │   ├── installation.md
@@ -23,12 +25,14 @@ rabit-examples/
 │   │       └── overview.md
 │   ├── api-burrow/         # API reference example
 │   │   ├── .burrow.json
+│   │   ├── .burrow.md      # Human-readable companion
 │   │   ├── README.md
 │   │   ├── openapi.yaml
 │   │   ├── auth.md
 │   │   └── endpoints.md
 │   └── blog-burrow/        # Blog example
 │       ├── .burrow.json
+│       ├── .burrow.md      # Human-readable companion
 │       ├── README.md
 │       └── posts/
 │           ├── scaling-million-users.md
@@ -40,6 +44,16 @@ rabit-examples/
     ├── rabit.ts             # Client library
     └── cli.ts               # CLI commands
 ```
+
+### Human-Readable Companion Files
+
+Each burrow includes a `.burrow.md` file that provides:
+- A human-friendly table of contents
+- Brief descriptions of each entry
+- Access information (URLs, file paths)
+- Links to the machine-readable `.burrow.json`
+
+These companion files make burrows browsable via GitHub, file managers, or any Markdown viewer.
 
 ## Quick Start
 
@@ -95,6 +109,27 @@ bun run cli.ts search http://localhost:8083 kubernetes
 # Show agent instructions
 bun run cli.ts agent-info http://localhost:8081
 ```
+
+### 4. Access via File Paths (Local Development)
+
+You can also access example burrows directly via file paths:
+
+```bash
+# Using the production client
+cd ../rabit-client
+bun install
+
+# Access burrow via file path
+bun run src/cli.ts burrow ../rabit-examples/burrows/docs-burrow/
+
+# List entries via file path
+bun run src/cli.ts entries ../rabit-examples/burrows/api-burrow/
+
+# Traverse via file path
+bun run src/cli.ts traverse ../rabit-examples/burrows/blog-burrow/
+```
+
+This demonstrates RBT's file root support, which works with local paths, SMB shares, and NFS mounts.
 
 ## CLI Commands
 

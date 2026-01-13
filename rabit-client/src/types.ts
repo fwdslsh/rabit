@@ -36,9 +36,21 @@ export interface HttpsRoot {
 }
 
 /**
+ * File root descriptor for accessing burrows via local or network file systems
+ * Supports local paths, SMB/CIFS shares, NFS mounts, and any OS-accessible paths
+ * @see Specification §5.2.3
+ */
+export interface FileRoot {
+  file: {
+    /** Absolute path to the burrow root (local, SMB, NFS). MUST end with path separator. */
+    path: string;
+  };
+}
+
+/**
  * Union type for all root descriptors
  */
-export type Root = GitRoot | HttpsRoot;
+export type Root = GitRoot | HttpsRoot | FileRoot;
 
 // ============================================================================
 // Entry Objects (§6.4)
@@ -421,14 +433,45 @@ export function isHttpsRoot(root: Root): root is HttpsRoot {
 }
 
 /**
+ * Type guard for FileRoot
+ */
+export function isFileRoot(root: Root): root is FileRoot {
+  return 'file' in root;
+}
+
+/**
  * Get base URL from a root descriptor
  * Returns null for Git roots (requires cloning)
+ * Returns file:// URL for file roots
  */
 export function getBaseUrl(root: Root): string | null {
   if (isHttpsRoot(root)) {
     return root.https.base;
   }
+  if (isFileRoot(root)) {
+    // Convert file path to file:// URL format
+    const path = root.file.path;
+    // Handle Windows paths (C:\...) and Unix paths (/...)
+    if (path.startsWith('/')) {
+      return `file://${path}`;
+    } else if (/^[a-zA-Z]:/.test(path)) {
+      // Windows path - convert backslashes to forward slashes
+      return `file:///${path.replace(/\\/g, '/')}`;
+    } else if (path.startsWith('\\\\')) {
+      // UNC path (\\server\share)
+      return `file:${path.replace(/\\/g, '/')}`;
+    }
+    return `file://${path}`;
+  }
   return null;
+}
+
+/**
+ * Get file system path from a FileRoot
+ * Returns the native OS path for file system access
+ */
+export function getFilePath(root: FileRoot): string {
+  return root.file.path;
 }
 
 // ============================================================================

@@ -1,5 +1,5 @@
 # Internet-Draft: Rabit Burrow Traversal (RBT)
-## draft-rabit-rbt-02 (Work in Progress)
+## draft-rabit-rbt-03 (Work in Progress)
 
 **Intended status:** Informational (candidate for Standards Track)  
 **Expires:** 6 months after publication
@@ -93,18 +93,19 @@ A Minimal Publisher:
 
 - MUST publish `.burrow.json` at the burrow root
 - MUST include all required fields per §5.2
-- MUST publish at least one root (Git or HTTPS)
+- MUST publish at least one root (Git, HTTPS, or File)
 
 #### 3.1.2 RBT Publisher (Full)
 
 A Full Publisher:
 
 - MUST meet all Minimal Publisher requirements
-- MUST publish a Git root as the primary root
+- MUST publish a Git root as the primary root (when remote access is intended)
 - MUST include valid RIDs for all entries
 - MUST include `hash` field for all entries
+- SHOULD publish `.burrow.md` human-readable companion
 - SHOULD publish mirrors when available
-- SHOULD publish `/.well-known/` discovery endpoints
+- SHOULD publish `/.well-known/` discovery endpoints (for HTTPS roots)
 
 ### 3.2 Client Conformance
 
@@ -112,10 +113,10 @@ A Full Publisher:
 
 A Minimal Client:
 
-- MUST parse `.burrow.json` per §5
-- MUST resolve entries via HTTPS roots
-- MUST implement the traversal algorithm per §7
-- MUST handle errors per §8
+- MUST parse `.burrow.json` per §6
+- MUST resolve entries via at least one root type (HTTPS, Git, or File)
+- MUST implement the traversal algorithm per §8
+- MUST handle errors per §9
 
 #### 3.2.2 RBT Client (Full)
 
@@ -123,9 +124,11 @@ A Full Client:
 
 - MUST meet all Minimal Client requirements
 - MUST support Git transports (HTTPS and SSH remotes)
+- MUST support file roots using native OS file access (including network mounts)
 - MUST verify RIDs when fetching resources
-- MUST support mirror fallback per §6.4
-- MUST implement cycle detection per §7.3
+- MUST support mirror fallback per §7.4
+- MUST implement cycle detection per §8.4
+- SHOULD support `.burrow.md` and `.warren.md` discovery and display
 - SHOULD respect cache directives per §8.5
 
 ---
@@ -139,11 +142,52 @@ RBT uses dot-prefixed filenames to avoid conflicts with common repository files 
 At a burrow root, publishers:
 
 - MUST publish the manifest at: `.burrow.json`
+- SHOULD publish a human-readable companion at: `.burrow.md`
 
 At a registry root, publishers:
 
 - MUST publish the machine-readable registry at: `.warren.json`
 - SHOULD publish a human-readable companion at: `.warren.md`
+
+#### 4.1.1 Human-Readable Companion Files
+
+Both `.burrow.md` and `.warren.md` serve as human-readable companions to their JSON counterparts. These Markdown files provide:
+
+1. **Human navigation** — Users browsing via file managers, GitHub, or text editors can understand the content structure
+2. **Documentation** — Extended descriptions, usage notes, and context not suitable for JSON
+3. **Discoverability** — Markdown renders nicely in most development environments and web interfaces
+
+The `.burrow.md` file SHOULD contain:
+
+- A title matching `manifest.title`
+- A brief description of the burrow's purpose
+- A table of contents or listing of key entries
+- Usage instructions or getting-started guidance
+- Links to related resources
+
+Example `.burrow.md`:
+
+```markdown
+# My Project Documentation
+
+Welcome to the documentation burrow for My Project.
+
+## Contents
+
+- **[Getting Started](guides/quickstart.md)** — Installation and first steps
+- **[API Reference](api/overview.md)** — Complete API documentation
+- **[FAQ](faq.md)** — Frequently asked questions
+
+## About This Burrow
+
+This burrow contains official documentation for My Project v2.0.
+For the machine-readable manifest, see [.burrow.json](.burrow.json).
+
+## Access
+
+- **Git:** `https://github.com/org/project-docs.git`
+- **Web:** `https://docs.myproject.org/`
+```
 
 ### 4.2 Optional well-known discovery (Recommended)
 
@@ -157,6 +201,7 @@ These endpoints use the well-known URI mechanism described by RFC 8615.
 ### 4.3 Media Types
 
 - `.burrow.json` MUST be served as `application/json; charset=utf-8`
+- `.burrow.md` SHOULD be served as `text/markdown; charset=utf-8`
 - `.warren.json` MUST be served as `application/json; charset=utf-8`
 - `.warren.md` SHOULD be served as `text/markdown; charset=utf-8`
 
@@ -220,14 +265,73 @@ Example:
 }
 ```
 
+#### 5.2.3 File Root Descriptor
+
+For burrows accessed via local file systems or network file shares, RBT supports file-based root descriptors. This enables burrows to be hosted on:
+
+- Local file system paths (e.g., `/home/user/docs/`, `C:\Documents\`)
+- Network file shares via SMB/CIFS (e.g., `\\server\share\docs\`, `smb://server/share/docs/`)
+- NFS mounts (e.g., `/mnt/nfs/docs/`)
+- Any file system accessible via the operating system's native file APIs
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `path` | string | REQUIRED | Absolute path to the burrow root (MUST end with `/` on Unix or `\` on Windows) |
+
+The manifest is located at `${path}.burrow.json`.
+
+**Important:** Clients accessing file roots MUST use the native operating system file APIs. This means:
+
+1. Local paths are accessed directly via the file system
+2. SMB/CIFS shares are accessed through the OS's native SMB client (e.g., Windows file sharing, `mount.cifs` on Linux)
+3. NFS shares are accessed through the OS's native NFS client
+4. The client does not implement SMB, NFS, or other network file protocols directly—it relies on the OS having already mounted or being able to access these paths natively
+
+This approach ensures:
+- Proper authentication through OS-level mechanisms (e.g., Kerberos, NTLM)
+- Consistent behavior with other applications on the system
+- No need to implement complex network file protocols in the client
+- Access control managed at the OS/network level
+
+Examples:
+
+```json
+{
+  "file": {
+    "path": "/home/user/documentation/"
+  }
+}
+```
+
+```json
+{
+  "file": {
+    "path": "\\\\fileserver\\docs\\api-reference\\"
+  }
+}
+```
+
+```json
+{
+  "file": {
+    "path": "/mnt/nfs/shared-docs/"
+  }
+}
+```
+
+For cross-platform compatibility in manifests, publishers MAY include multiple file roots with platform-specific paths, or rely on symbolic links/mount points to normalize paths across platforms.
+
 ### 5.3 Root Selection
 
 When multiple roots are available, clients SHOULD prefer them in this order:
 
-1. Git roots (for versioning and integrity)
-2. HTTPS roots (for simplicity and caching)
+1. File roots (for local/network access with lowest latency)
+2. Git roots (for versioning and integrity)
+3. HTTPS roots (for simplicity and caching)
 
-Clients MAY allow user configuration to override this preference.
+File roots are preferred when available because they typically offer the lowest latency and highest throughput, especially for local files or mounted network shares. However, clients MAY allow user configuration to override this preference based on specific use cases (e.g., preferring Git for version control workflows).
+
+Clients SHOULD verify that file paths are accessible before attempting to use them; if a file root is inaccessible (e.g., network share unavailable), the client MUST fall back to the next available root type.
 
 ---
 
@@ -1002,15 +1106,27 @@ RBT systems face the following threats:
 | Resource exhaustion | Malicious manifest causes infinite traversal | Cycle detection, limits (§13.3) |
 | Content injection | Untrusted content executed by client | Sandboxing (§13.4) |
 
-### 15.2 URL Validation
+### 15.2 URL and Path Validation
 
-Clients MUST validate URLs before fetching:
+Clients MUST validate URLs and file paths before accessing:
+
+**For HTTPS URLs:**
 
 1. MUST reject non-HTTPS URLs (except `git://` for Git remotes)
-2. MUST reject URLs with private/internal IP ranges
-3. MUST reject URLs with localhost or loopback addresses
+2. MUST reject URLs with private/internal IP ranges (unless explicitly configured)
+3. MUST reject URLs with localhost or loopback addresses (unless explicitly configured)
 4. SHOULD implement allowlist/blocklist for domains
 5. SHOULD reject URLs with suspicious patterns (e.g., `@` in hostname)
+
+**For File Paths:**
+
+1. MUST validate that paths are absolute (not relative)
+2. MUST validate that paths resolve within allowed directories (prevent directory traversal attacks)
+3. SHOULD implement allowlist of permitted base directories
+4. SHOULD validate that network paths (SMB/NFS) are from trusted servers
+5. MUST NOT follow symbolic links outside the burrow root unless explicitly configured
+
+**Note:** File roots that access network shares (SMB, NFS) inherit authentication and access control from the operating system. Clients SHOULD NOT attempt to bypass or circumvent OS-level security mechanisms.
 
 ### 15.3 Resource Limits
 
@@ -1167,7 +1283,16 @@ JSON Schema documents for `.burrow.json` and `.warren.json` are published at:
 
 ## Appendix C: Changelog
 
-### C.1 Changes from draft-rabit-rbt-01
+### C.1 Changes from draft-rabit-rbt-02
+
+1. **File Root Descriptor:** Added §5.2.3 defining file-based root descriptors for local and network file paths
+2. **Native OS File Access:** Clients use native OS features for accessing SMB, NFS, and local file paths
+3. **Human-Readable Companion:** Added `.burrow.md` support (§4.1.1) as human-readable companion to `.burrow.json`, following the `.warren.md` pattern
+4. **Root Selection:** Updated §5.3 to include file roots with highest priority for local/network access
+5. **Conformance Updates:** Updated §3.2.2 to require file root support for Full Clients
+6. **Path Validation:** Added file path validation requirements to §15.2
+
+### C.2 Changes from draft-rabit-rbt-01
 
 1. **Terminology:** Unified on canonical terms (manifest, registry); removed brand/canonical mapping
 2. **Conformance:** Added §3 defining publisher and client conformance levels
