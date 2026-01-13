@@ -201,7 +201,7 @@ This repository contains:
 - `schemas/` — JSON Schema files for validation
 - `packages/rabit-client/` — TypeScript/Bun client implementation
 - `packages/rabit-server/` — Docker-based manifest server
-- `packages/opencode-rabit/` — MCP plugin for AI agents
+- `packages/rabit-mcp/` — MCP plugin for AI agents
 - `examples/` — Example burrows and warren
 
 ## Learn More

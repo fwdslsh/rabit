@@ -5,13 +5,13 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server plugin
 ## Installation
 
 ```bash
-bun add opencode-rabit
+bun add rabit-mcp
 ```
 
 Or install from the monorepo:
 
 ```bash
-cd packages/opencode-rabit
+cd packages/rabit-mcp
 bun install
 bun run build
 ```
@@ -28,7 +28,7 @@ Add to your OpenCode configuration file (`~/.config/opencode/config.json`):
     "rabit": {
       "type": "stdio",
       "command": "bunx",
-      "args": ["opencode-rabit"]
+      "args": ["rabit-mcp"]
     }
   }
 }
@@ -43,7 +43,7 @@ Add to your Claude Desktop configuration:
   "mcpServers": {
     "rabit": {
       "command": "bunx",
-      "args": ["opencode-rabit"]
+      "args": ["rabit-mcp"]
     }
   }
 }

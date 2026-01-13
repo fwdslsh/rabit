@@ -11,7 +11,7 @@
     "license": "LICENSE"
   },
   "agents": {
-    "context": "Official Rabit project repository. Contains the v0.3.0 specification (docs/rabit-spec-v0.3.0.md), reference implementations in packages/ (rabit-client, rabit-server, opencode-rabit), and example burrows in examples/.",
+    "context": "Official Rabit project repository. Contains the v0.3.0 specification (docs/rabit-spec-v0.3.0.md), reference implementations in packages/ (rabit-client, rabit-server, rabit-mcp), and example burrows in examples/.",
     "entryPoint": "readme",
     "hints": [
       "The specification document (docs/rabit-spec-v0.3.0.md) is the authoritative reference",
@@ -62,7 +62,7 @@
       "kind": "dir",
       "uri": "packages/",
       "title": "Packages",
-      "summary": "Monorepo packages: rabit-client, rabit-server, opencode-rabit.",
+      "summary": "Monorepo packages: rabit-client, rabit-server, rabit-mcp.",
       "priority": 70,
       "tags": ["code"]
     },
@@ -85,11 +85,11 @@
       "tags": ["docs", "server"]
     },
     {
-      "id": "opencode-readme",
+      "id": "mcp-readme",
       "kind": "file",
-      "uri": "packages/opencode-rabit/README.md",
-      "title": "OpenCode Rabit Plugin Documentation",
-      "summary": "Documentation for the OpenCode MCP plugin that provides Rabit tools for AI agents.",
+      "uri": "packages/rabit-mcp/README.md",
+      "title": "Rabit MCP Plugin Documentation",
+      "summary": "Documentation for the MCP plugin that provides Rabit tools for AI agents.",
       "mediaType": "text/markdown",
       "tags": ["docs", "mcp", "plugin"]
     },

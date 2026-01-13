@@ -1,7 +1,7 @@
 {
-  "name": "opencode-rabit",
+  "name": "rabit-mcp",
   "version": "0.3.0",
-  "description": "OpenCode MCP plugin providing Rabit Burrow Traversal (RBT) tools for AI agents",
+  "description": "MCP (Model Context Protocol) plugin providing Rabit Burrow Traversal (RBT) tools for AI agents",
   "keywords": [
     "opencode",
     "mcp",
@@ -18,7 +18,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/itlackey/rabit.git",
-    "directory": "packages/opencode-rabit"
+    "directory": "packages/rabit-mcp"
   },
   "bugs": {
     "url": "https://github.com/itlackey/rabit/issues"
@@ -36,7 +36,7 @@
     }
   },
   "bin": {
-    "opencode-rabit": "./dist/index.js"
+    "rabit-mcp": "./dist/index.js"
   },
   "files": [
     "dist",

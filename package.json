@@ -36,7 +36,7 @@
     "typecheck": "bun run --filter '*' typecheck",
     "clean": "bun run --filter '*' clean",
     "dev:client": "bun run --filter @rabit/client dev",
-    "dev:opencode": "bun run --filter opencode-rabit dev"
+    "dev:mcp": "bun run --filter rabit-mcp dev"
   },
   "devDependencies": {
     "@types/bun": "latest",
