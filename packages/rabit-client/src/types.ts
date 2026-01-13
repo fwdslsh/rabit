@@ -1,6 +1,6 @@
 /**
  * Rabit Burrow & Warren Types
- * Based on Rabit Specification v0.3.0
+ * Based on Rabit Specification v0.4.0
  *
  * This file contains all type definitions for burrows and warrens.
  */
@@ -11,7 +11,7 @@
 
 /**
  * Specification version string format
- * Example: "fwdslsh.dev/rabit/schemas/0.3.0/burrow"
+ * Example: "fwdslsh.dev/rabit/schemas/0.4.0/burrow"
  */
 export type SpecVersion = string;
 
@@ -22,8 +22,14 @@ export type DocumentKind = 'burrow' | 'warren';
 
 /**
  * Entry kind - the type of menu item
+ * @see Specification §9.2
+ * - file: A single file
+ * - dir: A directory without its own burrow file
+ * - burrow: A directory with its own .burrow.json (points to directory)
+ * - map: A reference to another burrow map file (points directly to JSON file)
+ * - link: External URI
  */
-export type EntryKind = 'file' | 'dir' | 'burrow' | 'link';
+export type EntryKind = 'file' | 'dir' | 'burrow' | 'map' | 'link';
 
 /**
  * Metadata object for extensibility
@@ -401,6 +407,14 @@ export function isBurrowEntry(entry: Entry): boolean {
 }
 
 /**
+ * Type guard for map entries (direct burrow file references)
+ * @see Specification §9.2 (v0.4.0)
+ */
+export function isMapEntry(entry: Entry): boolean {
+  return entry.kind === 'map';
+}
+
+/**
  * Type guard for link entries
  */
 export function isLinkEntry(entry: Entry): boolean {
@@ -471,7 +485,7 @@ export function isValidSpecVersion(specVersion: string): boolean {
 
 /**
  * Extract version number from specVersion
- * Example: "fwdslsh.dev/rabit/schemas/0.3.0/burrow" -> "0.3.0"
+ * Example: "fwdslsh.dev/rabit/schemas/0.4.0/burrow" -> "0.4.0"
  */
 export function extractVersion(specVersion: string): string | null {
   const match = specVersion.match(/fwdslsh\.dev\/rabit\/schemas\/([^/]+)\//);

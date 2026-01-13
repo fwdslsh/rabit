@@ -1,0 +1,27 @@
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "scripts",
+  "description": "Auto-generated burrow for scripts",
+  "updated": "2026-01-13T16:58:31.683Z",
+  "entries": [
+    {
+      "id": "entrypoint",
+      "kind": "file",
+      "uri": "entrypoint.sh",
+      "title": "entrypoint.sh",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 2080,
+      "priority": 80
+    },
+    {
+      "id": "generate-wellknown",
+      "kind": "file",
+      "uri": "generate-wellknown.ts",
+      "title": "generate-wellknown.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 9981,
+      "priority": 80
+    }
+  ]
+}

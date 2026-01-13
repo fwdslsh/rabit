@@ -1,0 +1,27 @@
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "git-shell-commands",
+  "description": "Auto-generated burrow for git-shell-commands",
+  "updated": "2026-01-13T16:58:31.683Z",
+  "entries": [
+    {
+      "id": "git-receive-pack",
+      "kind": "file",
+      "uri": "git-receive-pack",
+      "title": "git-receive-pack",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 269,
+      "priority": 80
+    },
+    {
+      "id": "no-interactive-login",
+      "kind": "file",
+      "uri": "no-interactive-login",
+      "title": "no-interactive-login",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 543,
+      "priority": 80
+    }
+  ]
+}

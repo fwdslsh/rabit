@@ -2,7 +2,7 @@
 /**
  * Rabit CLI - Universal Burrow Browser
  *
- * Implementation of CLIENT_SPEC.md v0.3.0
+ * Implementation of CLIENT_SPEC.md v0.4.0
  *
  * Commands:
  *   discover <uri>                            - Discover burrows at a location
@@ -10,6 +10,7 @@
  *   fetch <uri> <entry-id> [options]          - Fetch a specific entry
  *   traverse <uri> [options]                  - Traverse all entries
  *   validate <file>                           - Validate a manifest file
+ *   map <dir> [options]                       - Generate burrow from directory
  */
 
 import {
@@ -146,6 +147,7 @@ async function cmdList(uri: string, options: {
         file: '📄',
         dir: '📁',
         burrow: '🐰',
+        map: '🗺️',
         link: '🔗',
       }[entry.kind];
 
@@ -364,8 +366,12 @@ async function cmdMap(inputDir: string, options: {
     });
   }
 
-  // Scan directory recursively
-  function scanDirectory(dir: string, depth: number, rootDir: string): Entry[] {
+  // Scan directory and create burrow (non-recursive for entries)
+  async function scanDirectoryAndCreateBurrow(
+    dir: string,
+    depth: number,
+    rootDir: string
+  ): Promise<Entry[]> {
     if (depth > maxDepth) return [];
 
     const entries: Entry[] = [];
@@ -383,25 +389,59 @@ async function cmdMap(inputDir: string, options: {
           const stats = statSync(itemPath);
           const isDir = stats.isDirectory();
 
-          const entry: Entry = {
-            id: generateId(item),
-            kind: isDir ? 'dir' : 'file',
-            uri: isDir ? relativePath + '/' : relativePath,
-            title: item,
-            priority: getPriority(item, isDir),
-          };
+          if (isDir) {
+            // For directories, create a nested burrow if depth allows
+            if (depth < maxDepth) {
+              // Create .burrow.json in the subdirectory
+              const subBurrowPath = join(itemPath, '.burrow.json');
+              const subEntries = await scanDirectoryAndCreateBurrow(itemPath, depth + 1, itemPath);
 
-          if (!isDir) {
-            entry.mediaType = getMimeType(item);
-            entry.sizeBytes = stats.size;
-          }
+              const subBurrow: Burrow = {
+                specVersion: 'fwdslsh.dev/rabit/schemas/0.4.0/burrow',
+                kind: 'burrow',
+                title: item,
+                description: `Auto-generated burrow for ${item}`,
+                updated: new Date().toISOString(),
+                entries: subEntries,
+              };
 
-          entries.push(entry);
+              // Write the sub-burrow
+              await Bun.write(subBurrowPath, JSON.stringify(subBurrow, null, 2) + '\n');
+              log(`  Created: ${relative(targetDir, subBurrowPath)}`);
 
-          // Recursively scan subdirectories if within depth limit
-          if (isDir && depth < maxDepth) {
-            const subEntries = scanDirectory(itemPath, depth + 1, rootDir);
-            entries.push(...subEntries);
+              // Reference it as a burrow entry
+              const entry: Entry = {
+                id: generateId(item),
+                kind: 'burrow',
+                uri: relativePath + '/',
+                title: item,
+                summary: `Burrow containing ${subEntries.length} entries`,
+                priority: getPriority(item, true),
+              };
+              entries.push(entry);
+            } else {
+              // At max depth, just reference as dir
+              const entry: Entry = {
+                id: generateId(item),
+                kind: 'dir',
+                uri: relativePath + '/',
+                title: item,
+                priority: getPriority(item, true),
+              };
+              entries.push(entry);
+            }
+          } else {
+            // For files, add as file entry
+            const entry: Entry = {
+              id: generateId(item),
+              kind: 'file',
+              uri: relativePath,
+              title: item,
+              mediaType: getMimeType(item),
+              sizeBytes: stats.size,
+              priority: getPriority(item, false),
+            };
+            entries.push(entry);
           }
         } catch (err) {
           warning(`Failed to process ${item}: ${err}`);
@@ -416,10 +456,10 @@ async function cmdMap(inputDir: string, options: {
 
   // Generate burrow
   try {
-    const entries = scanDirectory(targetDir, 0, targetDir);
+    const entries = await scanDirectoryAndCreateBurrow(targetDir, 0, targetDir);
 
     const burrow: Burrow = {
-      specVersion: 'fwdslsh.dev/rabit/schemas/0.3.0/burrow',
+      specVersion: 'fwdslsh.dev/rabit/schemas/0.4.0/burrow',
       kind: 'burrow',
       title: options.title || pathBasename(targetDir),
       description: options.description || `Auto-generated burrow from ${targetDir}`,
@@ -431,11 +471,17 @@ async function cmdMap(inputDir: string, options: {
       burrow.baseUri = options.baseUri;
     }
 
-    // Write to file
+    // Write root burrow to file
     await Bun.write(outputFile, JSON.stringify(burrow, null, 2) + '\n');
 
-    success(`Generated burrow with ${entries.length} entries`);
+    success(`Generated burrow map with ${entries.length} entries`);
     label('Output', outputFile);
+
+    // Count nested burrows
+    const burrowCount = entries.filter(e => e.kind === 'burrow').length;
+    if (burrowCount > 0) {
+      log(`  ${colors.green}✓${colors.reset} Created ${burrowCount} nested burrow(s)`);
+    }
   } catch (err) {
     error(`Failed to generate burrow: ${err}`);
     process.exit(1);
@@ -510,7 +556,7 @@ async function cmdValidate(file: string) {
 function showHelp() {
   log(`
 ${colors.bold}Rabit CLI${colors.reset} - Universal Burrow Browser
-${colors.dim}Rabit Specification v0.3.0${colors.reset}
+${colors.dim}Rabit Specification v0.4.0${colors.reset}
 
 ${colors.bold}Usage:${colors.reset}
   rabit <command> [options]
@@ -526,7 +572,7 @@ ${colors.bold}Commands:${colors.reset}
 ${colors.bold}Options:${colors.reset}
   list:
     --depth N                           Max traversal depth
-    --kind <file|dir|burrow|link>       Filter by entry kind
+    --kind <file|dir|burrow|map|link>   Filter by entry kind
     --format <json|table|tree>          Output format
 
   fetch:

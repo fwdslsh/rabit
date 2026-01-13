@@ -1,0 +1,43 @@
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "git",
+  "description": "Auto-generated burrow for git",
+  "updated": "2026-01-13T16:58:31.683Z",
+  "entries": [
+    {
+      "id": "dockerfile",
+      "kind": "file",
+      "uri": "Dockerfile",
+      "title": "Dockerfile",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 2791,
+      "priority": 80
+    },
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 7550,
+      "priority": 100
+    },
+    {
+      "id": "config",
+      "kind": "burrow",
+      "uri": "config/",
+      "title": "config",
+      "summary": "Burrow containing 1 entries",
+      "priority": 70
+    },
+    {
+      "id": "git-shell-commands",
+      "kind": "burrow",
+      "uri": "git-shell-commands/",
+      "title": "git-shell-commands",
+      "summary": "Burrow containing 2 entries",
+      "priority": 70
+    }
+  ]
+}

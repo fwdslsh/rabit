@@ -1,10 +1,10 @@
 /**
  * @fwdslsh/rabit-client - Rabit Burrow & Warren Client
  *
- * Based on Rabit Specification v0.3.0
+ * Based on Rabit Specification v0.4.0
  *
  * @see https://github.com/fwdslsh/rabit
- * @see docs/rabit-spec-v0.3.0.md
+ * @see docs/rabit-spec-v0.4.0.md
  */
 
 // Export all types
@@ -48,6 +48,7 @@ export {
   isFileEntry,
   isDirEntry,
   isBurrowEntry,
+  isMapEntry,
   isLinkEntry,
   detectTransport,
   sortByPriority,
@@ -81,6 +82,15 @@ export {
   getBurrowStats,
 } from './helpers';
 
+// Export utility functions
+export {
+  computeRid,
+  computeSha256,
+  verifyContent,
+  validateUrl,
+  createError,
+} from './utils';
+
 // Export main client class and factory
 export {
   RabitClient,
@@ -88,6 +98,7 @@ export {
   discover,
   fetchBurrow,
   fetchWarren,
+  RESOURCE_LIMITS,
 } from './client';
 
 export type { RabitClientOptions } from './client';

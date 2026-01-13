@@ -1,6 +1,6 @@
 # Rabit Client Implementation Specification
 
-**Version:** 0.3.0
+**Version:** 0.4.0
 **Date:** 2026-01-13
 **Status:** Implementation Guide
 **Applies to:** rabit-client package
@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-This document provides implementation guidance for the `rabit-client` package—a universal burrow browser that works across multiple transport protocols. While the core Rabit specification (v0.3.0) is transport-agnostic, this client aims to provide seamless access to burrows regardless of how they're hosted.
+This document provides implementation guidance for the `rabit-client` package—a universal burrow browser that works across multiple transport protocols. While the core Rabit specification (v0.4.0) is transport-agnostic, this client aims to provide seamless access to burrows regardless of how they're hosted.
 
 ### 1.1 Design Philosophy
 
@@ -81,7 +81,7 @@ interface FetchOptions {
 
 ### 3.1 Discovery Algorithm
 
-The client implements the multi-convention discovery order defined in Rabit v0.3.0 §5:
+The client implements the multi-convention discovery order defined in Rabit v0.4.0 §5:
 
 ```typescript
 async function discover(uri: string, options?: DiscoverOptions): Promise<DiscoveryResult> {
@@ -228,11 +228,23 @@ async function* traverse(
     yield { type: 'entry', entry: item.entry, depth: item.depth };
     entriesProcessed++;
 
-    // Queue children for burrow/dir entries
+    // Queue children for burrow/dir/map entries
     if (item.entry.kind === 'burrow' || item.entry.kind === 'dir') {
       const childBurrow = await tryFetchBurrow(item.entry.uri);
       if (childBurrow) {
         for (const child of sortByPriority(childBurrow.entries)) {
+          queue.push({
+            entry: child,
+            depth: item.depth + 1,
+            parentUri: item.entry.uri
+          });
+        }
+      }
+    } else if (item.entry.kind === 'map') {
+      // Map entries point directly to burrow JSON files
+      const mapBurrow = await tryFetchBurrowFile(item.entry.uri);
+      if (mapBurrow) {
+        for (const child of sortByPriority(mapBurrow.entries)) {
           queue.push({
             entry: child,
             depth: item.depth + 1,
@@ -258,6 +270,72 @@ function sortByPriority(entries: Entry[]): Entry[] {
   });
 }
 ```
+
+### 4.4 Map vs Burrow Entry Handling
+
+**New in v0.4.0:** The client must distinguish between `burrow` and `map` entry kinds:
+
+```typescript
+async function tryFetchBurrow(uri: string): Promise<Burrow | null> {
+  // For burrow entries: URI points to a directory
+  // Try discovery conventions (.burrow.json, burrow.json, .well-known/burrow.json)
+  const conventions = ['.burrow.json', 'burrow.json', '.well-known/burrow.json'];
+
+  for (const convention of conventions) {
+    const burrowUri = joinUri(uri, convention);
+    const content = await tryFetch(burrowUri);
+    if (content) {
+      return parseBurrow(content);
+    }
+  }
+
+  return null;
+}
+
+async function tryFetchBurrowFile(uri: string): Promise<Burrow | null> {
+  // For map entries: URI points directly to a burrow JSON file
+  const content = await tryFetch(uri);
+  if (content) {
+    return parseBurrow(content);
+  }
+
+  return null;
+}
+```
+
+**Guidelines:**
+- `kind: "burrow"` → Call `tryFetchBurrow()` with directory URI
+- `kind: "map"` → Call `tryFetchBurrowFile()` with direct file URI
+- `kind: "dir"` → Optional traversal (may or may not have burrow file)
+- `kind: "file"` → Terminal node, fetch content directly
+- `kind: "link"` → External reference, handle as appropriate
+
+### 4.5 Burrow Granularity Best Practices
+
+**New in v0.4.0:** Following the spec's guidance (§4.3), clients should:
+
+1. **Prefer nested burrows** for large directory structures
+2. **Use map files** for topic-based organization within a directory
+3. **Load incrementally** - don't fetch all entries upfront
+4. **Cache burrow files** separately from entry content
+
+**Example navigation flow:**
+
+```typescript
+// 1. Start at root
+const root = await client.fetchBurrow('https://example.com/docs/');
+
+// 2. User selects "API Reference" (kind: "burrow")
+const apiDocs = await client.fetchBurrow('https://example.com/docs/api/');
+
+// 3. User selects "REST API" (kind: "map")
+const restApi = await client.fetchBurrowFile('https://example.com/docs/api/rest-api.burrow.json');
+
+// 4. User selects specific endpoint (kind: "file")
+const content = await client.fetchEntry(restApi, 'auth-endpoint');
+```
+
+This incremental approach reduces initial load time and token usage for LLM agents.
 
 ---
 
@@ -546,7 +624,7 @@ const securityLimits = {
 rabit discover <uri>
 
 # List entries in a burrow
-rabit list <uri> [--depth N] [--kind file|dir|burrow|link]
+rabit list <uri> [--depth N] [--kind file|dir|burrow|map|link]
 
 # Fetch a specific entry
 rabit fetch <uri> <entry-id> [--output FILE]
@@ -581,6 +659,7 @@ rabit list <uri> --format tree
 interface RabitClient {
   discover(uri: string, options?: DiscoverOptions): Promise<DiscoveryResult>;
   fetchBurrow(uri: string): Promise<Burrow>;
+  fetchBurrowFile(uri: string): Promise<Burrow>;  // New in v0.4.0: Direct burrow file fetch
   fetchWarren(uri: string): Promise<Warren>;
   fetchEntry(burrow: Burrow, entryId: string): Promise<Buffer>;
   traverse(burrow: Burrow, options?: TraversalOptions): AsyncGenerator<TraversalEvent>;
@@ -598,6 +677,11 @@ interface DiscoveryResult {
   depth: number;
 }
 ```
+
+**v0.4.0 API Changes:**
+
+- Added `fetchBurrowFile()` method for direct burrow JSON file fetching (used with `kind: "map"`)
+- `fetchBurrow()` continues to use discovery conventions for directory-based burrows
 
 ### 10.2 Plugin Interface
 
@@ -702,3 +786,103 @@ Always warn users when insecure options are enabled.
 3. **Incremental Caching:** Cache individual entries, not entire burrows
 4. **SHA256 Validation:** Skip re-fetch if cached content hash matches
 5. **Connection Pooling:** Reuse connections for same-host requests
+6. **Map File Optimization:** Cache map files separately from burrow directories (v0.4.0)
+7. **Incremental Navigation:** Load burrows and maps on-demand, not recursively upfront (v0.4.0)
+
+---
+
+## Appendix C: Migration from v0.3.0 to v0.4.0
+
+### C.1 Breaking Changes
+
+**None.** Version 0.4.0 is fully backward compatible with v0.3.0 clients.
+
+### C.2 New Features to Implement
+
+#### 1. Map Entry Kind Support
+
+Add handling for the new `map` entry kind in your traversal logic:
+
+```typescript
+// Before (v0.3.0)
+if (entry.kind === 'burrow' || entry.kind === 'dir') {
+  const childBurrow = await fetchBurrow(entry.uri);
+  // ...
+}
+
+// After (v0.4.0)
+if (entry.kind === 'burrow' || entry.kind === 'dir') {
+  const childBurrow = await fetchBurrow(entry.uri);
+  // ...
+} else if (entry.kind === 'map') {
+  const mapBurrow = await fetchBurrowFile(entry.uri);  // Direct file fetch
+  // ...
+}
+```
+
+#### 2. Add fetchBurrowFile() Method
+
+Implement a new method for fetching burrow JSON files directly:
+
+```typescript
+async fetchBurrowFile(uri: string): Promise<Burrow> {
+  // Fetch the JSON file directly (no discovery conventions)
+  const response = await this.transport.fetch(uri);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch burrow file: ${response.statusText}`);
+  }
+  const content = await response.text();
+  return parseBurrow(content);
+}
+```
+
+#### 3. Update CLI --kind Filter
+
+Add `map` to the allowed values for the `--kind` filter:
+
+```bash
+# Before (v0.3.0)
+rabit list <uri> --kind file|dir|burrow|link
+
+# After (v0.4.0)
+rabit list <uri> --kind file|dir|burrow|map|link
+```
+
+#### 4. Documentation Updates
+
+Update client documentation to explain:
+- When to use `burrow` vs `map` entry kinds
+- Benefits of nested burrows and map files for large collections
+- Best practices for incremental navigation
+
+### C.3 Recommended Enhancements
+
+While not required for v0.4.0 compatibility, consider these improvements:
+
+1. **Burrow Size Warnings:** Warn users when creating burrows with >20 entries without nested burrows
+2. **Map File Suggestions:** Suggest splitting large burrows into map files during validation
+3. **Navigation Breadcrumbs:** Track burrow/map navigation paths for better UX
+4. **Entry Kind Statistics:** Report distribution of entry kinds in traversal results
+
+### C.4 Testing Checklist
+
+Ensure your v0.4.0 client implementation passes these tests:
+
+- [ ] Can discover and parse v0.4.0 burrow files with `specVersion: "fwdslsh.dev/rabit/schemas/0.4.0/burrow"`
+- [ ] Handles `kind: "map"` entries and fetches burrow files directly
+- [ ] Traverses nested burrows correctly (burrow → burrow → burrow)
+- [ ] Traverses map chains correctly (burrow → map → entries)
+- [ ] Mixed navigation works (burrow → map → burrow → file)
+- [ ] Still compatible with v0.3.0 burrow files (backward compatibility)
+- [ ] CLI `--kind` filter includes `map` option
+- [ ] Error handling for missing map files
+- [ ] Cycle detection works across burrow and map boundaries
+
+### C.5 Migration Timeline
+
+**Recommended approach:**
+
+1. **Phase 1 (Immediate):** Add basic `map` kind support and `fetchBurrowFile()` method
+2. **Phase 2 (Week 1):** Update CLI and documentation
+3. **Phase 3 (Week 2):** Add validation warnings for large burrows
+4. **Phase 4 (Ongoing):** Monitor usage and refine based on feedback

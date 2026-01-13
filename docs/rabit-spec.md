@@ -1,6 +1,6 @@
 # Rabit Burrow & Warren Specification
 
-**Version:** 0.3.0
+**Version:** 0.4.0
 **Date:** 2026-01-13
 **Status:** Draft
 
@@ -67,8 +67,10 @@ Clients MUST stop at the first successful response and treat all conventions as 
 **Git repositories:**
 
 - Place burrow/warren files at the repository root
-- Optionally place in key subdirectories to define sub-burrows (e.g., `docs/.burrow.json` or `docs/burrow.json`)
+- **SHOULD** place `.burrow.json` files in subdirectories that contain significant content
+- Each subdirectory with its own burrow becomes a "sub-burrow" referenced from the parent
 - Dotfile convention (`.burrow.json`) is RECOMMENDED for git repositories
+- Avoid creating monolithic root burrow files that enumerate all files in large directory trees
 
 **Filesystem directories:**
 
@@ -97,6 +99,48 @@ Clients MUST stop at the first successful response and treat all conventions as 
 - Use the first successful response according to discovery order (§4.0)
 - If different conventions return conflicting content, prefer dotfile convention
 - Publishers SHOULD ensure all provided conventions return identical content
+
+### 4.3 Burrow Granularity and Scope
+
+**Best Practice: One Burrow Per Significant Directory**
+
+Publishers SHOULD create separate `.burrow.json` files for each significant directory rather than mapping large directory trees in a single burrow file.
+
+**When to create a new burrow:**
+- Directory contains more than ~10-20 files or subdirectories
+- Directory represents a distinct content domain (e.g., `docs/`, `examples/`, `api/`)
+- Content has different update cadence or ownership
+- Subdirectory has natural semantic boundaries
+
+**When a single burrow is acceptable:**
+- Small collections (under ~20 entries)
+- Flat directory structure with minimal nesting
+- Tightly related content that benefits from a unified view
+
+**When to use separate map files:**
+- A single directory needs multiple logical groupings
+- Breaking up a large burrow into topic-based or feature-based maps
+- Creating navigation layers without changing directory structure
+
+**Example structure:**
+```
+/
+├── .burrow.json          # Root burrow with high-level entries
+├── docs/
+│   └── .burrow.json      # Docs burrow
+├── examples/
+│   └── .burrow.json      # Examples burrow
+└── api/
+    ├── .burrow.json      # API reference burrow
+    └── v2/
+        └── .burrow.json  # API v2 sub-burrow
+```
+
+**Rationale:**
+- Prevents token bloat from loading massive burrow files
+- Allows agents to navigate incrementally
+- Enables different update cadences per directory
+- Improves cacheability and maintainability
 
 ---
 
@@ -157,15 +201,15 @@ All JSON documents share these top-level fields:
 The `specVersion` field uses the format:
 
 ```
-fwdslsh.dev/rabit/schemas/0.3.0/{kind}
+fwdslsh.dev/rabit/schemas/0.4.0/{kind}
 ```
 
 Where `{kind}` is either `burrow` or `warren`.
 
 Examples:
 
-- `fwdslsh.dev/rabit/schemas/0.3.0/burrow`
-- `fwdslsh.dev/rabit/schemas/0.3.0/warren`
+- `fwdslsh.dev/rabit/schemas/0.4.0/burrow`
+- `fwdslsh.dev/rabit/schemas/0.4.0/warren`
 
 ### 6.2 URI Resolution
 
@@ -181,8 +225,8 @@ A Warren is a registry of burrows (and optionally other warrens).
 
 ```json
 {
-  "$schema": "fwdslsh.dev/rabit/schemas/0.3.0/warren",
-  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/warren",
+  "$schema": "fwdslsh.dev/rabit/schemas/0.4.0/warren",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/warren",
   "kind": "warren",
   "title": "Example Warren",
   "description": "Registry of burrows for Project X.",
@@ -259,10 +303,12 @@ A Burrow is a structured "menu" of content entries.
 
 ### 8.1 Structure
 
+**Example 1: Documentation Burrow with Sub-burrows**
+
 ```json
 {
-  "$schema": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
-  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "$schema": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
   "kind": "burrow",
   "title": "Documentation Burrow",
   "description": "Documentation menu for agents.",
@@ -296,7 +342,7 @@ A Burrow is a structured "menu" of content entries.
       "id": "api",
       "title": "API Reference",
       "summary": "Endpoints, schemas, examples.",
-      "kind": "dir",
+      "kind": "burrow",
       "path": "api/",
       "uri": "api/",
       "tags": ["reference"],
@@ -314,6 +360,65 @@ A Burrow is a structured "menu" of content entries.
   ]
 }
 ```
+
+**Example 2: Root Burrow Delegating to Sub-burrows and Maps**
+
+```json
+{
+  "$schema": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "Example Project Root",
+  "description": "Root burrow - delegates to sub-burrows for major sections.",
+  "entries": [
+    {
+      "id": "readme",
+      "title": "Project README",
+      "kind": "file",
+      "uri": "README.md",
+      "tags": ["start-here"],
+      "priority": 10
+    },
+    {
+      "id": "docs",
+      "title": "Documentation",
+      "summary": "Complete documentation collection with guides, API reference, and tutorials.",
+      "kind": "burrow",
+      "uri": "docs/",
+      "tags": ["documentation"],
+      "priority": 9
+    },
+    {
+      "id": "examples",
+      "title": "Code Examples",
+      "summary": "Working code samples organized by use case.",
+      "kind": "burrow",
+      "uri": "examples/",
+      "tags": ["code", "examples"],
+      "priority": 7
+    },
+    {
+      "id": "api-legacy",
+      "title": "Legacy API Documentation",
+      "summary": "Deprecated API documentation - maintained separately.",
+      "kind": "map",
+      "uri": "api-legacy.burrow.json",
+      "tags": ["deprecated", "api"],
+      "priority": 3
+    },
+    {
+      "id": "config",
+      "title": "Configuration Files",
+      "kind": "dir",
+      "uri": "config/",
+      "tags": ["config"],
+      "priority": 2
+    }
+  ]
+}
+```
+
+**Note:** The `docs/` and `examples/` directories each have their own `.burrow.json` file (referenced with `kind: "burrow"`), while `api-legacy.burrow.json` is a separate map file in the root directory (referenced with `kind: "map"`), and `config/` is a simple directory without structured navigation (referenced with `kind: "dir"`).
 
 ### 8.2 Burrow-specific Fields
 
@@ -387,12 +492,19 @@ Each item in `entries` represents a menu item.
 
 ### 9.2 Entry Kind Values
 
-| Kind | Description |
-|------|-------------|
-| `file` | A single file |
-| `dir` | A directory (may contain its own `.burrow.json`) |
-| `burrow` | An explicit sub-burrow reference |
-| `link` | External URI (web page, external resource) |
+| Kind | Description | When to Use |
+|------|-------------|-------------|
+| `file` | A single file | Reference to a specific file resource |
+| `dir` | A directory | Simple directory reference WITHOUT its own burrow file. Use sparingly for small, unstructured directories. |
+| `burrow` | An explicit sub-burrow reference | **PREFERRED** for directories with their own `.burrow.json`. Allows agents to navigate into structured sub-collections. The `uri` points to a directory containing a burrow file. |
+| `map` | A reference to another burrow map file | Points directly to a `.burrow.json` file (or equivalent) to create navigation chains. Use when splitting large burrows into multiple map files or organizing content by topic. The `uri` points to the JSON file itself. |
+| `link` | External URI | Web page, external resource, or cross-burrow reference |
+
+**Best Practice:** When a directory contains more than a handful of files or has semantic importance, create a `.burrow.json` inside it and reference it with `kind: "burrow"` rather than using `kind: "dir"`.
+
+**Map vs Burrow:**
+- Use `kind: "burrow"` when pointing to a directory: `"uri": "docs/"` → expects `docs/.burrow.json`
+- Use `kind: "map"` when pointing to a specific burrow file: `"uri": "docs-api.burrow.json"` → loads that exact file
 
 ### 9.3 Minimal Entry
 
@@ -460,6 +572,9 @@ To reduce repeated scanning and token usage:
 - Clients should use `sha256` (or HTTP ETag when available) to detect content changes
 - Publishers should keep `summary` fields concise
 - Publishers should prefer tags over long prose for categorization
+- Publishers should create nested burrows for large directory trees rather than enumerating all files in a single burrow
+- Nested burrows and map files allow agents to load only relevant sections, reducing initial token overhead
+- Map files enable topic-based navigation without loading unrelated content
 
 ---
 
@@ -587,7 +702,7 @@ Or as a relative path when `baseUri` is set:
 
 ```json
 {
-  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
   "kind": "burrow",
   "entries": [
     { "id": "readme", "kind": "file", "uri": "README.md" }
@@ -599,7 +714,7 @@ Or as a relative path when `baseUri` is set:
 
 ```json
 {
-  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/warren",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/warren",
   "kind": "warren",
   "burrows": [
     { "id": "docs", "uri": "docs/" }
@@ -607,15 +722,103 @@ Or as a relative path when `baseUri` is set:
 }
 ```
 
+### A.3 Nested Burrow Pattern
+
+**Root burrow (`/.burrow.json`):**
+```json
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "Project Root",
+  "entries": [
+    { "id": "readme", "kind": "file", "uri": "README.md" },
+    { "id": "docs", "kind": "burrow", "uri": "docs/", "summary": "Documentation collection" }
+  ]
+}
+```
+
+**Docs burrow (`/docs/.burrow.json`):**
+```json
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "Documentation",
+  "entries": [
+    { "id": "getting-started", "kind": "file", "uri": "getting-started.md" },
+    { "id": "api", "kind": "burrow", "uri": "api/", "summary": "API reference" }
+  ]
+}
+```
+
+This pattern allows agents to:
+1. Start at root and see high-level structure
+2. Navigate into `docs/` and load its burrow
+3. Continue into `docs/api/` and load its burrow
+4. Load only what's needed at each level
+
+### A.4 Map File Pattern
+
+**Main burrow (`/.burrow.json`):**
+```json
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "API Documentation",
+  "entries": [
+    { "id": "overview", "kind": "file", "uri": "README.md" },
+    { "id": "rest-api", "kind": "map", "uri": "rest-api.burrow.json", "summary": "REST API endpoints" },
+    { "id": "graphql-api", "kind": "map", "uri": "graphql-api.burrow.json", "summary": "GraphQL API" }
+  ]
+}
+```
+
+**REST API map (`/rest-api.burrow.json`):**
+```json
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "REST API Documentation",
+  "entries": [
+    { "id": "auth", "kind": "file", "uri": "api/rest/auth.md" },
+    { "id": "users", "kind": "file", "uri": "api/rest/users.md" },
+    { "id": "posts", "kind": "file", "uri": "api/rest/posts.md" }
+  ]
+}
+```
+
+This pattern allows:
+- Splitting large burrows into manageable, topic-focused map files
+- Keeping related content together without deep directory nesting
+- Agents can navigate directly to the relevant map without loading unrelated content
+
 ---
 
-## Appendix B: Migration from v0.2
+## Appendix B: Migration Guide
+
+### B.0 Migration from v0.3 to v0.4
+
+**New Features in v0.4:**
+
+1. **New `map` entry kind** - Points directly to burrow JSON files for navigation chains
+2. **Burrow granularity guidance** - Section 4.3 provides best practices for when to create separate burrows
+3. **Enhanced placement rules** - Emphasis on directory-per-burrow pattern for large collections
+4. **Improved kind documentation** - Clear distinction between `dir`, `burrow`, and `map` kinds
+
+**Breaking Changes:**
+- None. v0.4 is fully backward compatible with v0.3
+
+**Recommended Actions:**
+- Review large burrow files and consider splitting into nested burrows or map files
+- Update `kind: "dir"` entries to `kind: "burrow"` where directories have their own `.burrow.json`
+- Consider using `kind: "map"` for topic-based content organization
+
+### B.1 Migration from v0.2
 
 For implementations migrating from the v0.2 (draft-rabit-rbt-04) specification:
 
-### B.1 Removed Features
+#### B.1.1 Removed Features
 
-| v0.2 Feature | v0.3 Replacement |
+| v0.2 Feature | v0.3+ Replacement |
 |--------------|------------------|
 | `rbt` version field | `specVersion` with full schema URI |
 | `rid` (Resource Identifier) | Optional `sha256` field |
@@ -630,7 +833,7 @@ For implementations migrating from the v0.2 (draft-rabit-rbt-04) specification:
 | Auth hints | Removed (non-goal) |
 | Git provenance | Removed (use extensions if needed) |
 
-### B.2 Structural Changes
+#### B.1.2 Structural Changes
 
 **Before (v0.2):**
 
@@ -651,7 +854,7 @@ For implementations migrating from the v0.2 (draft-rabit-rbt-04) specification:
 
 ```json
 {
-  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
   "kind": "burrow",
   "title": "Example",
   "entries": [

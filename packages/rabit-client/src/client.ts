@@ -1,6 +1,6 @@
 /**
  * Rabit Client Library - Core Implementation
- * Based on Rabit Specification v0.3.0
+ * Based on Rabit Specification v0.4.0
  */
 
 import type {
@@ -33,12 +33,12 @@ import * as crypto from 'crypto';
 // Constants
 // ============================================================================
 
-const RESOURCE_LIMITS = {
+export const RESOURCE_LIMITS = {
   MAX_MANIFEST_SIZE: 10 * 1024 * 1024, // 10 MB
-  MAX_ENTRY_COUNT: 10000,
+  MAX_ENTRY_COUNT: 10_000,
   MAX_TRAVERSAL_DEPTH: 100,
-  MAX_TOTAL_ENTRIES: 100000,
-  MAX_REQUEST_TIMEOUT: 30000, // 30 seconds
+  MAX_TOTAL_ENTRIES: 1_000_000,
+  MAX_REQUEST_TIMEOUT: 30_000, // 30 seconds
   DEFAULT_MAX_CONCURRENT: 10,
   DEFAULT_MIN_DELAY: 100,
 };
@@ -289,7 +289,9 @@ export class RabitClient {
   // ==========================================================================
 
   /**
-   * Fetch burrow from URL or path
+   * Fetch burrow from URL or path (uses discovery conventions)
+   * For directory-based burrows - tries .burrow.json, burrow.json, .well-known/burrow.json
+   * @see Specification §5
    */
   async fetchBurrow(uri: string): Promise<{ ok: boolean; data?: Burrow; error?: RabitError }> {
     const burrowUri = uri.endsWith('.burrow.json')
@@ -351,6 +353,71 @@ export class RabitClient {
       return {
         ok: false,
         error: createError('transport-error', `Failed to fetch burrow: ${error}`),
+      };
+    }
+  }
+
+  /**
+   * Fetch burrow file directly (no discovery conventions)
+   * For map entries - fetches the burrow JSON file directly from the specified URI
+   * @see Specification §9.2 (v0.4.0)
+   */
+  async fetchBurrowFile(uri: string): Promise<{ ok: boolean; data?: Burrow; error?: RabitError }> {
+    // Check cache
+    if (this.options.enableCache !== false) {
+      const cached = this.cache.get(uri);
+      if (cached && !cached.stale && cached.data.kind === 'burrow') {
+        return { ok: true, data: cached.data as Burrow };
+      }
+    }
+
+    try {
+      const transport = detectTransport(uri);
+
+      let content: string;
+      if (transport === 'file') {
+        content = await this.readLocalFile(uri);
+      } else {
+        content = await this.fetchRemoteJson(uri);
+      }
+
+      const data = JSON.parse(content) as Burrow;
+
+      // Validate required fields
+      if (!data.specVersion || data.kind !== 'burrow' || !data.entries) {
+        return {
+          ok: false,
+          error: createError(
+            'manifest-invalid',
+            'Invalid burrow format: missing required fields (specVersion, kind, entries)'
+          ),
+        };
+      }
+
+      // Validate entry count
+      if (data.entries.length > RESOURCE_LIMITS.MAX_ENTRY_COUNT) {
+        return {
+          ok: false,
+          error: createError(
+            'manifest-invalid',
+            `Entry count ${data.entries.length} exceeds limit ${RESOURCE_LIMITS.MAX_ENTRY_COUNT}`
+          ),
+        };
+      }
+
+      // Cache the result
+      if (this.options.enableCache !== false) {
+        this.cache.set(uri, data);
+      }
+
+      return { ok: true, data };
+    } catch (error) {
+      if ((error as RabitError).category) {
+        return { ok: false, error: error as RabitError };
+      }
+      return {
+        ok: false,
+        error: createError('transport-error', `Failed to fetch burrow file: ${error}`),
       };
     }
   }
@@ -475,6 +542,20 @@ export class RabitClient {
             : childBurrowResult.data.entries;
 
           for (const child of childEntries) {
+            if (filter(child)) {
+              queue.push({ entry: child, depth: depth + 1 });
+            }
+          }
+        }
+      } else if (entry.kind === 'map' && depth < maxDepth) {
+        // Handle map entries - fetch burrow file directly
+        const mapBurrowResult = await this.fetchBurrowFile(resolveUri(burrow.baseUri, entry.uri));
+        if (mapBurrowResult.ok && mapBurrowResult.data) {
+          const mapEntries = strategy === 'priority'
+            ? sortByPriority(mapBurrowResult.data.entries)
+            : mapBurrowResult.data.entries;
+
+          for (const child of mapEntries) {
             if (filter(child)) {
               queue.push({ entry: child, depth: depth + 1 });
             }

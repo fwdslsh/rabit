@@ -1,10 +1,9 @@
 /**
  * Utility functions for Rabit client
- * Based on Rabit Specification v0.3.0
+ * Based on Rabit Specification v0.4.0
  */
 
-import type { Root, GitRoot, HttpsRoot, HttpRoot, FtpRoot, FileRoot, RbtError } from './types';
-import { isGitRoot, isHttpsRoot, isHttpRoot, isFtpRoot, isFileRoot } from './types';
+import type { ErrorCategory } from './types';
 
 // ============================================================================
 // RID Computation (§7)
@@ -81,7 +80,7 @@ const PRIVATE_IP_PATTERNS = [
 ];
 
 /**
- * Validate URL for security (§15.2)
+ * Validate URL for security
  * @throws Error if URL is invalid or unsafe
  */
 export function validateUrl(urlString: string, allowGit = false): URL {
@@ -90,93 +89,32 @@ export function validateUrl(urlString: string, allowGit = false): URL {
   try {
     url = new URL(urlString);
   } catch {
-    throw createError('transport_error', `Invalid URL: ${urlString}`);
+    throw new Error(`Invalid URL: ${urlString}`);
   }
 
   // MUST reject non-HTTPS URLs (except git://)
   if (url.protocol !== 'https:' && !(allowGit && url.protocol === 'git:')) {
-    throw createError('transport_error', `Insecure protocol: ${url.protocol}`);
+    throw new Error(`Insecure protocol: ${url.protocol}`);
   }
 
   // MUST reject localhost and loopback
   if (url.hostname === 'localhost' || url.hostname === '0.0.0.0') {
-    throw createError('transport_error', `Localhost access forbidden: ${url.hostname}`);
+    throw new Error(`Localhost access forbidden: ${url.hostname}`);
   }
 
   // MUST reject private/internal IP ranges
   for (const pattern of PRIVATE_IP_PATTERNS) {
     if (pattern.test(url.hostname)) {
-      throw createError('transport_error', `Private IP access forbidden: ${url.hostname}`);
+      throw new Error(`Private IP access forbidden: ${url.hostname}`);
     }
   }
 
   // SHOULD reject URLs with @ in hostname (potential SSRF)
   if (url.username || url.password) {
-    throw createError('transport_error', `URL credentials not allowed: ${urlString}`);
+    throw new Error(`URL credentials not allowed: ${urlString}`);
   }
 
   return url;
-}
-
-// ============================================================================
-// Root Resolution
-// ============================================================================
-
-/**
- * Get the base URL/path for resource access from a root
- * Returns file:// URL for file roots, HTTP/HTTPS URL for http/https roots, null for git roots
- * @see Specification §5.2
- */
-export function getRootBaseUrl(root: Root): string | null {
-  if (isFileRoot(root)) {
-    // Return as file:// URL for consistency
-    const path = root.file.path;
-    if (path.startsWith('/')) {
-      return `file://${path}`;
-    } else if (/^[a-zA-Z]:/.test(path)) {
-      return `file:///${path.replace(/\\/g, '/')}`;
-    } else if (path.startsWith('\\\\')) {
-      return `file:${path.replace(/\\/g, '/')}`;
-    }
-    return `file://${path}`;
-  }
-  if (isHttpsRoot(root)) {
-    return root.https.base;
-  }
-  if (isHttpRoot(root)) {
-    return root.http.base;
-  }
-  if (isFtpRoot(root)) {
-    return root.ftp.url;
-  }
-  return null;
-}
-
-/**
- * Get display name for a root (for logging)
- * @see Specification §5.2
- */
-export function getRootDisplayName(root: Root): string {
-  if (isFileRoot(root)) {
-    return `file:${root.file.path}`;
-  }
-  if (isGitRoot(root)) {
-    return `git:${root.git.remote}@${root.git.ref}`;
-  }
-  if (isHttpsRoot(root)) {
-    return `https:${root.https.base}`;
-  }
-  if (isHttpRoot(root)) {
-    const protocol = root.http.base.startsWith('https') ? 'https' : 'http';
-    const suffix = root.http.insecure ? ' (insecure)' : '';
-    return `${protocol}:${root.http.base}${suffix}`;
-  }
-  if (isFtpRoot(root)) {
-    const protocol = root.ftp.protocol || 'ftp';
-    const suffix = root.ftp.insecure ? ' (insecure)' : '';
-    return `${protocol}:${root.ftp.url}${suffix}`;
-  }
-  return 'unknown';
 }
 
 // ============================================================================
@@ -184,19 +122,19 @@ export function getRootDisplayName(root: Root): string {
 // ============================================================================
 
 /**
- * Create a standardized RBT error
+ * Create a standardized error
  */
 export function createError(
-  category: RbtError['category'],
+  category: ErrorCategory,
   message: string,
   entryId?: string,
-  href?: string
-): RbtError {
+  uri?: string
+): { category: ErrorCategory; message: string; entryId?: string; uri?: string } {
   return {
     category,
     message,
     entryId,
-    href,
+    uri,
   };
 }
 

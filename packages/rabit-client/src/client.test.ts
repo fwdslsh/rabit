@@ -1,16 +1,21 @@
 /**
  * Tests for RabitClient
+ * Based on Rabit Specification v0.4.0
  */
 
-import { describe, test, expect, beforeAll } from 'bun:test';
+import { describe, test, expect } from 'bun:test';
 import {
-  type BurrowManifest,
-  type WarrenRegistry,
+  type Burrow,
+  type Warren,
+  type Entry,
   createClient,
   computeRid,
   verifyContent,
   validateUrl,
   RESOURCE_LIMITS,
+  isMapEntry,
+  isBurrowEntry,
+  isFileEntry,
 } from './index';
 
 describe('RabitClient', () => {
@@ -71,161 +76,189 @@ describe('RabitClient', () => {
   });
 
   describe('Manifest Validation', () => {
-    test('valid burrow manifest structure', () => {
-      const manifest: BurrowManifest = {
-        rbt: '0.2',
-        manifest: {
-          title: 'Test Burrow',
-          updated: '2026-01-12T00:00:00Z',
-          rid: 'urn:rabit:sha256:' + '0'.repeat(64),
-          roots: [
-            {
-              https: {
-                base: 'https://example.com/',
-              },
-            },
-          ],
-        },
-        entries: [],
+    test('valid burrow structure (v0.4.0)', () => {
+      const burrow: Burrow = {
+        specVersion: 'fwdslsh.dev/rabit/schemas/0.4.0/burrow',
+        kind: 'burrow',
+        title: 'Test Burrow',
+        description: 'A test burrow',
+        updated: '2026-01-12T00:00:00Z',
+        baseUri: 'https://example.com/',
+        entries: [
+          {
+            id: 'readme',
+            kind: 'file',
+            uri: 'README.md',
+            title: 'README',
+            mediaType: 'text/markdown',
+          },
+          {
+            id: 'docs',
+            kind: 'burrow',
+            uri: 'docs/',
+            title: 'Documentation',
+          },
+          {
+            id: 'api-map',
+            kind: 'map',
+            uri: 'api.burrow.json',
+            title: 'API Map',
+          },
+        ],
       };
 
-      expect(manifest.rbt).toBe('0.2');
-      expect(manifest.manifest.title).toBe('Test Burrow');
-      expect(manifest.entries).toBeArray();
+      expect(burrow.specVersion).toContain('0.4.0');
+      expect(burrow.kind).toBe('burrow');
+      expect(burrow.title).toBe('Test Burrow');
+      expect(burrow.entries).toBeArray();
+      expect(burrow.entries).toHaveLength(3);
     });
 
-    test('valid warren registry structure', () => {
-      const warren: WarrenRegistry = {
-        rbt: '0.2',
-        registry: {
-          title: 'Test Warren',
-          updated: '2026-01-12T00:00:00Z',
-        },
-        entries: [],
+    test('valid warren structure (v0.4.0)', () => {
+      const warren: Warren = {
+        specVersion: 'fwdslsh.dev/rabit/schemas/0.4.0/warren',
+        kind: 'warren',
+        title: 'Test Warren',
+        updated: '2026-01-12T00:00:00Z',
+        burrows: [
+          {
+            id: 'docs',
+            uri: 'docs/',
+            title: 'Documentation',
+          },
+        ],
       };
 
-      expect(warren.rbt).toBe('0.2');
-      expect(warren.registry.title).toBe('Test Warren');
-      expect(warren.entries).toBeArray();
+      expect(warren.specVersion).toContain('0.4.0');
+      expect(warren.kind).toBe('warren');
+      expect(warren.title).toBe('Test Warren');
+      expect(warren.burrows).toBeArray();
     });
   });
 
-  describe('Type Guards', () => {
-    test('isGitRoot identifies Git roots', async () => {
-      const { isGitRoot } = await import('./index');
-
-      const gitRoot = {
-        git: {
-          remote: 'https://github.com/org/repo.git',
-          ref: 'refs/heads/main',
-        },
+  describe('Type Guards (v0.4.0)', () => {
+    test('isMapEntry identifies map entries', () => {
+      const mapEntry: Entry = {
+        id: 'api-map',
+        kind: 'map',
+        uri: 'api.burrow.json',
       };
 
-      expect(isGitRoot(gitRoot)).toBe(true);
+      expect(isMapEntry(mapEntry)).toBe(true);
+      expect(isBurrowEntry(mapEntry)).toBe(false);
+      expect(isFileEntry(mapEntry)).toBe(false);
     });
 
-    test('isHttpsRoot identifies HTTPS roots', async () => {
-      const { isHttpsRoot } = await import('./index');
-
-      const httpsRoot = {
-        https: {
-          base: 'https://example.com/',
-        },
+    test('isBurrowEntry identifies burrow entries', () => {
+      const burrowEntry: Entry = {
+        id: 'docs',
+        kind: 'burrow',
+        uri: 'docs/',
       };
 
-      expect(isHttpsRoot(httpsRoot)).toBe(true);
+      expect(isBurrowEntry(burrowEntry)).toBe(true);
+      expect(isMapEntry(burrowEntry)).toBe(false);
+      expect(isFileEntry(burrowEntry)).toBe(false);
+    });
+
+    test('isFileEntry identifies file entries', () => {
+      const fileEntry: Entry = {
+        id: 'readme',
+        kind: 'file',
+        uri: 'README.md',
+      };
+
+      expect(isFileEntry(fileEntry)).toBe(true);
+      expect(isBurrowEntry(fileEntry)).toBe(false);
+      expect(isMapEntry(fileEntry)).toBe(false);
     });
   });
 });
 
-describe('Helper Functions', () => {
+describe('Helper Functions (v0.4.0)', () => {
   test('findEntry locates entry by ID', () => {
     const { findEntry } = require('./index');
 
-    const manifest: BurrowManifest = {
-      rbt: '0.2',
-      manifest: {
-        title: 'Test',
-        updated: '2026-01-12T00:00:00Z',
-        rid: 'urn:rabit:sha256:' + '0'.repeat(64),
-        roots: [],
-      },
+    const burrow: Burrow = {
+      specVersion: 'fwdslsh.dev/rabit/schemas/0.4.0/burrow',
+      kind: 'burrow',
+      title: 'Test',
+      updated: '2026-01-12T00:00:00Z',
       entries: [
         {
           id: 'test-entry',
-          rid: 'urn:rabit:sha256:' + '1'.repeat(64),
-          href: 'test.md',
-          type: 'text/markdown',
-          rel: ['item'],
+          kind: 'file',
+          uri: 'test.md',
+          mediaType: 'text/markdown',
+        },
+        {
+          id: 'another-entry',
+          kind: 'file',
+          uri: 'another.md',
         },
       ],
     };
 
-    const entry = findEntry(manifest, 'test-entry');
+    const entry = findEntry(burrow, 'test-entry');
     expect(entry).toBeDefined();
     expect(entry?.id).toBe('test-entry');
   });
 
-  test('findEntriesByRel filters by relation', () => {
-    const { findEntriesByRel } = require('./index');
+  test('findEntriesByKind filters by entry kind', () => {
+    const { findEntriesByKind } = require('./index');
 
-    const manifest: BurrowManifest = {
-      rbt: '0.2',
-      manifest: {
-        title: 'Test',
-        updated: '2026-01-12T00:00:00Z',
-        rid: 'urn:rabit:sha256:' + '0'.repeat(64),
-        roots: [],
-      },
+    const burrow: Burrow = {
+      specVersion: 'fwdslsh.dev/rabit/schemas/0.4.0/burrow',
+      kind: 'burrow',
+      title: 'Test',
       entries: [
         {
-          id: 'index',
-          rid: 'urn:rabit:sha256:' + '1'.repeat(64),
-          href: 'index.md',
-          type: 'text/markdown',
-          rel: ['index', 'about'],
+          id: 'readme',
+          kind: 'file',
+          uri: 'README.md',
         },
         {
-          id: 'doc',
-          rid: 'urn:rabit:sha256:' + '2'.repeat(64),
-          href: 'doc.md',
-          type: 'text/markdown',
-          rel: ['item'],
+          id: 'docs',
+          kind: 'burrow',
+          uri: 'docs/',
+        },
+        {
+          id: 'api',
+          kind: 'map',
+          uri: 'api.burrow.json',
         },
       ],
     };
 
-    const indices = findEntriesByRel(manifest, 'index');
-    expect(indices).toHaveLength(1);
-    expect(indices[0].id).toBe('index');
+    const burrows = findEntriesByKind(burrow, 'burrow');
+    expect(burrows).toHaveLength(1);
+    expect(burrows[0].id).toBe('docs');
+
+    const maps = findEntriesByKind(burrow, 'map');
+    expect(maps).toHaveLength(1);
+    expect(maps[0].id).toBe('api');
   });
 
   test('getEntryPoint returns correct entry', () => {
     const { getEntryPoint } = require('./index');
 
-    const manifest: BurrowManifest = {
-      rbt: '0.2',
-      manifest: {
-        title: 'Test',
-        updated: '2026-01-12T00:00:00Z',
-        rid: 'urn:rabit:sha256:' + '0'.repeat(64),
-        roots: [],
-        agents: {
-          entryPoint: 'start',
-        },
+    const burrow: Burrow = {
+      specVersion: 'fwdslsh.dev/rabit/schemas/0.4.0/burrow',
+      kind: 'burrow',
+      title: 'Test',
+      agents: {
+        entryPoint: 'start',
       },
       entries: [
         {
           id: 'start',
-          rid: 'urn:rabit:sha256:' + '1'.repeat(64),
-          href: 'start.md',
-          type: 'text/markdown',
-          rel: ['index'],
+          kind: 'file',
+          uri: 'start.md',
         },
       ],
     };
 
-    const entry = getEntryPoint(manifest);
+    const entry = getEntryPoint(burrow);
     expect(entry?.id).toBe('start');
   });
 });
