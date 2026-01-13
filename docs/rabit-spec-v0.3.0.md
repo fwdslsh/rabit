@@ -102,7 +102,8 @@ All JSON documents share these top-level fields:
 | `description` | string | Optional | Brief description |
 | `updated` | string | Optional | RFC 3339 timestamp |
 | `baseUri` | string | Optional | Base URI for resolving relative paths |
-| `extensions` | object | Optional | Vendor/plugin-specific data |
+| `metadata` | object | Optional | Custom metadata for forward compatibility |
+| `extensions` | object | Deprecated | Use `metadata` instead |
 
 ### 6.1 Schema Version Format
 
@@ -163,8 +164,7 @@ A Warren is a registry of burrows (and optionally other warrens).
       "title": "Organization Warren",
       "uri": "https://example.com/org/.warren.json"
     }
-  ],
-  "extensions": {}
+  ]
 }
 ```
 
@@ -189,10 +189,19 @@ Each item in `burrows`:
 | `description` | string | Optional | Brief description |
 | `tags` | array | Optional | Categorization tags |
 | `priority` | number | Optional | Higher = more prominent in menus |
+| `metadata` | object | Optional | Custom metadata for this burrow reference |
 
 ### 7.4 Warren Reference Object
 
-Each item in `warrens` has the same shape as burrow references (without `tags` or `priority` requirements).
+Each item in `warrens`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Required | Stable identifier |
+| `uri` | string | Required | Location of the warren |
+| `title` | string | Optional | Human-readable title |
+| `description` | string | Optional | Brief description |
+| `metadata` | object | Optional | Custom metadata for this warren reference |
 
 ---
 
@@ -254,8 +263,7 @@ A Burrow is a structured "menu" of content entries.
       "tags": ["guides"],
       "priority": 6
     }
-  ],
-  "extensions": {}
+  ]
 }
 ```
 
@@ -327,6 +335,7 @@ Each item in `entries` represents a menu item.
 | `sha256` | string | Optional | Hex digest for cache validation |
 | `tags` | array | Optional | Categorization tags |
 | `priority` | number | Optional | Higher = more prominent |
+| `metadata` | object | Optional | Custom metadata for this entry |
 
 ### 9.2 Entry Kind Values
 
@@ -391,7 +400,7 @@ Updated weekly. The `updated` field in `.burrow.json` is authoritative.
 
 - `.warren.json` / `.burrow.json` are canonical for navigation
 - `.warren.md` / `.burrow.md` provide guidance, intent, and context
-- The JSON files reference their Markdown companions via the `$schema` or can include a link in `extensions`
+- The JSON files may reference their Markdown companions via `metadata` if needed
 
 ---
 
@@ -418,19 +427,46 @@ To reduce repeated scanning and token usage:
 
 ## 13. Extensibility
 
-Vendors and plugins may add custom data under the `extensions` field:
+### 13.1 The `metadata` Field
+
+Publishers may add custom data under the `metadata` field for forward compatibility and extensibility:
 
 ```json
 {
-  "extensions": {
+  "metadata": {
     "myvendor": {
       "customField": "value"
-    }
+    },
+    "generator": "my-burrow-tool/1.0"
   }
 }
 ```
 
-Clients must ignore unknown fields outside the normative set unless they explicitly support them.
+The `metadata` field is available on:
+- Root documents (burrow and warren)
+- Burrow reference objects (in warrens)
+- Warren reference objects (in warrens)
+- Entry objects (in burrows)
+
+### 13.2 Forward Compatibility
+
+Clients MUST ignore unknown fields at any level of the document structure. This allows future specification versions to add new fields without breaking older clients.
+
+### 13.3 Deprecated: `extensions`
+
+The `extensions` field is deprecated and will be removed in a future version. Use `metadata` instead. For migration:
+
+```json
+// Before (deprecated)
+{
+  "extensions": { "myvendor": { "key": "value" } }
+}
+
+// After (recommended)
+{
+  "metadata": { "myvendor": { "key": "value" } }
+}
+```
 
 ---
 

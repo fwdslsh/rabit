@@ -37,7 +37,7 @@ We received a thorough security review targeting the v0.2 specification. This do
 |----------|---------------|--------|
 | `additionalProperties: true` everywhere | Intentional for forward compatibility | **Reviewed** |
 | Required hash algorithm identifiers | Fixed - we use explicit `sha256` field | **Resolved** |
-| Namespace enforcement for extensions | `extensions` object provides namespace | **Resolved** |
+| Namespace enforcement for extensions | `metadata` object provides namespace (extensions deprecated) | **Resolved** |
 
 **Analysis:** We keep `additionalProperties: true` at root and entry level for forward compatibility - newer spec versions can add fields that older clients ignore per §12 ("Clients must ignore unknown fields"). Nested objects (`repoMetadata`, `agentInstructions`) already have `additionalProperties: false`.
 

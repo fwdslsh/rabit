@@ -69,6 +69,5 @@
       "priority": 75,
       "tags": ["posts", "technical", "kubernetes"]
     }
-  ],
-  "extensions": {}
+  ]
 }

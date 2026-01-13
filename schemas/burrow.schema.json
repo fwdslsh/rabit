@@ -5,7 +5,7 @@
   "description": "JSON Schema for .burrow.json manifest files per Rabit v0.3.0 specification",
   "type": "object",
   "required": ["specVersion", "kind", "entries"],
-  "additionalProperties": true,
+  "additionalProperties": false,
   "properties": {
     "$schema": {
       "type": "string",
@@ -52,9 +52,14 @@
         "$ref": "#/$defs/entry"
       }
     },
+    "metadata": {
+      "type": "object",
+      "description": "Custom metadata for forward compatibility and extensibility",
+      "additionalProperties": true
+    },
     "extensions": {
       "type": "object",
-      "description": "Vendor/plugin-specific data",
+      "description": "Vendor/plugin-specific data (deprecated, use metadata)",
       "additionalProperties": true
     }
   },
@@ -63,7 +68,7 @@
       "type": "object",
       "description": "A menu item in the burrow",
       "required": ["id", "kind", "uri"],
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "id": {
           "type": "string",
@@ -120,13 +125,18 @@
         "priority": {
           "type": "number",
           "description": "Higher values = more prominent in menus"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Custom metadata for this entry",
+          "additionalProperties": true
         }
       }
     },
     "repoMetadata": {
       "type": "object",
       "description": "Standard repository file locations",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "readme": {
           "type": "string",
@@ -149,7 +159,7 @@
     "agentInstructions": {
       "type": "object",
       "description": "Agent instructions for LLM-based clients",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "context": {
           "type": "string",

@@ -25,6 +25,12 @@ export type DocumentKind = 'burrow' | 'warren';
  */
 export type EntryKind = 'file' | 'dir' | 'burrow' | 'link';
 
+/**
+ * Metadata object for extensibility
+ * Allows arbitrary key-value pairs for forward compatibility
+ */
+export type Metadata = Record<string, unknown>;
+
 // ============================================================================
 // Entry Schema (§9)
 // ============================================================================
@@ -58,6 +64,8 @@ export interface Entry {
   tags?: string[];
   /** Higher values = more prominent in menus */
   priority?: number;
+  /** Custom metadata for this entry */
+  metadata?: Metadata;
 }
 
 // ============================================================================
@@ -66,6 +74,7 @@ export interface Entry {
 
 /**
  * Standard repository files metadata
+ * Allows additional properties for extensibility
  * @see Specification §8.3
  */
 export interface RepoMetadata {
@@ -77,6 +86,8 @@ export interface RepoMetadata {
   contributing?: string;
   /** Path to CHANGELOG file */
   changelog?: string;
+  /** Additional custom properties */
+  [key: string]: string | undefined;
 }
 
 // ============================================================================
@@ -85,6 +96,7 @@ export interface RepoMetadata {
 
 /**
  * Agent instructions for LLM-based clients
+ * Allows additional properties for extensibility
  * @see Specification §8.4
  */
 export interface AgentInstructions {
@@ -94,6 +106,8 @@ export interface AgentInstructions {
   entryPoint?: string;
   /** Freeform processing hints */
   hints?: string[];
+  /** Additional custom properties */
+  [key: string]: string | string[] | undefined;
 }
 
 // ============================================================================
@@ -125,8 +139,10 @@ export interface Burrow {
   agents?: AgentInstructions;
   /** Array of entry objects (required) */
   entries: Entry[];
-  /** Vendor/plugin-specific data */
-  extensions?: Record<string, unknown>;
+  /** Custom metadata for forward compatibility and extensibility */
+  metadata?: Metadata;
+  /** @deprecated Use metadata instead */
+  extensions?: Metadata;
 }
 
 // ============================================================================
@@ -150,6 +166,8 @@ export interface BurrowReference {
   tags?: string[];
   /** Higher values = more prominent in menus */
   priority?: number;
+  /** Custom metadata for this burrow reference */
+  metadata?: Metadata;
 }
 
 /**
@@ -165,6 +183,8 @@ export interface WarrenReference {
   title?: string;
   /** Brief description */
   description?: string;
+  /** Custom metadata for this warren reference */
+  metadata?: Metadata;
 }
 
 /**
@@ -190,8 +210,10 @@ export interface Warren {
   burrows?: BurrowReference[];
   /** Array of warren references (federation) */
   warrens?: WarrenReference[];
-  /** Vendor/plugin-specific data */
-  extensions?: Record<string, unknown>;
+  /** Custom metadata for forward compatibility and extensibility */
+  metadata?: Metadata;
+  /** @deprecated Use metadata instead */
+  extensions?: Metadata;
 }
 
 // ============================================================================

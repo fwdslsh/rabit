@@ -57,6 +57,5 @@
       "priority": 70,
       "tags": ["api", "openapi", "spec"]
     }
-  ],
-  "extensions": {}
+  ]
 }

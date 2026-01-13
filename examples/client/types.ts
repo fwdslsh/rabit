@@ -3,6 +3,9 @@
  * Based on Rabit Specification v0.3.0
  */
 
+// Custom metadata for extensibility
+export type Metadata = Record<string, unknown>;
+
 // Entry kind
 export type EntryKind = 'file' | 'dir' | 'burrow' | 'link';
 
@@ -20,21 +23,24 @@ export interface Entry {
   sha256?: string;
   tags?: string[];
   priority?: number;
+  metadata?: Metadata;
 }
 
-// Agent instructions
+// Agent instructions (allows additional properties)
 export interface AgentInstructions {
   context?: string;
   entryPoint?: string;
   hints?: string[];
+  [key: string]: string | string[] | undefined;
 }
 
-// Repository metadata
+// Repository metadata (allows additional properties)
 export interface RepoMetadata {
   readme?: string;
   license?: string;
   contributing?: string;
   changelog?: string;
+  [key: string]: string | undefined;
 }
 
 // Burrow (.burrow.json)
@@ -49,7 +55,9 @@ export interface Burrow {
   repo?: RepoMetadata;
   agents?: AgentInstructions;
   entries: Entry[];
-  extensions?: Record<string, unknown>;
+  metadata?: Metadata;
+  /** @deprecated Use metadata instead */
+  extensions?: Metadata;
 }
 
 // Burrow reference in warren
@@ -60,6 +68,7 @@ export interface BurrowReference {
   description?: string;
   tags?: string[];
   priority?: number;
+  metadata?: Metadata;
 }
 
 // Warren reference (federation)
@@ -68,6 +77,7 @@ export interface WarrenReference {
   uri: string;
   title?: string;
   description?: string;
+  metadata?: Metadata;
 }
 
 // Warren (.warren.json)
@@ -81,7 +91,9 @@ export interface Warren {
   baseUri?: string;
   burrows?: BurrowReference[];
   warrens?: WarrenReference[];
-  extensions?: Record<string, unknown>;
+  metadata?: Metadata;
+  /** @deprecated Use metadata instead */
+  extensions?: Metadata;
 }
 
 // Type guards

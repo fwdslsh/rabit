@@ -5,7 +5,7 @@
   "description": "JSON Schema for .warren.json registry files per Rabit v0.3.0 specification",
   "type": "object",
   "required": ["specVersion", "kind"],
-  "additionalProperties": true,
+  "additionalProperties": false,
   "properties": {
     "$schema": {
       "type": "string",
@@ -53,9 +53,14 @@
         "$ref": "#/$defs/warrenReference"
       }
     },
+    "metadata": {
+      "type": "object",
+      "description": "Custom metadata for forward compatibility and extensibility",
+      "additionalProperties": true
+    },
     "extensions": {
       "type": "object",
-      "description": "Vendor/plugin-specific data",
+      "description": "Vendor/plugin-specific data (deprecated, use metadata)",
       "additionalProperties": true
     }
   },
@@ -68,7 +73,7 @@
       "type": "object",
       "description": "Reference to a burrow",
       "required": ["id", "uri"],
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "id": {
           "type": "string",
@@ -97,6 +102,11 @@
         "priority": {
           "type": "number",
           "description": "Higher values = more prominent in menus"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Custom metadata for this burrow reference",
+          "additionalProperties": true
         }
       }
     },
@@ -104,7 +114,7 @@
       "type": "object",
       "description": "Reference to another warren (federation)",
       "required": ["id", "uri"],
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "id": {
           "type": "string",
@@ -122,6 +132,11 @@
         "description": {
           "type": "string",
           "description": "Brief description"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Custom metadata for this warren reference",
+          "additionalProperties": true
         }
       }
     }
