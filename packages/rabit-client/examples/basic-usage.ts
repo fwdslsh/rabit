@@ -1,5 +1,5 @@
 /**
- * Basic usage examples for @rabit/client
+ * Basic usage examples for @fwdslsh/rabit-client
  */
 
 import {
@@ -10,7 +10,7 @@ import {
   traverseBurrow,
   findEntry,
   getEntryPoint,
-} from '@rabit/client';
+} from '@fwdslsh/rabit-client';
 
 // =============================================================================
 // Example 1: Fetch a burrow and display info

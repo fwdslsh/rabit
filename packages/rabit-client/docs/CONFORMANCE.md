@@ -1,6 +1,6 @@
 # Rabit v0.3.0 Specification Conformance
 
-This document certifies that `@rabit/client` v0.3.0 implements the Rabit Burrow & Warren Specification v0.3.0.
+This document certifies that `@fwdslsh/rabit-client` v0.3.0 implements the Rabit Burrow & Warren Specification v0.3.0.
 
 ## Conformance Summary
 
@@ -192,7 +192,7 @@ This implementation has been verified to meet all requirements for Rabit v0.3.0:
 Version: 0.3.0
 Date: 2026-01-13
 
-**Implementation Version:** @rabit/client v0.3.0
+**Implementation Version:** @fwdslsh/rabit-client v0.3.0
 **Certification Date:** 2026-01-13
 **Platform:** Bun 1.0+
 **Language:** TypeScript 5.3+
@@ -205,10 +205,10 @@ To verify conformance:
 
 ```bash
 # Install client
-bun install @rabit/client
+bun install @fwdslsh/rabit-client
 
 # Run tests
-cd node_modules/@rabit/client
+cd node_modules/@fwdslsh/rabit-client
 bun test
 
 # Type check
@@ -231,4 +231,4 @@ rabit list https://example.com/docs/
 ---
 
 **Certified by:** Rabit Development Team
-**Contact:** https://github.com/itlackey/rabit/issues
+**Contact:** https://github.com/fwdslsh/rabit/issues

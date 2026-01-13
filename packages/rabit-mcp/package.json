@@ -1,5 +1,5 @@
 {
-  "name": "rabit-mcp",
+  "name": "@fwdslsh/rabit-mcp",
   "version": "0.3.0",
   "description": "MCP (Model Context Protocol) plugin providing Rabit Burrow Traversal (RBT) tools for AI agents",
   "keywords": [
@@ -14,14 +14,14 @@
     "ai",
     "plugin"
   ],
-  "homepage": "https://github.com/itlackey/rabit#readme",
+  "homepage": "https://github.com/fwdslsh/rabit#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/itlackey/rabit.git",
+    "url": "https://github.com/fwdslsh/rabit.git",
     "directory": "packages/rabit-mcp"
   },
   "bugs": {
-    "url": "https://github.com/itlackey/rabit/issues"
+    "url": "https://github.com/fwdslsh/rabit/issues"
   },
   "license": "CC-BY-4.0",
   "author": "Rabit Contributors",
@@ -55,7 +55,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "@rabit/client": "workspace:*",
+    "@fwdslsh/rabit-client": "workspace:*",
     "zod": "^3.25.0"
   },
   "devDependencies": {

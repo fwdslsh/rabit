@@ -5,7 +5,7 @@
   "title": "Rabit: Burrows for the Agentic Web",
   "description": "Specification and reference implementation for Rabit, a convention for publishing agent-friendly content spaces. This is a Bun.js monorepo with packages for the client, server, and OpenCode plugin.",
   "updated": "2026-01-13T00:00:00Z",
-  "baseUri": "https://github.com/itlackey/rabit/",
+  "baseUri": "https://github.com/fwdslsh/rabit/",
   "repo": {
     "readme": "README.md",
     "license": "LICENSE"

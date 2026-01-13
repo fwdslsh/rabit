@@ -1,9 +1,9 @@
 /**
- * @rabit/client - Rabit Burrow & Warren Client
+ * @fwdslsh/rabit-client - Rabit Burrow & Warren Client
  *
  * Based on Rabit Specification v0.3.0
  *
- * @see https://github.com/itlackey/rabit
+ * @see https://github.com/fwdslsh/rabit
  * @see docs/rabit-spec-v0.3.0.md
  */
 

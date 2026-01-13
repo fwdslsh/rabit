@@ -12,7 +12,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@rabit/client": "workspace:*"
+    "@fwdslsh/rabit-client": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

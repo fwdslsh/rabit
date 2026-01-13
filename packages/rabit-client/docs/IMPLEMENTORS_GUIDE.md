@@ -37,7 +37,7 @@ Example minimal `.burrow.json`:
 ```json
 {
   "rbt": "0.2",
-  "$schema": "https://rabit.dev/schemas/burrow-0.2.json",
+  "$schema": "https://fwdslsh.dev/rabit/schemas/burrow-0.2.json",
   "manifest": {
     "title": "My Documentation",
     "updated": "2026-01-12T00:00:00Z",
@@ -163,7 +163,7 @@ jobs:
       - uses: oven-sh/setup-bun@v1
 
       - name: Install rabit client
-        run: bun install -g @rabit/client
+        run: bun install -g @fwdslsh/rabit-client
 
       - name: Generate manifest
         run: |
@@ -182,7 +182,7 @@ jobs:
 ```typescript
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
-import { computeRid } from '@rabit/client';
+import { computeRid } from '@fwdslsh/rabit-client';
 
 async function generateManifest() {
   const files = await readdir('./docs', { recursive: true });
@@ -746,7 +746,7 @@ Publish a warren to list multiple burrows across your organization:
 ```json
 {
   "rbt": "0.2",
-  "$schema": "https://rabit.dev/schemas/warren-0.2.json",
+  "$schema": "https://fwdslsh.dev/rabit/schemas/warren-0.2.json",
   "registry": {
     "title": "Acme Corp Documentation Registry",
     "description": "Central registry of all Acme Corp documentation burrows",
@@ -938,7 +938,7 @@ RIDs enable content verification and deduplication:
 
 ```bash
 # Compute RID for a file
-bun run -e "import { computeRid } from '@rabit/client'; \
+bun run -e "import { computeRid } from '@fwdslsh/rabit-client'; \
   const content = await Bun.file('README.md').arrayBuffer(); \
   console.log(await computeRid(new Uint8Array(content)));"
 ```
@@ -1044,7 +1044,7 @@ Use JSON Schema for validation:
 
 ```bash
 bun x ajv validate \
-  -s https://rabit.dev/schemas/burrow-0.2.json \
+  -s https://fwdslsh.dev/rabit/schemas/burrow-0.2.json \
   -d .burrow.json
 ```
 
@@ -1054,7 +1054,7 @@ Verify your burrow works:
 
 ```bash
 # Install client
-bun install -g @rabit/client
+bun install -g @fwdslsh/rabit-client
 
 # Test burrow
 rabit burrow https://yourdomain.com/
@@ -1171,4 +1171,4 @@ rabit report https://yourdomain.com/
 
 ## Questions?
 
-Open an issue at https://github.com/itlackey/rabit/issues
+Open an issue at https://github.com/fwdslsh/rabit/issues

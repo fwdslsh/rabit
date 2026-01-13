@@ -40,9 +40,9 @@ These transports require additional plugins or dependencies:
 
 | Transport | URI Schemes | Plugin Required |
 |-----------|-------------|-----------------|
-| Git | `git://`, `git@`, `https://*.git` | `@rabit/transport-git` |
-| SSH/SFTP | `ssh://`, `sftp://` | `@rabit/transport-ssh` |
-| FTP/FTPS | `ftp://`, `ftps://` | `@rabit/transport-ftp` |
+| Git | `git://`, `git@`, `https://*.git` | `@fwdslsh/rabit-transport-git` |
+| SSH/SFTP | `ssh://`, `sftp://` | `@fwdslsh/rabit-transport-ssh` |
+| FTP/FTPS | `ftp://`, `ftps://` | `@fwdslsh/rabit-transport-ftp` |
 
 ### 2.3 Transport Detection
 

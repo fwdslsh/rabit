@@ -27,7 +27,7 @@ import {
   type Warren,
   type Entry,
   type BurrowReference,
-} from "@rabit/client";
+} from "@fwdslsh/rabit-client";
 
 // ============================================================================
 // Helper Functions

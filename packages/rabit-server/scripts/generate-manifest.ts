@@ -186,7 +186,7 @@ async function generateBurrowManifest(): Promise<void> {
   // Generate manifest RID (without the rid field)
   const manifestContent = {
     rbt: '0.2',
-    $schema: 'https://rabit.dev/schemas/burrow-0.2.json',
+    $schema: 'https://fwdslsh.dev/rabit/schemas/burrow-0.2.json',
     manifest: {
       title: config.title,
       description: config.description || undefined,
@@ -303,7 +303,7 @@ async function generateWarrenManifest(): Promise<void> {
   
   const warrenContent = {
     rbt: '0.2',
-    $schema: 'https://rabit.dev/schemas/warren-0.2.json',
+    $schema: 'https://fwdslsh.dev/rabit/schemas/warren-0.2.json',
     registry: {
       title: config.title,
       description: config.description || undefined,

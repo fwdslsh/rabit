@@ -27,7 +27,7 @@ For programmatic access, see [burrow.json](./burrow.json).
 
 ```bash
 # Clone and start
-git clone https://github.com/itlackey/rabit.git
+git clone https://github.com/fwdslsh/rabit.git
 cd rabit/examples/server/wellknown-static
 docker compose up -d
 

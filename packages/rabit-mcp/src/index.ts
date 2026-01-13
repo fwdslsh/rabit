@@ -6,7 +6,7 @@
  * tools for AI agents. This plugin allows OpenCode and other MCP-compatible tools
  * to discover, fetch, and traverse Rabit burrows and warrens.
  *
- * @see https://github.com/itlackey/rabit
+ * @see https://github.com/fwdslsh/rabit
  * @see https://modelcontextprotocol.io
  */
 
@@ -30,7 +30,7 @@ import {
   type BurrowManifest,
   type WarrenRegistry,
   type Entry,
-} from "@rabit/client";
+} from "@fwdslsh/rabit-client";
 
 // Create the MCP server
 const server = new McpServer({

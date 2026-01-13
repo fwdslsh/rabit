@@ -26,7 +26,7 @@ Then restart OpenCode. The plugin will be automatically installed.
 
 ### From Local Workspace
 
-If you're working within the Rabit monorepo, the plugin will automatically use the workspace version of `@rabit/client`.
+If you're working within the Rabit monorepo, the plugin will automatically use the workspace version of `@fwdslsh/rabit-client`.
 
 ### Manual Installation
 
@@ -42,7 +42,7 @@ mkdir -p ~/.config/opencode/plugin
 cp packages/opencode-rabit/index.ts ~/.config/opencode/plugin/rabit.ts
 ```
 
-Note: Manual installation requires you to also ensure `@rabit/client` is available.
+Note: Manual installation requires you to also ensure `@fwdslsh/rabit-client` is available.
 
 ## Available Tools
 

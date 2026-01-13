@@ -16,13 +16,13 @@
     "manifest",
     "monorepo"
   ],
-  "homepage": "https://github.com/itlackey/rabit#readme",
+  "homepage": "https://github.com/fwdslsh/rabit#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/itlackey/rabit.git"
+    "url": "https://github.com/fwdslsh/rabit.git"
   },
   "bugs": {
-    "url": "https://github.com/itlackey/rabit/issues"
+    "url": "https://github.com/fwdslsh/rabit/issues"
   },
   "license": "CC-BY-4.0",
   "author": "Rabit Contributors",
@@ -35,7 +35,7 @@
     "test": "bun run --filter '*' test",
     "typecheck": "bun run --filter '*' typecheck",
     "clean": "bun run --filter '*' clean",
-    "dev:client": "bun run --filter @rabit/client dev",
+    "dev:client": "bun run --filter @fwdslsh/rabit-client dev",
     "dev:mcp": "bun run --filter rabit-mcp dev"
   },
   "devDependencies": {

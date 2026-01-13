@@ -515,7 +515,7 @@ ${colors.bold}Features:${colors.reset}
   • Well-known endpoint discovery
 
 ${colors.bold}More Info:${colors.reset}
-  https://github.com/itlackey/rabit
+  https://github.com/fwdslsh/rabit
 `);
 }
 

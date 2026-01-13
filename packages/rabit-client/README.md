@@ -1,4 +1,4 @@
-# @rabit/client
+# @fwdslsh/rabit-client
 
 > **Reference implementation of Rabit Burrow Traversal (RBT) - Full Client Conformance**
 
@@ -29,13 +29,13 @@ A production-ready TypeScript/Bun client for traversing and consuming Rabit burr
 ### Using Bun (Recommended)
 
 ```bash
-bun add @rabit/client
+bun add @fwdslsh/rabit-client
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/itlackey/rabit.git
+git clone https://github.com/fwdslsh/rabit.git
 cd rabit/rabit-client
 bun install
 bun run build
@@ -46,7 +46,7 @@ bun run build
 ### Library Usage
 
 ```typescript
-import { createClient, fetchBurrow, fetchEntry } from '@rabit/client';
+import { createClient, fetchBurrow, fetchEntry } from '@fwdslsh/rabit-client';
 
 // Use default client instance
 const result = await fetchBurrow('https://example.org/burrow/');
@@ -76,10 +76,10 @@ const burrow = await client.fetchBurrow('https://example.org/burrow/');
 
 ```bash
 # Install globally
-bun install -g @rabit/client
+bun install -g @fwdslsh/rabit-client
 
 # Or run directly
-bunx @rabit/client <command> [options]
+bunx @fwdslsh/rabit-client <command> [options]
 
 # List burrows in a warren
 rabit warren https://example.org/
@@ -245,7 +245,7 @@ import {
   findEntriesByRel,
   findEntriesByType,
   searchEntries,
-} from '@rabit/client';
+} from '@fwdslsh/rabit-client';
 
 // Find by ID
 const entry = findEntry(burrow, 'readme');
@@ -269,7 +269,7 @@ import {
   getAgentContext,
   checkPermission,
   getIgnorePatterns,
-} from '@rabit/client';
+} from '@fwdslsh/rabit-client';
 
 // Get recommended entry point
 const start = getEntryPoint(burrow);
@@ -293,7 +293,7 @@ import {
   findBurrowsByTag,
   getBurrowUrl,
   getAllTags,
-} from '@rabit/client';
+} from '@fwdslsh/rabit-client';
 
 // List all burrows
 const burrows = listBurrows(warren);
@@ -320,7 +320,7 @@ import {
   requiresAuth,
   getCacheDirectives,
   getBurrowStats,
-} from '@rabit/client';
+} from '@fwdslsh/rabit-client';
 
 // Get base URL
 const baseUrl = getBurrowBaseUrl(burrow);
@@ -350,7 +350,7 @@ console.log('By media type:', stats.byMediaType);
 For more control, use the `RabitClient` class:
 
 ```typescript
-import { RabitClient } from '@rabit/client';
+import { RabitClient } from '@fwdslsh/rabit-client';
 
 const client = new RabitClient({
   maxConcurrent: 10,      // Max concurrent requests per host
@@ -509,7 +509,7 @@ The client implements security best practices per RBT Specification §15:
 - **Timeout Handling**: 30-second max request timeout
 
 ```typescript
-import { RESOURCE_LIMITS } from '@rabit/client';
+import { RESOURCE_LIMITS } from '@fwdslsh/rabit-client';
 
 console.log('Max manifest size:', RESOURCE_LIMITS.MAX_MANIFEST_SIZE);
 console.log('Max entry count:', RESOURCE_LIMITS.MAX_ENTRY_COUNT);
@@ -542,7 +542,7 @@ bun run clean
 
 ## Contributing
 
-Contributions are welcome! Please see the main [Rabit repository](https://github.com/itlackey/rabit) for contribution guidelines.
+Contributions are welcome! Please see the main [Rabit repository](https://github.com/fwdslsh/rabit) for contribution guidelines.
 
 ## License
 
@@ -552,8 +552,8 @@ This project is licensed under [CC-BY-4.0](LICENSE).
 
 - **Specification**: [docs/rabit-spec-v0.3.0.md](../../docs/rabit-spec-v0.3.0.md)
 - **Client Implementation Spec**: [docs/CLIENT_SPEC.md](./docs/CLIENT_SPEC.md)
-- **Repository**: https://github.com/itlackey/rabit
-- **Issues**: https://github.com/itlackey/rabit/issues
+- **Repository**: https://github.com/fwdslsh/rabit
+- **Issues**: https://github.com/fwdslsh/rabit/issues
 
 ## Specification Compliance
 

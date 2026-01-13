@@ -274,5 +274,5 @@ CC-BY-4.0 License - See LICENSE file for details.
 ## Links
 
 - [Rabit Specification](../../docs/rabit-spec-v0.3.0.md)
-- [GitHub Repository](https://github.com/itlackey/rabit)
+- [GitHub Repository](https://github.com/fwdslsh/rabit)
 - [Docker Hub](https://hub.docker.com/r/rabit/server)
