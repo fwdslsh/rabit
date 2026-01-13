@@ -1,7 +1,7 @@
 # Rabit Server Makefile
 
 IMAGE_NAME ?= rabit/server
-VERSION ?= 0.2.0
+VERSION ?= 0.3.0
 
 .PHONY: build run stop clean test logs help
 

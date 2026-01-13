@@ -42,7 +42,7 @@ Your registry is now available at:
 - **CORS enabled** - Ready for browser and agent access
 - **Content-type detection** - Proper MIME types for all files
 - **Health checks** - Built-in `/health` endpoint
-- **RID generation** - Automatic content-addressed identifiers
+- **SHA256 hashes** - Optional content verification
 
 ## Environment Variables
 
@@ -251,27 +251,19 @@ Features:
 
 See [examples/git-readonly/README.md](examples/git-readonly/README.md) for full documentation.
 
-### Using with File Roots
+### Using with File Paths
 
-The Rabit spec (draft-rabit-rbt-04) supports file paths for local/network access:
+The Rabit v0.3.0 spec uses standard URIs for file paths:
 
 ```json
 {
-  "manifest": {
-    "roots": [
-      {
-        "file": {
-          "path": "/mnt/shared/documentation/"
-        }
-      },
-      {
-        "git": {
-          "remote": "https://github.com/org/docs.git",
-          "ref": "refs/heads/main"
-        }
-      }
-    ]
-  }
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "kind": "burrow",
+  "title": "My Documentation",
+  "baseUri": "file:///mnt/shared/documentation/",
+  "entries": [
+    { "id": "readme", "kind": "file", "uri": "README.md" }
+  ]
 }
 ```
 
@@ -281,6 +273,6 @@ CC-BY-4.0 License - See LICENSE file for details.
 
 ## Links
 
-- [Rabit Specification](https://rabit.dev)
-- [GitHub Repository](https://github.com/rabit/rabit-server)
+- [Rabit Specification](../../docs/rabit-spec-v0.3.0.md)
+- [GitHub Repository](https://github.com/itlackey/rabit)
 - [Docker Hub](https://hub.docker.com/r/rabit/server)

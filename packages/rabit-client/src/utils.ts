@@ -1,6 +1,6 @@
 /**
- * Utility functions for RBT client
- * Based on draft-rabit-rbt-04
+ * Utility functions for Rabit client
+ * Based on Rabit Specification v0.3.0
  */
 
 import type { Root, GitRoot, HttpsRoot, HttpRoot, FtpRoot, FileRoot, RbtError } from './types';

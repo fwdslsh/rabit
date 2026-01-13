@@ -35,7 +35,7 @@ import {
 // Create the MCP server
 const server = new McpServer({
   name: "opencode-rabit",
-  version: "0.1.0",
+  version: "0.3.0",
 });
 
 // Create a shared Rabit client instance

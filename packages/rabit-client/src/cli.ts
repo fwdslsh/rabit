@@ -475,7 +475,7 @@ async function cmdStats(url: string) {
 function showHelp() {
   log(`
 ${colors.bold}Rabit CLI${colors.reset} - Full-Featured Burrow Traversal Client
-${colors.dim}RBT Specification v0.2 - Full Client Conformance${colors.reset}
+${colors.dim}Rabit Specification v0.3.0${colors.reset}
 
 ${colors.bold}Usage:${colors.reset}
   rabit <command> [options]
