@@ -1,179 +1,46 @@
 # fwdslsh.dev
 
-> fwdslsh builds developer tools for the agentic web.
+fwdslsh builds open-source developer tools for the agentic web. The focus is on helping publishers create content that both humans and AI agents can navigate reliably—without scraping, heuristics, or expensive parsing.
 
-## About fwdslsh
+## Tools
 
-fwdslsh creates open-source tools that help developers publish content navigable by both humans and AI agents. The flagship project is **Rabit**, a simple convention that brings back the structured traversal of early internet protocols (like Gopher) for the modern AI-powered web.
+**Rabit** — A dotfile convention for machine-readable content manifests. Add a `burrow.json` to describe your content structure. https://github.com/fwdslsh/rabit
 
-The core philosophy: publishers should be able to say "here's my content, here's how it's organized, here's how to traverse it" without relying on scraping, heuristics, or expensive LLM parsing.
+**Unify** — A lightweight static site generator with incremental builds and live reload. https://npmjs.com/package/@fwdslsh/unify
 
-## fwdslsh Tools
+## Discovering fwdslsh Tools via burrow.json
 
-### Rabit
-
-A dotfile convention for creating machine-readable content manifests. Where Gopher had tunnels, Rabit has burrows—a warren of interconnected content spaces, each with a map at the entrance.
-
-- **burrow.json**: Machine-readable manifest describing content structure
-- **burrow.md**: Human-readable companion documentation
-- Works across transports: HTTP, Git, local files, any URI scheme
-- Zero dependencies—just JSON files in your repo
-
-### Unify
-
-A lightweight, framework-free static site generator.
-
-- Simple: HTML and Apache SSI syntax with modern templating
-- Fast: Incremental builds and smart dependency tracking
-- Portable: Runs on Bun, Node.js, and Deno
-- Install: `npm install -g @fwdslsh/unify`
-
-## Discovery
-
-The fwdslsh tool ecosystem is discoverable via burrow.json manifests:
-
-```
-https://fwdslsh.dev/.well-known/burrow.json
-```
-
-## Using curl and jq
-
-### Fetch the burrow manifest
+Fetch the manifest:
 
 ```bash
 curl -s https://fwdslsh.dev/.well-known/burrow.json | jq .
 ```
 
-### List all entries
+List all entries:
 
 ```bash
 curl -s https://fwdslsh.dev/.well-known/burrow.json | jq -r '.entries[] | "\(.id)\t\(.kind)\t\(.title // .uri)"'
 ```
 
-### Get a specific entry
+Get a specific entry:
 
 ```bash
 curl -s https://fwdslsh.dev/.well-known/burrow.json | jq '.entries[] | select(.id == "ENTRY_ID")'
 ```
 
-### Fetch entry content
+Fetch entry content:
 
 ```bash
-# Get the entry URI
 URI=$(curl -s https://fwdslsh.dev/.well-known/burrow.json | jq -r '.entries[] | select(.id == "ENTRY_ID") | .uri')
-
-# Fetch the content
 curl -s "https://fwdslsh.dev/$URI"
 ```
 
-### Search entries
+Search entries:
 
 ```bash
 curl -s https://fwdslsh.dev/.well-known/burrow.json | jq -r '.entries[] | select(.title // "" | ascii_downcase | contains("KEYWORD")) | "\(.id)\t\(.title)"'
 ```
 
-### Filter by kind
+## More Information
 
-Entry types: `file`, `dir`, `burrow`, `map`, `link`
-
-```bash
-curl -s https://fwdslsh.dev/.well-known/burrow.json | jq -r '.entries[] | select(.kind == "file") | .id'
-```
-
-### Get burrow metadata
-
-```bash
-curl -s https://fwdslsh.dev/.well-known/burrow.json | jq '{title, description, updated}'
-```
-
-### Count entries
-
-```bash
-curl -s https://fwdslsh.dev/.well-known/burrow.json | jq '.entries | length'
-```
-
-## Burrow Schema
-
-A burrow.json manifest contains:
-
-- **specVersion**: Schema version (e.g., "fwdslsh.dev/rabit/schemas/0.4.0/burrow")
-- **kind**: Always "burrow"
-- **title**: Human-readable name
-- **description**: Brief description
-- **updated**: RFC 3339 timestamp
-- **entries**: Array of entry objects
-- **repo**: Repository links (readme, license, contributing)
-- **agents**: Context and hints for LLM agents
-
-Each entry has:
-
-- **id**: Unique identifier (required)
-- **kind**: Entry type (required) — file, dir, burrow, map, link
-- **uri**: Location relative to burrow base (required)
-- **title**: Human-readable name
-- **summary**: Brief description for agents
-- **mediaType**: MIME type (e.g., "text/markdown")
-- **tags**: Categorization array
-- **priority**: Higher values indicate importance
-
-## Rabit Packages
-
-### rabit-client
-
-TypeScript reference implementation for traversing burrows and warrens.
-
-- Transport: HTTPS, HTTP, file://, Git, SMB, NFS
-- Features: SHA256 verification, caching, rate limiting, cycle detection
-
-### rabit-mcp
-
-Model Context Protocol plugin for Claude and AI assistants.
-
-- Tools: discover, fetch, list, search, traverse burrows and warrens
-- Works with Claude Desktop and OpenCode
-
-### rabit-server
-
-Docker-based servers for hosting burrows.
-
-- HTTP server with auto-manifest generation
-- Git server with SSH authentication
-
-### opencode-rabit
-
-OpenCode IDE plugin for Rabit integration.
-
-- Browse, search, and traverse burrows from your IDE
-
-## Traversing Nested Burrows
-
-Burrows can contain nested burrows (kind: "burrow"):
-
-```bash
-# Get nested burrow URIs
-NESTED=$(curl -s https://fwdslsh.dev/.well-known/burrow.json | jq -r '.entries[] | select(.kind == "burrow") | .uri' | head -1)
-
-# Fetch the nested burrow manifest
-curl -s "https://fwdslsh.dev/${NESTED}.burrow.json" | jq .
-```
-
-## Warren Discovery
-
-A warren is a registry of multiple burrows:
-
-```bash
-curl -s https://fwdslsh.dev/.well-known/warren.json | jq .
-```
-
-List all burrows in a warren:
-
-```bash
-curl -s https://fwdslsh.dev/.well-known/warren.json | jq -r '.burrows[] | "\(.id)\t\(.title)\t\(.uri)"'
-```
-
-## Links
-
-- Rabit Specification: https://github.com/fwdslsh/rabit/blob/main/docs/rabit-spec.md
-- Rabit Source: https://github.com/fwdslsh/rabit
-- Unify: https://www.npmjs.com/package/@fwdslsh/unify
-- Bash Client Example: https://github.com/fwdslsh/rabit/blob/main/examples/client/bash/rabit.sh
+See https://github.com/fwdslsh/rabit for the full Rabit specification, client implementations, and examples.
