@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "$id": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
   "title": "Rabit Burrow",
-  "description": "JSON Schema for .burrow.json manifest files per Rabit v0.3.0 specification",
+  "description": "JSON Schema for .burrow.json manifest files per Rabit v0.4.0 specification",
   "type": "object",
   "required": ["specVersion", "kind", "entries"],
   "additionalProperties": false,
@@ -14,7 +14,7 @@
     "specVersion": {
       "type": "string",
       "description": "Specification version identifier",
-      "const": "fwdslsh.dev/rabit/schemas/0.3.0/burrow"
+      "pattern": "^fwdslsh\\.dev/rabit/schemas/(0\\.[34]\\.0)/burrow$"
     },
     "kind": {
       "type": "string",
@@ -78,7 +78,7 @@
         "kind": {
           "type": "string",
           "description": "Entry type",
-          "enum": ["file", "dir", "burrow", "link"]
+          "enum": ["file", "dir", "burrow", "map", "link"]
         },
         "uri": {
           "type": "string",
@@ -130,6 +130,13 @@
           "type": "object",
           "description": "Custom metadata for this entry",
           "additionalProperties": true
+        },
+        "children": {
+          "type": "array",
+          "description": "Nested entries (used in recursive listings, not stored in manifest files)",
+          "items": {
+            "$ref": "#/$defs/entry"
+          }
         }
       }
     },

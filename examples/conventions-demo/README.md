@@ -4,7 +4,7 @@ This directory demonstrates the three supported file naming conventions for Rabi
 
 ## Supported Conventions
 
-Rabit v0.3.0 supports three file naming conventions to accommodate different hosting environments:
+Rabit v0.4.0 supports three file naming conventions to accommodate different hosting environments:
 
 ### 1. Dotfile Convention (Recommended for Git/Filesystems)
 - **File:** `.burrow.json`
@@ -51,4 +51,4 @@ The same pattern applies to warrens:
 
 ## Learn More
 
-See the [Rabit Specification v0.3.0](../../docs/rabit-spec-v0.3.0.md) for complete details on the discovery algorithm and file conventions.
+See the [Rabit Specification v0.3.0](../../docs/rabit-spec.md) for complete details on the discovery algorithm and file conventions.

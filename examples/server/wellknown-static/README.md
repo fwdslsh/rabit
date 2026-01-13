@@ -143,5 +143,5 @@ CONTENT_DIR=~/my-content docker compose up -d
 ## See Also
 
 - [RFC 8615: Well-Known URIs](https://www.rfc-editor.org/rfc/rfc8615.html)
-- [Rabit Specification](../../../docs/rabit-spec-v0.3.0.md) - Discovery algorithm
+- [Rabit Specification](../../../docs/rabit-spec.md) - Discovery algorithm
 - [Conventions Demo](../../conventions-demo/) - All three naming conventions

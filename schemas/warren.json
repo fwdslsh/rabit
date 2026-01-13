@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "fwdslsh.dev/rabit/schemas/0.3.0/warren",
+  "$id": "fwdslsh.dev/rabit/schemas/0.4.0/warren",
   "title": "Rabit Warren",
-  "description": "JSON Schema for .warren.json registry files per Rabit v0.3.0 specification",
+  "description": "JSON Schema for .warren.json registry files per Rabit v0.4.0 specification",
   "type": "object",
   "required": ["specVersion", "kind"],
   "additionalProperties": false,
@@ -14,7 +14,7 @@
     "specVersion": {
       "type": "string",
       "description": "Specification version identifier",
-      "const": "fwdslsh.dev/rabit/schemas/0.3.0/warren"
+      "pattern": "^fwdslsh\\.dev/rabit/schemas/(0\\.[34]\\.0)/warren$"
     },
     "kind": {
       "type": "string",

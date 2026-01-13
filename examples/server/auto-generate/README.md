@@ -224,6 +224,6 @@ docker run -p 8080:80 \
 
 ## See Also
 
-- [Rabit Specification](../../../docs/rabit-spec-v0.3.0.md) - Full spec
+- [Rabit Specification](../../../docs/rabit-spec.md) - Full spec
 - [.well-known Static Example](../wellknown-static/) - Manual manifest approach
 - [Rabit Server Package](../../../packages/rabit-server/) - Production server

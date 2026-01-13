@@ -4,7 +4,7 @@
 # - fwdslsh/rabit-server-nginx:latest (Nginx server with .well-known)
 # - fwdslsh/rabit-server-git:latest (Git SSH server)
 
-VERSION ?= 0.3.0
+VERSION ?= 0.4.0
 NGINX_IMAGE ?= fwdslsh/rabit-server-nginx
 GIT_IMAGE ?= fwdslsh/rabit-server-git
 

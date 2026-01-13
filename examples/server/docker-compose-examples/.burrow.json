@@ -1,0 +1,63 @@
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "docker-compose-examples",
+  "description": "Auto-generated burrow for docker-compose-examples",
+  "updated": "2026-01-13T17:33:28.074Z",
+  "entries": [
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 6048,
+      "priority": 100
+    },
+    {
+      "id": "git-single-repo",
+      "kind": "file",
+      "uri": "git-single-repo.yml",
+      "title": "git-single-repo.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 513,
+      "priority": 80
+    },
+    {
+      "id": "http-single-burrow",
+      "kind": "file",
+      "uri": "http-single-burrow.yml",
+      "title": "http-single-burrow.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 513,
+      "priority": 80
+    },
+    {
+      "id": "hybrid-http-git",
+      "kind": "file",
+      "uri": "hybrid-http-git.yml",
+      "title": "hybrid-http-git.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 1068,
+      "priority": 80
+    },
+    {
+      "id": "nginx-examples",
+      "kind": "file",
+      "uri": "nginx-examples.yml",
+      "title": "nginx-examples.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 5656,
+      "priority": 80
+    },
+    {
+      "id": "nginx-quick-start",
+      "kind": "file",
+      "uri": "nginx-quick-start.yml",
+      "title": "nginx-quick-start.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 1039,
+      "priority": 80
+    }
+  ]
+}

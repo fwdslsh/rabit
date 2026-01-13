@@ -24,7 +24,11 @@ import {
   getParentUri,
   sortByPriority,
   isValidSpecVersion,
+  normalizeGitHubUrl,
+  parseGitHubUrl,
+  isGitHubUrl,
 } from './types';
+import { cloneOrUpdateCached } from './git';
 import { readFile } from 'fs/promises';
 import { join, resolve, normalize } from 'path';
 import * as crypto from 'crypto';
@@ -224,6 +228,27 @@ export class RabitClient {
     return result.ok ? result.data! : null;
   }
 
+  /**
+   * Fetch burrow with automatic discovery fallback
+   * If direct fetch fails, tries to discover the burrow at the location
+   */
+  async fetchBurrowWithDiscovery(uri: string): Promise<{ ok: boolean; data?: Burrow; error?: RabitError }> {
+    // First, try direct fetch
+    const directResult = await this.fetchBurrow(uri);
+    if (directResult.ok) {
+      return directResult;
+    }
+
+    // If direct fetch failed, try discovery
+    const discoveryResult = await this.discover(uri);
+    if (discoveryResult.burrow) {
+      return { ok: true, data: discoveryResult.burrow };
+    }
+
+    // Both failed, return the original error
+    return directResult;
+  }
+
   // ==========================================================================
   // Warren Fetching
   // ==========================================================================
@@ -340,6 +365,20 @@ export class RabitClient {
         };
       }
 
+      // Set baseUri if not present (use the directory of the burrow file)
+      if (!data.baseUri) {
+        // Extract the directory from the burrow URI
+        const dirUri = burrowUri.endsWith('.burrow.json')
+          ? burrowUri.slice(0, -('.burrow.json'.length))
+          : burrowUri;
+        data.baseUri = dirUri;
+      }
+
+      // Normalize baseUri if it's a GitHub URL
+      if (data.baseUri && isGitHubUrl(data.baseUri)) {
+        data.baseUri = normalizeGitHubUrl(data.baseUri);
+      }
+
       // Cache the result
       if (this.options.enableCache !== false) {
         this.cache.set(burrowUri, data);
@@ -403,6 +442,20 @@ export class RabitClient {
             `Entry count ${data.entries.length} exceeds limit ${RESOURCE_LIMITS.MAX_ENTRY_COUNT}`
           ),
         };
+      }
+
+      // Set baseUri if not present (use the directory of the burrow file)
+      if (!data.baseUri) {
+        // Extract the directory from the URI
+        const dirUri = uri.endsWith('.burrow.json')
+          ? uri.slice(0, -('.burrow.json'.length))
+          : uri.substring(0, uri.lastIndexOf('/') + 1);
+        data.baseUri = dirUri;
+      }
+
+      // Normalize baseUri if it's a GitHub URL
+      if (data.baseUri && isGitHubUrl(data.baseUri)) {
+        data.baseUri = normalizeGitHubUrl(data.baseUri);
       }
 
       // Cache the result
@@ -608,11 +661,18 @@ export class RabitClient {
    * Normalize a URI for consistent handling
    */
   private normalizeUri(uri: string): string {
+    // First, normalize GitHub URLs to raw.githubusercontent.com
+    let normalizedUri = normalizeGitHubUrl(uri);
+
     // Ensure trailing slash for directory-like URIs
-    if (!uri.endsWith('/') && !uri.includes('.')) {
-      return uri + '/';
+    // Check if it looks like a file (has extension in the last component)
+    const lastSegment = normalizedUri.split('/').pop() || '';
+    const hasFileExtension = lastSegment.includes('.') && !lastSegment.startsWith('.') && lastSegment !== '.' && lastSegment !== '..';
+
+    if (!normalizedUri.endsWith('/') && !hasFileExtension) {
+      return normalizedUri + '/';
     }
-    return uri;
+    return normalizedUri;
   }
 
   /**
@@ -675,9 +735,33 @@ export class RabitClient {
   }
 
   /**
-   * Fetch remote JSON content
+   * Fetch remote JSON content with hybrid strategy (HTTP first, git fallback for GitHub URLs)
    */
   private async fetchRemoteJson(url: string): Promise<string> {
+    // Try HTTP first
+    const httpResult = await this.tryFetchRemoteJson(url);
+    if (httpResult.ok) {
+      return httpResult.data!;
+    }
+
+    // If HTTP failed and this is a GitHub URL, try git fallback
+    if (isGitHubUrl(url)) {
+      const gitResult = await this.tryFetchViaGit(url);
+      if (gitResult.ok) {
+        return gitResult.data!;
+      }
+      // If git also failed, throw the git error
+      throw gitResult.error!;
+    }
+
+    // Not a GitHub URL, throw the HTTP error
+    throw httpResult.error!;
+  }
+
+  /**
+   * Try to fetch remote JSON via HTTP
+   */
+  private async tryFetchRemoteJson(url: string): Promise<{ ok: boolean; data?: string; error?: RabitError }> {
     await this.rateLimiter.acquire();
 
     try {
@@ -687,30 +771,98 @@ export class RabitClient {
 
       if (!response.ok) {
         if (response.status === 404) {
-          throw createError('manifest-not-found', `HTTP 404: ${url}`, undefined, url);
+          return { ok: false, error: createError('manifest-not-found', `HTTP 404: ${url}`, undefined, url) };
         }
         if (response.status === 429) {
-          throw createError('rate-limited', `HTTP 429: Rate limited`, undefined, url);
+          return { ok: false, error: createError('rate-limited', `HTTP 429: Rate limited`, undefined, url) };
         }
-        throw createError('transport-error', `HTTP ${response.status}: ${response.statusText}`, undefined, url);
+        return { ok: false, error: createError('transport-error', `HTTP ${response.status}: ${response.statusText}`, undefined, url) };
       }
 
       // Validate size
       const contentLength = response.headers.get('content-length');
       if (contentLength && parseInt(contentLength, 10) > RESOURCE_LIMITS.MAX_MANIFEST_SIZE) {
-        throw createError('manifest-invalid', `Manifest too large: ${contentLength} bytes`, undefined, url);
+        return { ok: false, error: createError('manifest-invalid', `Manifest too large: ${contentLength} bytes`, undefined, url) };
       }
 
-      return await response.text();
+      const text = await response.text();
+      return { ok: true, data: text };
+    } catch (error) {
+      return { ok: false, error: createError('transport-error', `Fetch failed: ${error}`, undefined, url) };
     } finally {
       this.rateLimiter.release();
     }
   }
 
   /**
-   * Fetch remote binary content
+   * Fetch file via git clone/update (for GitHub URLs)
+   */
+  private async tryFetchViaGit(url: string): Promise<{ ok: boolean; data?: string; error?: RabitError }> {
+    // Parse the original GitHub URL (not the raw.githubusercontent.com one)
+    const originalUrl = url.replace(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)(.*)$/, 'https://github.com/$1/$2$4');
+    const repoInfo = parseGitHubUrl(originalUrl);
+
+    if (!repoInfo) {
+      return { ok: false, error: createError('transport-error', 'Invalid GitHub URL', undefined, url) };
+    }
+
+    // Clone or update the repository
+    const cloneResult = await cloneOrUpdateCached(repoInfo.repoUrl, repoInfo.branch);
+
+    if (!cloneResult.ok) {
+      return { ok: false, error: cloneResult.error };
+    }
+
+    // Determine the file path within the repo
+    // Extract the file path from the URL
+    const rawUrlMatch = url.match(/^https:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[^/]+(.*)$/);
+    let filePath = rawUrlMatch ? rawUrlMatch[1] : '';
+
+    // Handle .burrow.json or .warren.json
+    if (filePath === '' || filePath === '/') {
+      filePath = '/.burrow.json';
+    } else if (!filePath.includes('.')) {
+      filePath = filePath.replace(/\/$/, '') + '/.burrow.json';
+    }
+
+    const fullPath = join(cloneResult.data!, filePath.replace(/^\//, ''));
+
+    try {
+      const content = await readFile(fullPath, 'utf-8');
+      return { ok: true, data: content };
+    } catch (error) {
+      return { ok: false, error: createError('manifest-not-found', `File not found in git repo: ${filePath}`, undefined, fullPath) };
+    }
+  }
+
+  /**
+   * Fetch remote binary content with hybrid strategy (HTTP first, git fallback for GitHub URLs)
    */
   private async fetchRemoteBytes(url: string): Promise<Uint8Array> {
+    // Try HTTP first
+    const httpResult = await this.tryFetchRemoteBytes(url);
+    if (httpResult.ok) {
+      return httpResult.data!;
+    }
+
+    // If HTTP failed and this is a GitHub URL, try git fallback
+    if (isGitHubUrl(url)) {
+      const gitResult = await this.tryFetchBytesViaGit(url);
+      if (gitResult.ok) {
+        return gitResult.data!;
+      }
+      // If git also failed, throw the git error
+      throw gitResult.error!;
+    }
+
+    // Not a GitHub URL, throw the HTTP error
+    throw httpResult.error!;
+  }
+
+  /**
+   * Try to fetch remote binary content via HTTP
+   */
+  private async tryFetchRemoteBytes(url: string): Promise<{ ok: boolean; data?: Uint8Array; error?: RabitError }> {
     await this.rateLimiter.acquire();
 
     try {
@@ -720,14 +872,54 @@ export class RabitClient {
 
       if (!response.ok) {
         if (response.status === 404) {
-          throw createError('entry-not-found', `HTTP 404: ${url}`, undefined, url);
+          return { ok: false, error: createError('entry-not-found', `HTTP 404: ${url}`, undefined, url) };
         }
-        throw createError('transport-error', `HTTP ${response.status}: ${response.statusText}`, undefined, url);
+        return { ok: false, error: createError('transport-error', `HTTP ${response.status}: ${response.statusText}`, undefined, url) };
       }
 
-      return new Uint8Array(await response.arrayBuffer());
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      return { ok: true, data: bytes };
+    } catch (error) {
+      return { ok: false, error: createError('transport-error', `Fetch failed: ${error}`, undefined, url) };
     } finally {
       this.rateLimiter.release();
+    }
+  }
+
+  /**
+   * Fetch binary file via git clone/update (for GitHub URLs)
+   */
+  private async tryFetchBytesViaGit(url: string): Promise<{ ok: boolean; data?: Uint8Array; error?: RabitError }> {
+    // Parse the original GitHub URL (not the raw.githubusercontent.com one)
+    const originalUrl = url.replace(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)(.*)$/, 'https://github.com/$1/$2$4');
+    const repoInfo = parseGitHubUrl(originalUrl);
+
+    if (!repoInfo) {
+      return { ok: false, error: createError('transport-error', 'Invalid GitHub URL', undefined, url) };
+    }
+
+    // Clone or update the repository
+    const cloneResult = await cloneOrUpdateCached(repoInfo.repoUrl, repoInfo.branch);
+
+    if (!cloneResult.ok) {
+      return { ok: false, error: cloneResult.error };
+    }
+
+    // Determine the file path within the repo
+    const rawUrlMatch = url.match(/^https:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[^/]+(.*)$/);
+    let filePath = rawUrlMatch ? rawUrlMatch[1] : '';
+
+    // Remove leading slash for join()
+    filePath = filePath.replace(/^\//, '');
+
+    const fullPath = join(cloneResult.data!, filePath);
+
+    try {
+      const buffer = await readFile(fullPath);
+      return { ok: true, data: new Uint8Array(buffer) };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { ok: false, error: createError('entry-not-found', `File not found in git repo: ${filePath} (${errorMessage})`, undefined, fullPath) };
     }
   }
 

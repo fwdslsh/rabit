@@ -1,0 +1,27 @@
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "ngnix-dotfiles",
+  "description": "Auto-generated burrow for ngnix-dotfiles",
+  "updated": "2026-01-13T17:33:28.074Z",
+  "entries": [
+    {
+      "id": "docker-compose",
+      "kind": "file",
+      "uri": "docker-compose.yml",
+      "title": "docker-compose.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 2286,
+      "priority": 80
+    },
+    {
+      "id": "nginx-cors",
+      "kind": "file",
+      "uri": "nginx-cors.conf",
+      "title": "nginx-cors.conf",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 817,
+      "priority": 80
+    }
+  ]
+}

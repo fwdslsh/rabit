@@ -8,8 +8,152 @@ import type { GitRoot, FetchResult, RbtError } from './types';
 import { createError, validateUrl } from './utils';
 import { spawn } from 'bun';
 import { join } from 'path';
-import { mkdtemp, rm } from 'fs/promises';
-import { tmpdir } from 'os';
+import { mkdtemp, rm, mkdir, access, stat } from 'fs/promises';
+import { tmpdir, homedir } from 'os';
+import * as crypto from 'crypto';
+
+// ============================================================================
+// Cache Directory Management
+// ============================================================================
+
+/**
+ * Get the XDG_STATE_HOME directory for rabit cache
+ * Falls back to ~/.local/state if XDG_STATE_HOME is not set
+ */
+export function getRabitCacheDir(): string {
+  const xdgStateHome = process.env.XDG_STATE_HOME;
+  const baseDir = xdgStateHome || join(homedir(), '.local', 'state');
+  return join(baseDir, 'rabit', 'repos');
+}
+
+/**
+ * Generate a stable cache path for a git repository URL
+ * Uses a hash-based approach to avoid filesystem issues with special characters
+ * @param repoUrl The git repository URL
+ * @returns Path within the cache directory
+ */
+export function getRepoCachePath(repoUrl: string): string {
+  // Parse GitHub URL to extract owner/repo
+  const githubMatch = repoUrl.match(/github\.com[/:]([^/]+)\/([^/.]+?)(?:\.git)?$/);
+
+  if (githubMatch) {
+    const [, owner, repo] = githubMatch;
+    // Use github.com/owner/repo format for readability
+    return join(getRabitCacheDir(), 'github.com', owner, repo);
+  }
+
+  // For other URLs, create a hash-based path
+  const hash = crypto.createHash('sha256').update(repoUrl).digest('hex').slice(0, 16);
+  const sanitized = repoUrl
+    .replace(/^https?:\/\//, '')
+    .replace(/\.git$/, '')
+    .replace(/[^a-zA-Z0-9-_.]/g, '_')
+    .slice(0, 100); // Limit length
+
+  return join(getRabitCacheDir(), 'other', `${sanitized}_${hash}`);
+}
+
+/**
+ * Check if a repository exists in the cache
+ * @param repoPath Path to the cached repository
+ * @returns true if the repository exists and has a .git directory
+ */
+export async function isCachedRepo(repoPath: string): Promise<boolean> {
+  try {
+    const gitDir = join(repoPath, '.git');
+    await access(gitDir);
+    const stats = await stat(gitDir);
+    return stats.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Clone or update a GitHub repository in the cache
+ * Uses shallow clones (--depth=1) for minimal data transfer
+ * @param repoUrl The GitHub repository URL (e.g., https://github.com/user/repo)
+ * @param branch The branch to fetch (default: 'main')
+ * @returns Path to the cached repository
+ */
+export async function cloneOrUpdateCached(
+  repoUrl: string,
+  branch: string = 'main'
+): Promise<FetchResult<string>> {
+  const cachePath = getRepoCachePath(repoUrl);
+
+  try {
+    // Check if repo is already cached
+    if (await isCachedRepo(cachePath)) {
+      // Repository exists, do a lightweight pull
+      const fetchProc = spawn(['git', 'fetch', '--depth=1', 'origin', branch], {
+        cwd: cachePath,
+        stderr: 'pipe',
+        stdout: 'pipe',
+      });
+
+      const fetchExit = await fetchProc.exited;
+
+      if (fetchExit !== 0) {
+        const stderr = await new Response(fetchProc.stderr).text();
+        // If fetch fails, try to use the cached version anyway
+        console.warn(`Git fetch failed, using cached version: ${stderr}`);
+        return { ok: true, data: cachePath };
+      }
+
+      // Reset to fetched commit (lightweight, no merge needed)
+      const resetProc = spawn(['git', 'reset', '--hard', `origin/${branch}`], {
+        cwd: cachePath,
+        stderr: 'pipe',
+        stdout: 'pipe',
+      });
+
+      const resetExit = await resetProc.exited;
+
+      if (resetExit !== 0) {
+        const stderr = await new Response(resetProc.stderr).text();
+        console.warn(`Git reset failed, using cached version: ${stderr}`);
+      }
+
+      return { ok: true, data: cachePath };
+    }
+
+    // Repository not cached, do a shallow clone
+    // Ensure parent directory exists
+    const parentDir = join(cachePath, '..');
+    await mkdir(parentDir, { recursive: true });
+
+    const cloneProc = spawn(
+      ['git', 'clone', '--depth=1', '--branch', branch, '--single-branch', repoUrl, cachePath],
+      {
+        stderr: 'pipe',
+        stdout: 'pipe',
+      }
+    );
+
+    const cloneExit = await cloneProc.exited;
+
+    if (cloneExit !== 0) {
+      const stderr = await new Response(cloneProc.stderr).text();
+      return {
+        ok: false,
+        error: createError('transport_error', `Git clone failed: ${stderr}`, undefined, repoUrl),
+      };
+    }
+
+    return { ok: true, data: cachePath };
+  } catch (error) {
+    return {
+      ok: false,
+      error: createError(
+        'transport_error',
+        `Failed to clone or update repository: ${error}`,
+        undefined,
+        repoUrl
+      ),
+    };
+  }
+}
 
 /**
  * Clone a Git repository to a temporary directory

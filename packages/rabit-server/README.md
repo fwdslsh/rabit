@@ -385,7 +385,7 @@ Both servers work seamlessly with Rabit clients:
 
 ## Support
 
-- **Documentation:** [Rabit Specification](../../docs/rabit-spec-v0.3.0.md)
+- **Documentation:** [Rabit Specification](../../docs/rabit-spec.md)
 - **Issues:** [GitHub Issues](https://github.com/fwdslsh/rabit/issues)
 - **Docker Hub:**
   - [fwdslsh/rabit-server](https://hub.docker.com/r/fwdslsh/rabit-server)

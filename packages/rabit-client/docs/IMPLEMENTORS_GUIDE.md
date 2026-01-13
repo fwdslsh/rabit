@@ -1162,7 +1162,7 @@ rabit report https://yourdomain.com/
 
 ## Additional Resources
 
-- **RBT Specification**: [rabit-spec-v0.3.0.md](../../../docs/rabit-spec-v0.3.0.md)
+- **RBT Specification**: [rabit-spec.md](../../../docs/rabit-spec.md)
 - **Client README**: [README.md](../README.md)
 - **Example Burrows**: [../../examples/burrows/](../../examples/burrows/)
 - **Server Implementation**: [../../rabit-server/](../../rabit-server/)

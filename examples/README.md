@@ -4,7 +4,7 @@ This directory contains example burrows, a warren, and a proof-of-concept CLI cl
 
 ## File Naming Conventions
 
-Rabit v0.3.0 supports three file naming conventions:
+Rabit v0.4.0 supports three file naming conventions:
 1. **Dotfile** (`.burrow.json`) - Recommended for git/filesystem
 2. **Non-dotfile** (`burrow.json`) - Web server friendly
 3. **RFC 8615** (`.well-known/burrow.json`) - Enterprise standard

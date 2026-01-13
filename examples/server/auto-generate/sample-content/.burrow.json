@@ -1,0 +1,27 @@
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "sample-content",
+  "description": "Auto-generated burrow for sample-content",
+  "updated": "2026-01-13T17:33:28.074Z",
+  "entries": [
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 1084,
+      "priority": 100
+    },
+    {
+      "id": "guide",
+      "kind": "file",
+      "uri": "guide.md",
+      "title": "guide.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 721,
+      "priority": 80
+    }
+  ]
+}

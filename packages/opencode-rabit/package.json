@@ -1,6 +1,6 @@
 {
   "name": "opencode-rabit",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "OpenCode plugin for Rabit Burrow Traversal - discover, browse, and view files in burrows and locate burrows using warren maps",
   "type": "module",
   "main": "./index.ts",

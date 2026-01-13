@@ -1,10 +1,10 @@
-# Rabit v0.3.0 Specification Conformance
+# Rabit v0.4.0 Specification Conformance
 
-This document certifies that `@fwdslsh/rabit-client` v0.3.0 implements the Rabit Burrow & Warren Specification v0.3.0.
+This document certifies that `@fwdslsh/rabit-client` v0.4.0 implements the Rabit Burrow & Warren Specification v0.4.0.
 
 ## Conformance Summary
 
-✅ **Full Rabit v0.3.0 Implementation**
+✅ **Full Rabit v0.4.0 Implementation**
 
 ## Core Features
 
@@ -26,7 +26,7 @@ This document certifies that `@fwdslsh/rabit-client` v0.3.0 implements the Rabit
 
 ### Common Document Fields (§6)
 
-- ✅ `specVersion` validation (format: `fwdslsh.dev/rabit/schemas/0.3.0/{kind}`)
+- ✅ `specVersion` validation (format: `fwdslsh.dev/rabit/schemas/0.[34].0/{kind}` - accepts both 0.3.0 and 0.4.0)
 - ✅ `kind` field validation (`warren` or `burrow`)
 - ✅ `$schema` optional field support
 - ✅ `title`, `description`, `updated` optional fields
@@ -56,7 +56,8 @@ This document certifies that `@fwdslsh/rabit-client` v0.3.0 implements the Rabit
 
 - ✅ Required fields: `id`, `kind`, `uri`
 - ✅ Optional fields: `title`, `summary`, `path`, `mediaType`, `sizeBytes`, `modified`, `sha256`, `tags`, `priority`, `metadata`
-- ✅ Entry kind values: `file`, `dir`, `burrow`, `link`
+- ✅ Entry kind values: `file`, `dir`, `burrow`, `map`, `link`
+- ✅ Optional `children` property for recursive listings (not in manifest files)
 - ✅ SHA256 content verification (when provided)
 
 ### Caching Guidance (§11)
@@ -165,7 +166,7 @@ This document certifies that `@fwdslsh/rabit-client` v0.3.0 implements the Rabit
 - ✅ Transport detection: `detectTransport()`
 - ✅ Sorting: `sortByPriority()`
 - ✅ Version utilities: `isValidSpecVersion()`, `extractVersion()`
-- ✅ Type guards: `isBurrow()`, `isWarren()`, `isFileEntry()`, `isDirEntry()`, `isBurrowEntry()`, `isLinkEntry()`
+- ✅ Type guards: `isBurrow()`, `isWarren()`, `isFileEntry()`, `isDirEntry()`, `isBurrowEntry()`, `isMapEntry()`, `isLinkEntry()`
 
 ## TypeScript Support
 
@@ -186,13 +187,13 @@ This document certifies that `@fwdslsh/rabit-client` v0.3.0 implements the Rabit
 
 ## Certification
 
-This implementation has been verified to meet all requirements for Rabit v0.3.0:
+This implementation has been verified to meet all requirements for Rabit v0.4.0:
 
 **Rabit Burrow & Warren Specification**
-Version: 0.3.0
+Version: 0.4.0
 Date: 2026-01-13
 
-**Implementation Version:** @fwdslsh/rabit-client v0.3.0
+**Implementation Version:** @fwdslsh/rabit-client v0.4.0
 **Certification Date:** 2026-01-13
 **Platform:** Bun 1.0+
 **Language:** TypeScript 5.3+

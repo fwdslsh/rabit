@@ -28,6 +28,8 @@ function detectTransport(uri) {
     return "file";
   if (uri.startsWith("/") || /^[A-Z]:\\/.test(uri))
     return "file";
+  if (uri.startsWith("./") || uri.startsWith("../") || uri === "." || uri === "..")
+    return "file";
   if (uri.startsWith("git://") || uri.startsWith("git@"))
     return "git";
   if (uri.includes(".git"))
@@ -61,20 +63,150 @@ function getParentUri(uri) {
     return uri;
   return trimmed.slice(0, lastSlash + 1);
 }
-// src/client.ts
-import { readFile } from "fs/promises";
-import { normalize } from "path";
-import * as crypto from "crypto";
+function parseGitHubUrl(uri, defaultBranch = "main") {
+  const githubRepoMatch = uri.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(\/.*)?$/);
+  if (!githubRepoMatch) {
+    return null;
+  }
+  const [, owner, repo, path = ""] = githubRepoMatch;
+  const treeBranchMatch = path.match(/^\/tree\/([^/]+)(\/.*)?$/);
+  let branch = defaultBranch;
+  let subPath = path;
+  if (treeBranchMatch) {
+    branch = treeBranchMatch[1];
+    subPath = treeBranchMatch[2] || "";
+  }
+  return {
+    owner,
+    repo,
+    branch,
+    path: subPath,
+    repoUrl: `https://github.com/${owner}/${repo}`
+  };
+}
+function isGitHubUrl(uri) {
+  return /^https:\/\/(github\.com|raw\.githubusercontent\.com)\/[^/]+\/[^/]+/.test(uri);
+}
+function normalizeGitHubUrl(uri, defaultBranch = "main") {
+  const info = parseGitHubUrl(uri, defaultBranch);
+  if (!info) {
+    return uri;
+  }
+  return `https://raw.githubusercontent.com/${info.owner}/${info.repo}/${info.branch}${info.path}`;
+}
+// src/utils.ts
+function createError(category, message, entryId, uri) {
+  return {
+    category,
+    message,
+    entryId,
+    uri
+  };
+}
 var RESOURCE_LIMITS = {
   MAX_MANIFEST_SIZE: 10 * 1024 * 1024,
   MAX_ENTRY_COUNT: 1e4,
   MAX_TRAVERSAL_DEPTH: 100,
-  MAX_TOTAL_ENTRIES: 1e5,
+  MAX_TOTAL_ENTRIES: 1e6,
   MAX_REQUEST_TIMEOUT: 30000,
   DEFAULT_MAX_CONCURRENT: 10,
   DEFAULT_MIN_DELAY: 100
 };
-function createError(category, message, entryId, uri) {
+// src/git.ts
+var {spawn } = globalThis.Bun;
+import { join } from "path";
+import { mkdtemp, rm, mkdir, access, stat } from "fs/promises";
+import { tmpdir, homedir } from "os";
+import * as crypto2 from "crypto";
+function getRabitCacheDir() {
+  const xdgStateHome = process.env.XDG_STATE_HOME;
+  const baseDir = xdgStateHome || join(homedir(), ".local", "state");
+  return join(baseDir, "rabit", "repos");
+}
+function getRepoCachePath(repoUrl) {
+  const githubMatch = repoUrl.match(/github\.com[/:]([^/]+)\/([^/.]+?)(?:\.git)?$/);
+  if (githubMatch) {
+    const [, owner, repo] = githubMatch;
+    return join(getRabitCacheDir(), "github.com", owner, repo);
+  }
+  const hash = crypto2.createHash("sha256").update(repoUrl).digest("hex").slice(0, 16);
+  const sanitized = repoUrl.replace(/^https?:\/\//, "").replace(/\.git$/, "").replace(/[^a-zA-Z0-9-_.]/g, "_").slice(0, 100);
+  return join(getRabitCacheDir(), "other", `${sanitized}_${hash}`);
+}
+async function isCachedRepo(repoPath) {
+  try {
+    const gitDir = join(repoPath, ".git");
+    await access(gitDir);
+    const stats = await stat(gitDir);
+    return stats.isDirectory();
+  } catch {
+    return false;
+  }
+}
+async function cloneOrUpdateCached(repoUrl, branch = "main") {
+  const cachePath = getRepoCachePath(repoUrl);
+  try {
+    if (await isCachedRepo(cachePath)) {
+      const fetchProc = spawn(["git", "fetch", "--depth=1", "origin", branch], {
+        cwd: cachePath,
+        stderr: "pipe",
+        stdout: "pipe"
+      });
+      const fetchExit = await fetchProc.exited;
+      if (fetchExit !== 0) {
+        const stderr = await new Response(fetchProc.stderr).text();
+        console.warn(`Git fetch failed, using cached version: ${stderr}`);
+        return { ok: true, data: cachePath };
+      }
+      const resetProc = spawn(["git", "reset", "--hard", `origin/${branch}`], {
+        cwd: cachePath,
+        stderr: "pipe",
+        stdout: "pipe"
+      });
+      const resetExit = await resetProc.exited;
+      if (resetExit !== 0) {
+        const stderr = await new Response(resetProc.stderr).text();
+        console.warn(`Git reset failed, using cached version: ${stderr}`);
+      }
+      return { ok: true, data: cachePath };
+    }
+    const parentDir = join(cachePath, "..");
+    await mkdir(parentDir, { recursive: true });
+    const cloneProc = spawn(["git", "clone", "--depth=1", "--branch", branch, "--single-branch", repoUrl, cachePath], {
+      stderr: "pipe",
+      stdout: "pipe"
+    });
+    const cloneExit = await cloneProc.exited;
+    if (cloneExit !== 0) {
+      const stderr = await new Response(cloneProc.stderr).text();
+      return {
+        ok: false,
+        error: createError("transport_error", `Git clone failed: ${stderr}`, undefined, repoUrl)
+      };
+    }
+    return { ok: true, data: cachePath };
+  } catch (error) {
+    return {
+      ok: false,
+      error: createError("transport_error", `Failed to clone or update repository: ${error}`, undefined, repoUrl)
+    };
+  }
+}
+
+// src/client.ts
+import { readFile } from "fs/promises";
+import { join as join2, normalize } from "path";
+import * as crypto3 from "crypto";
+var RESOURCE_LIMITS2 = {
+  MAX_MANIFEST_SIZE: 10 * 1024 * 1024,
+  MAX_ENTRY_COUNT: 1e4,
+  MAX_TRAVERSAL_DEPTH: 100,
+  MAX_TOTAL_ENTRIES: 1e6,
+  MAX_REQUEST_TIMEOUT: 30000,
+  DEFAULT_MAX_CONCURRENT: 10,
+  DEFAULT_MIN_DELAY: 100
+};
+function createError2(category, message, entryId, uri) {
   return { category, message, entryId, uri };
 }
 function sleep(ms) {
@@ -83,7 +215,7 @@ function sleep(ms) {
 async function verifySha256(content, expectedHash) {
   if (!expectedHash)
     return true;
-  const hash = crypto.createHash("sha256").update(content).digest("hex");
+  const hash = crypto3.createHash("sha256").update(content).digest("hex");
   return hash === expectedHash;
 }
 
@@ -147,8 +279,8 @@ class RabitClient {
   timeout;
   constructor(options = {}) {
     this.options = options;
-    this.rateLimiter = new RateLimiter(options.maxConcurrent ?? RESOURCE_LIMITS.DEFAULT_MAX_CONCURRENT, options.minDelay ?? RESOURCE_LIMITS.DEFAULT_MIN_DELAY);
-    this.timeout = options.timeout ?? RESOURCE_LIMITS.MAX_REQUEST_TIMEOUT;
+    this.rateLimiter = new RateLimiter(options.maxConcurrent ?? RESOURCE_LIMITS2.DEFAULT_MAX_CONCURRENT, options.minDelay ?? RESOURCE_LIMITS2.DEFAULT_MIN_DELAY);
+    this.timeout = options.timeout ?? RESOURCE_LIMITS2.MAX_REQUEST_TIMEOUT;
   }
   async discover(uri, options = {}) {
     const maxParentWalk = options.maxParentWalk ?? 2;
@@ -181,6 +313,17 @@ class RabitClient {
     const result = await this.fetchBurrow(baseUri);
     return result.ok ? result.data : null;
   }
+  async fetchBurrowWithDiscovery(uri) {
+    const directResult = await this.fetchBurrow(uri);
+    if (directResult.ok) {
+      return directResult;
+    }
+    const discoveryResult = await this.discover(uri);
+    if (discoveryResult.burrow) {
+      return { ok: true, data: discoveryResult.burrow };
+    }
+    return directResult;
+  }
   async fetchWarren(uri) {
     const warrenUri = uri.endsWith(".warren.json") ? uri : `${uri.replace(/\/$/, "")}/.warren.json`;
     if (this.options.enableCache !== false) {
@@ -201,7 +344,7 @@ class RabitClient {
       if (!data.specVersion || data.kind !== "warren" || !data.burrows && !data.warrens) {
         return {
           ok: false,
-          error: createError("manifest-invalid", "Invalid warren format: missing required fields (specVersion, kind, burrows/warrens)")
+          error: createError2("manifest-invalid", "Invalid warren format: missing required fields (specVersion, kind, burrows/warrens)")
         };
       }
       if (this.options.enableCache !== false) {
@@ -214,7 +357,7 @@ class RabitClient {
       }
       return {
         ok: false,
-        error: createError("transport-error", `Failed to fetch warren: ${error}`)
+        error: createError2("transport-error", `Failed to fetch warren: ${error}`)
       };
     }
   }
@@ -238,14 +381,21 @@ class RabitClient {
       if (!data.specVersion || data.kind !== "burrow" || !data.entries) {
         return {
           ok: false,
-          error: createError("manifest-invalid", "Invalid burrow format: missing required fields (specVersion, kind, entries)")
+          error: createError2("manifest-invalid", "Invalid burrow format: missing required fields (specVersion, kind, entries)")
         };
       }
-      if (data.entries.length > RESOURCE_LIMITS.MAX_ENTRY_COUNT) {
+      if (data.entries.length > RESOURCE_LIMITS2.MAX_ENTRY_COUNT) {
         return {
           ok: false,
-          error: createError("manifest-invalid", `Entry count ${data.entries.length} exceeds limit ${RESOURCE_LIMITS.MAX_ENTRY_COUNT}`)
+          error: createError2("manifest-invalid", `Entry count ${data.entries.length} exceeds limit ${RESOURCE_LIMITS2.MAX_ENTRY_COUNT}`)
         };
+      }
+      if (!data.baseUri) {
+        const dirUri = burrowUri.endsWith(".burrow.json") ? burrowUri.slice(0, -".burrow.json".length) : burrowUri;
+        data.baseUri = dirUri;
+      }
+      if (data.baseUri && isGitHubUrl(data.baseUri)) {
+        data.baseUri = normalizeGitHubUrl(data.baseUri);
       }
       if (this.options.enableCache !== false) {
         this.cache.set(burrowUri, data);
@@ -257,7 +407,56 @@ class RabitClient {
       }
       return {
         ok: false,
-        error: createError("transport-error", `Failed to fetch burrow: ${error}`)
+        error: createError2("transport-error", `Failed to fetch burrow: ${error}`)
+      };
+    }
+  }
+  async fetchBurrowFile(uri) {
+    if (this.options.enableCache !== false) {
+      const cached = this.cache.get(uri);
+      if (cached && !cached.stale && cached.data.kind === "burrow") {
+        return { ok: true, data: cached.data };
+      }
+    }
+    try {
+      const transport = detectTransport(uri);
+      let content;
+      if (transport === "file") {
+        content = await this.readLocalFile(uri);
+      } else {
+        content = await this.fetchRemoteJson(uri);
+      }
+      const data = JSON.parse(content);
+      if (!data.specVersion || data.kind !== "burrow" || !data.entries) {
+        return {
+          ok: false,
+          error: createError2("manifest-invalid", "Invalid burrow format: missing required fields (specVersion, kind, entries)")
+        };
+      }
+      if (data.entries.length > RESOURCE_LIMITS2.MAX_ENTRY_COUNT) {
+        return {
+          ok: false,
+          error: createError2("manifest-invalid", `Entry count ${data.entries.length} exceeds limit ${RESOURCE_LIMITS2.MAX_ENTRY_COUNT}`)
+        };
+      }
+      if (!data.baseUri) {
+        const dirUri = uri.endsWith(".burrow.json") ? uri.slice(0, -".burrow.json".length) : uri.substring(0, uri.lastIndexOf("/") + 1);
+        data.baseUri = dirUri;
+      }
+      if (data.baseUri && isGitHubUrl(data.baseUri)) {
+        data.baseUri = normalizeGitHubUrl(data.baseUri);
+      }
+      if (this.options.enableCache !== false) {
+        this.cache.set(uri, data);
+      }
+      return { ok: true, data };
+    } catch (error) {
+      if (error.category) {
+        return { ok: false, error };
+      }
+      return {
+        ok: false,
+        error: createError2("transport-error", `Failed to fetch burrow file: ${error}`)
       };
     }
   }
@@ -277,7 +476,7 @@ class RabitClient {
         if (!valid) {
           return {
             ok: false,
-            error: createError("hash-mismatch", "Content sha256 verification failed", entry.id, entry.uri)
+            error: createError2("hash-mismatch", "Content sha256 verification failed", entry.id, entry.uri)
           };
         }
       }
@@ -288,15 +487,15 @@ class RabitClient {
       }
       return {
         ok: false,
-        error: createError("transport-error", `Failed to fetch entry: ${error}`, entry.id, entry.uri)
+        error: createError2("transport-error", `Failed to fetch entry: ${error}`, entry.id, entry.uri)
       };
     }
   }
   async* traverse(burrow, options = {}) {
     const {
       strategy = "breadth-first",
-      maxDepth = RESOURCE_LIMITS.MAX_TRAVERSAL_DEPTH,
-      maxEntries = RESOURCE_LIMITS.MAX_TOTAL_ENTRIES,
+      maxDepth = RESOURCE_LIMITS2.MAX_TRAVERSAL_DEPTH,
+      maxEntries = RESOURCE_LIMITS2.MAX_TOTAL_ENTRIES,
       filter = () => true
     } = options;
     const visited = new Set;
@@ -333,6 +532,16 @@ class RabitClient {
             }
           }
         }
+      } else if (entry.kind === "map" && depth < maxDepth) {
+        const mapBurrowResult = await this.fetchBurrowFile(resolveUri(burrow.baseUri, entry.uri));
+        if (mapBurrowResult.ok && mapBurrowResult.data) {
+          const mapEntries = strategy === "priority" ? sortByPriority(mapBurrowResult.data.entries) : mapBurrowResult.data.entries;
+          for (const child of mapEntries) {
+            if (filter(child)) {
+              queue.push({ entry: child, depth: depth + 1 });
+            }
+          }
+        }
       }
     }
   }
@@ -363,10 +572,13 @@ class RabitClient {
     };
   }
   normalizeUri(uri) {
-    if (!uri.endsWith("/") && !uri.includes(".")) {
-      return uri + "/";
+    let normalizedUri = normalizeGitHubUrl(uri);
+    const lastSegment = normalizedUri.split("/").pop() || "";
+    const hasFileExtension = lastSegment.includes(".") && !lastSegment.startsWith(".") && lastSegment !== "." && lastSegment !== "..";
+    if (!normalizedUri.endsWith("/") && !hasFileExtension) {
+      return normalizedUri + "/";
     }
-    return uri;
+    return normalizedUri;
   }
   async readLocalFile(pathOrUri) {
     let filePath = pathOrUri;
@@ -382,12 +594,12 @@ class RabitClient {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage.includes("ENOENT")) {
-        throw createError("manifest-not-found", `File not found: ${filePath}`, undefined, filePath);
+        throw createError2("manifest-not-found", `File not found: ${filePath}`, undefined, filePath);
       }
       if (errorMessage.includes("EACCES") || errorMessage.includes("EPERM")) {
-        throw createError("transport-error", `Permission denied: ${filePath}`, undefined, filePath);
+        throw createError2("transport-error", `Permission denied: ${filePath}`, undefined, filePath);
       }
-      throw createError("transport-error", `Failed to read file: ${error}`, undefined, filePath);
+      throw createError2("transport-error", `Failed to read file: ${error}`, undefined, filePath);
     }
   }
   async readLocalFileBytes(pathOrUri) {
@@ -405,12 +617,26 @@ class RabitClient {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage.includes("ENOENT")) {
-        throw createError("entry-not-found", `File not found: ${filePath}`, undefined, filePath);
+        throw createError2("entry-not-found", `File not found: ${filePath}`, undefined, filePath);
       }
-      throw createError("transport-error", `Failed to read file: ${error}`, undefined, filePath);
+      throw createError2("transport-error", `Failed to read file: ${error}`, undefined, filePath);
     }
   }
   async fetchRemoteJson(url) {
+    const httpResult = await this.tryFetchRemoteJson(url);
+    if (httpResult.ok) {
+      return httpResult.data;
+    }
+    if (isGitHubUrl(url)) {
+      const gitResult = await this.tryFetchViaGit(url);
+      if (gitResult.ok) {
+        return gitResult.data;
+      }
+      throw gitResult.error;
+    }
+    throw httpResult.error;
+  }
+  async tryFetchRemoteJson(url) {
     await this.rateLimiter.acquire();
     try {
       const response = await fetch(url, {
@@ -418,23 +644,65 @@ class RabitClient {
       });
       if (!response.ok) {
         if (response.status === 404) {
-          throw createError("manifest-not-found", `HTTP 404: ${url}`, undefined, url);
+          return { ok: false, error: createError2("manifest-not-found", `HTTP 404: ${url}`, undefined, url) };
         }
         if (response.status === 429) {
-          throw createError("rate-limited", `HTTP 429: Rate limited`, undefined, url);
+          return { ok: false, error: createError2("rate-limited", `HTTP 429: Rate limited`, undefined, url) };
         }
-        throw createError("transport-error", `HTTP ${response.status}: ${response.statusText}`, undefined, url);
+        return { ok: false, error: createError2("transport-error", `HTTP ${response.status}: ${response.statusText}`, undefined, url) };
       }
       const contentLength = response.headers.get("content-length");
-      if (contentLength && parseInt(contentLength, 10) > RESOURCE_LIMITS.MAX_MANIFEST_SIZE) {
-        throw createError("manifest-invalid", `Manifest too large: ${contentLength} bytes`, undefined, url);
+      if (contentLength && parseInt(contentLength, 10) > RESOURCE_LIMITS2.MAX_MANIFEST_SIZE) {
+        return { ok: false, error: createError2("manifest-invalid", `Manifest too large: ${contentLength} bytes`, undefined, url) };
       }
-      return await response.text();
+      const text = await response.text();
+      return { ok: true, data: text };
+    } catch (error) {
+      return { ok: false, error: createError2("transport-error", `Fetch failed: ${error}`, undefined, url) };
     } finally {
       this.rateLimiter.release();
     }
   }
+  async tryFetchViaGit(url) {
+    const originalUrl = url.replace(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)(.*)$/, "https://github.com/$1/$2$4");
+    const repoInfo = parseGitHubUrl(originalUrl);
+    if (!repoInfo) {
+      return { ok: false, error: createError2("transport-error", "Invalid GitHub URL", undefined, url) };
+    }
+    const cloneResult = await cloneOrUpdateCached(repoInfo.repoUrl, repoInfo.branch);
+    if (!cloneResult.ok) {
+      return { ok: false, error: cloneResult.error };
+    }
+    const rawUrlMatch = url.match(/^https:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[^/]+(.*)$/);
+    let filePath = rawUrlMatch ? rawUrlMatch[1] : "";
+    if (filePath === "" || filePath === "/") {
+      filePath = "/.burrow.json";
+    } else if (!filePath.includes(".")) {
+      filePath = filePath.replace(/\/$/, "") + "/.burrow.json";
+    }
+    const fullPath = join2(cloneResult.data, filePath.replace(/^\//, ""));
+    try {
+      const content = await readFile(fullPath, "utf-8");
+      return { ok: true, data: content };
+    } catch (error) {
+      return { ok: false, error: createError2("manifest-not-found", `File not found in git repo: ${filePath}`, undefined, fullPath) };
+    }
+  }
   async fetchRemoteBytes(url) {
+    const httpResult = await this.tryFetchRemoteBytes(url);
+    if (httpResult.ok) {
+      return httpResult.data;
+    }
+    if (isGitHubUrl(url)) {
+      const gitResult = await this.tryFetchBytesViaGit(url);
+      if (gitResult.ok) {
+        return gitResult.data;
+      }
+      throw gitResult.error;
+    }
+    throw httpResult.error;
+  }
+  async tryFetchRemoteBytes(url) {
     await this.rateLimiter.acquire();
     try {
       const response = await fetch(url, {
@@ -442,13 +710,38 @@ class RabitClient {
       });
       if (!response.ok) {
         if (response.status === 404) {
-          throw createError("entry-not-found", `HTTP 404: ${url}`, undefined, url);
+          return { ok: false, error: createError2("entry-not-found", `HTTP 404: ${url}`, undefined, url) };
         }
-        throw createError("transport-error", `HTTP ${response.status}: ${response.statusText}`, undefined, url);
+        return { ok: false, error: createError2("transport-error", `HTTP ${response.status}: ${response.statusText}`, undefined, url) };
       }
-      return new Uint8Array(await response.arrayBuffer());
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      return { ok: true, data: bytes };
+    } catch (error) {
+      return { ok: false, error: createError2("transport-error", `Fetch failed: ${error}`, undefined, url) };
     } finally {
       this.rateLimiter.release();
+    }
+  }
+  async tryFetchBytesViaGit(url) {
+    const originalUrl = url.replace(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)(.*)$/, "https://github.com/$1/$2$4");
+    const repoInfo = parseGitHubUrl(originalUrl);
+    if (!repoInfo) {
+      return { ok: false, error: createError2("transport-error", "Invalid GitHub URL", undefined, url) };
+    }
+    const cloneResult = await cloneOrUpdateCached(repoInfo.repoUrl, repoInfo.branch);
+    if (!cloneResult.ok) {
+      return { ok: false, error: cloneResult.error };
+    }
+    const rawUrlMatch = url.match(/^https:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[^/]+(.*)$/);
+    let filePath = rawUrlMatch ? rawUrlMatch[1] : "";
+    filePath = filePath.replace(/^\//, "");
+    const fullPath = join2(cloneResult.data, filePath);
+    try {
+      const buffer = await readFile(fullPath);
+      return { ok: true, data: new Uint8Array(buffer) };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { ok: false, error: createError2("entry-not-found", `File not found in git repo: ${filePath} (${errorMessage})`, undefined, fullPath) };
     }
   }
   clearCache() {
@@ -535,55 +828,131 @@ async function cmdDiscover(uri) {
   log("");
 }
 async function cmdList(uri, options) {
-  const result = await client.fetchBurrow(uri);
+  const result = await client.fetchBurrowWithDiscovery(uri);
   if (!result.ok || !result.data) {
     error(result.error?.message || "Failed to fetch burrow");
     process.exit(1);
   }
   const burrow = result.data;
-  let entries = burrow.entries;
-  if (options.kind) {
-    entries = entries.filter((e) => e.kind === options.kind);
-  }
+  const maxDepth = options.maxDepth ?? 1;
   const format = options.format || (process.stdout.isTTY ? "table" : "json");
-  if (format === "json") {
-    console.log(JSON.stringify(entries, null, 2));
-  } else if (format === "table") {
-    header(`Entries in ${burrow.title || uri}`);
-    log("");
-    for (const entry of entries) {
-      const kindIcon = {
-        file: "\uD83D\uDCC4",
-        dir: "\uD83D\uDCC1",
-        burrow: "\uD83D\uDC30",
-        link: "\uD83D\uDD17"
-      }[entry.kind];
-      log(`${kindIcon} ${colors.bold}${entry.title || entry.id}${colors.reset}`);
-      log(`   ${colors.dim}ID:${colors.reset} ${entry.id}`);
-      log(`   ${colors.dim}URI:${colors.reset} ${entry.uri}`);
+  if (maxDepth === 1) {
+    let entries = burrow.entries;
+    if (options.kind) {
+      entries = entries.filter((e) => e.kind === options.kind);
+    }
+    if (format === "json") {
+      console.log(JSON.stringify(entries, null, 2));
+    } else if (format === "table") {
+      header(`Entries in ${burrow.title || uri}`);
+      log("");
+      for (const entry of entries) {
+        const kindIcon = {
+          file: "\uD83D\uDCC4",
+          dir: "\uD83D\uDCC1",
+          burrow: "\uD83D\uDC30",
+          map: "\uD83D\uDDFA\uFE0F",
+          link: "\uD83D\uDD17"
+        }[entry.kind];
+        log(`${kindIcon} ${colors.bold}${entry.title || entry.id}${colors.reset}`);
+        log(`   ${colors.dim}ID:${colors.reset} ${entry.id}`);
+        log(`   ${colors.dim}URI:${colors.reset} ${entry.uri}`);
+        if (entry.mediaType) {
+          log(`   ${colors.dim}Type:${colors.reset} ${entry.mediaType}`);
+        }
+        if (entry.sizeBytes) {
+          log(`   ${colors.dim}Size:${colors.reset} ${formatBytes(entry.sizeBytes)}`);
+        }
+        if (entry.summary) {
+          log(`   ${colors.dim}${entry.summary}${colors.reset}`);
+        }
+        log("");
+      }
+    } else if (format === "tree") {
+      log(burrow.title || uri);
+      for (let i = 0;i < entries.length; i++) {
+        const entry = entries[i];
+        const isLast = i === entries.length - 1;
+        const prefix = isLast ? "\u2514\u2500\u2500 " : "\u251C\u2500\u2500 ";
+        log(`${prefix}${entry.title || entry.id} (${entry.kind})`);
+      }
+    }
+  } else {
+    if (format === "json") {
+      const nestedEntries = await collectEntriesNested(burrow, 0, maxDepth, options.kind);
+      console.log(JSON.stringify(nestedEntries, null, 2));
+    } else {
+      header(`Entries in ${burrow.title || uri} (max-depth: ${maxDepth})`);
+      log("");
+      await displayEntriesRecursive(burrow, 0, maxDepth, options.kind, "", format === "tree");
+    }
+  }
+}
+async function collectEntriesNested(burrow, currentDepth, maxDepth, kindFilter) {
+  let entries = burrow.entries;
+  if (kindFilter) {
+    entries = entries.filter((e) => e.kind === kindFilter);
+  }
+  const result = [];
+  for (const entry of entries) {
+    const entryWithChildren = { ...entry };
+    if (currentDepth < maxDepth - 1 && (entry.kind === "burrow" || entry.kind === "dir")) {
+      const childUri = resolveUri(burrow.baseUri, entry.uri);
+      const childResult = await client.fetchBurrowWithDiscovery(childUri);
+      if (childResult.ok && childResult.data) {
+        entryWithChildren.children = await collectEntriesNested(childResult.data, currentDepth + 1, maxDepth, kindFilter);
+      }
+    }
+    result.push(entryWithChildren);
+  }
+  return result;
+}
+async function displayEntriesRecursive(burrow, currentDepth, maxDepth, kindFilter, prefix, isTree) {
+  let entries = burrow.entries;
+  if (kindFilter) {
+    entries = entries.filter((e) => e.kind === kindFilter);
+  }
+  for (let i = 0;i < entries.length; i++) {
+    const entry = entries[i];
+    const isLast = i === entries.length - 1;
+    const kindIcon = {
+      file: "\uD83D\uDCC4",
+      dir: "\uD83D\uDCC1",
+      burrow: "\uD83D\uDC30",
+      map: "\uD83D\uDDFA\uFE0F",
+      link: "\uD83D\uDD17"
+    }[entry.kind];
+    if (isTree) {
+      const connector = isLast ? "\u2514\u2500\u2500 " : "\u251C\u2500\u2500 ";
+      log(`${prefix}${connector}${entry.title || entry.id} (${entry.kind})`);
+    } else {
+      const indent = "  ".repeat(currentDepth);
+      log(`${indent}${kindIcon} ${colors.bold}${entry.title || entry.id}${colors.reset}`);
+      log(`${indent}   ${colors.dim}ID:${colors.reset} ${entry.id}`);
+      log(`${indent}   ${colors.dim}URI:${colors.reset} ${entry.uri}`);
       if (entry.mediaType) {
-        log(`   ${colors.dim}Type:${colors.reset} ${entry.mediaType}`);
+        log(`${indent}   ${colors.dim}Type:${colors.reset} ${entry.mediaType}`);
       }
       if (entry.sizeBytes) {
-        log(`   ${colors.dim}Size:${colors.reset} ${formatBytes(entry.sizeBytes)}`);
+        log(`${indent}   ${colors.dim}Size:${colors.reset} ${formatBytes(entry.sizeBytes)}`);
       }
       if (entry.summary) {
-        log(`   ${colors.dim}${entry.summary}${colors.reset}`);
+        log(`${indent}   ${colors.dim}${entry.summary}${colors.reset}`);
       }
       log("");
     }
-  } else if (format === "tree") {
-    log(burrow.title || uri);
-    for (let i = 0;i < entries.length; i++) {
-      const entry = entries[i];
-      const isLast = i === entries.length - 1;
-      const prefix = isLast ? "\u2514\u2500\u2500 " : "\u251C\u2500\u2500 ";
-      log(`${prefix}${entry.title || entry.id} (${entry.kind})`);
+    if (currentDepth < maxDepth - 1 && (entry.kind === "burrow" || entry.kind === "dir")) {
+      const childUri = resolveUri(burrow.baseUri, entry.uri);
+      const childResult = await client.fetchBurrowWithDiscovery(childUri);
+      if (childResult.ok && childResult.data) {
+        const childPrefix = isTree ? prefix + (isLast ? "    " : "\u2502   ") : "";
+        await displayEntriesRecursive(childResult.data, currentDepth + 1, maxDepth, kindFilter, childPrefix, isTree);
+      }
     }
   }
 }
 async function cmdFetch(uri, entryId, options) {
-  const burrowResult = await client.fetchBurrow(uri);
+  const burrowResult = await client.fetchBurrowWithDiscovery(uri);
   if (!burrowResult.ok || !burrowResult.data) {
     error(burrowResult.error?.message || "Failed to fetch burrow");
     process.exit(1);
@@ -624,7 +993,7 @@ Available entries:`);
   }
 }
 async function cmdTraverse(uri, options) {
-  const burrowResult = await client.fetchBurrow(uri);
+  const burrowResult = await client.fetchBurrowWithDiscovery(uri);
   if (!burrowResult.ok || !burrowResult.data) {
     error(burrowResult.error?.message || "Failed to fetch burrow");
     process.exit(1);
@@ -669,11 +1038,11 @@ async function cmdTraverse(uri, options) {
 }
 async function cmdMap(inputDir, options) {
   const { readdirSync, statSync } = await import("fs");
-  const { join: join2, relative, basename: pathBasename } = await import("path");
+  const { join: join3, relative, basename: pathBasename } = await import("path");
   const { resolve: resolvePath } = await import("path");
   const targetDir = resolvePath(inputDir);
-  const outputFile = options.output || join2(targetDir, ".burrow.json");
-  const maxDepth = options.maxDepth || 3;
+  const outputFile = options.output || join3(targetDir, ".burrow.json");
+  const maxDepth = options.maxDepth || 1;
   const excludePatterns = options.exclude || ["node_modules", "dist", ".git", ".burrow.json"];
   header(`Generating burrow map for: ${targetDir}`);
   label("Output", outputFile);
@@ -732,35 +1101,65 @@ async function cmdMap(inputDir, options) {
       return name === pattern;
     });
   }
-  function scanDirectory(dir, depth, rootDir) {
+  async function scanDirectoryAndCreateBurrow(dir, depth, rootDir) {
     if (depth > maxDepth)
       return [];
     const entries = [];
     try {
       const items = readdirSync(dir).sort();
       for (const item of items) {
-        const itemPath = join2(dir, item);
+        const itemPath = join3(dir, item);
         const relativePath = relative(rootDir, itemPath);
         if (shouldExclude(item))
           continue;
         try {
           const stats = statSync(itemPath);
           const isDir = stats.isDirectory();
-          const entry = {
-            id: generateId(item),
-            kind: isDir ? "dir" : "file",
-            uri: isDir ? relativePath + "/" : relativePath,
-            title: item,
-            priority: getPriority(item, isDir)
-          };
-          if (!isDir) {
-            entry.mediaType = getMimeType(item);
-            entry.sizeBytes = stats.size;
-          }
-          entries.push(entry);
-          if (isDir && depth < maxDepth) {
-            const subEntries = scanDirectory(itemPath, depth + 1, rootDir);
-            entries.push(...subEntries);
+          if (isDir) {
+            if (depth < maxDepth) {
+              const subBurrowPath = join3(itemPath, ".burrow.json");
+              const subEntries = await scanDirectoryAndCreateBurrow(itemPath, depth + 1, itemPath);
+              const subBurrow = {
+                specVersion: "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+                kind: "burrow",
+                title: item,
+                description: `Auto-generated burrow for ${item}`,
+                updated: new Date().toISOString(),
+                entries: subEntries
+              };
+              await Bun.write(subBurrowPath, JSON.stringify(subBurrow, null, 2) + `
+`);
+              log(`  Created: ${relative(targetDir, subBurrowPath)}`);
+              const entry = {
+                id: generateId(item),
+                kind: "burrow",
+                uri: relativePath + "/",
+                title: item,
+                summary: `Burrow containing ${subEntries.length} entries`,
+                priority: getPriority(item, true)
+              };
+              entries.push(entry);
+            } else {
+              const entry = {
+                id: generateId(item),
+                kind: "dir",
+                uri: relativePath + "/",
+                title: item,
+                priority: getPriority(item, true)
+              };
+              entries.push(entry);
+            }
+          } else {
+            const entry = {
+              id: generateId(item),
+              kind: "file",
+              uri: relativePath,
+              title: item,
+              mediaType: getMimeType(item),
+              sizeBytes: stats.size,
+              priority: getPriority(item, false)
+            };
+            entries.push(entry);
           }
         } catch (err) {
           warning(`Failed to process ${item}: ${err}`);
@@ -772,9 +1171,9 @@ async function cmdMap(inputDir, options) {
     return entries;
   }
   try {
-    const entries = scanDirectory(targetDir, 0, targetDir);
+    const entries = await scanDirectoryAndCreateBurrow(targetDir, 0, targetDir);
     const burrow = {
-      specVersion: "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+      specVersion: "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
       kind: "burrow",
       title: options.title || pathBasename(targetDir),
       description: options.description || `Auto-generated burrow from ${targetDir}`,
@@ -786,8 +1185,12 @@ async function cmdMap(inputDir, options) {
     }
     await Bun.write(outputFile, JSON.stringify(burrow, null, 2) + `
 `);
-    success(`Generated burrow with ${entries.length} entries`);
+    success(`Generated burrow map with ${entries.length} entries`);
     label("Output", outputFile);
+    const burrowCount = entries.filter((e) => e.kind === "burrow").length;
+    if (burrowCount > 0) {
+      log(`  ${colors.green}\u2713${colors.reset} Created ${burrowCount} nested burrow(s)`);
+    }
   } catch (err) {
     error(`Failed to generate burrow: ${err}`);
     process.exit(1);
@@ -851,7 +1254,7 @@ async function cmdValidate(file) {
 function showHelp() {
   log(`
 ${colors.bold}Rabit CLI${colors.reset} - Universal Burrow Browser
-${colors.dim}Rabit Specification v0.3.0${colors.reset}
+${colors.dim}Rabit Specification v0.4.0${colors.reset}
 
 ${colors.bold}Usage:${colors.reset}
   rabit <command> [options]
@@ -866,8 +1269,8 @@ ${colors.bold}Commands:${colors.reset}
 
 ${colors.bold}Options:${colors.reset}
   list:
-    --depth N                           Max traversal depth
-    --kind <file|dir|burrow|link>       Filter by entry kind
+    --max-depth N                       Max traversal depth (default: 1)
+    --kind <file|dir|burrow|map|link>   Filter by entry kind
     --format <json|table|tree>          Output format
 
   fetch:
@@ -918,13 +1321,13 @@ try {
     case "list": {
       if (!args[1]) {
         error("Missing URI argument");
-        log("Usage: rabit list <uri> [--depth N] [--kind <type>] [--format <json|table|tree>]");
+        log("Usage: rabit list <uri> [--max-depth N] [--kind <type>] [--format <json|table|tree>]");
         process.exit(1);
       }
       const options = {};
       for (let i = 2;i < args.length; i++) {
-        if (args[i] === "--depth" && args[i + 1]) {
-          options.depth = parseInt(args[i + 1], 10);
+        if (args[i] === "--max-depth" && args[i + 1]) {
+          options.maxDepth = parseInt(args[i + 1], 10);
           i++;
         } else if (args[i] === "--kind" && args[i + 1]) {
           options.kind = args[i + 1];

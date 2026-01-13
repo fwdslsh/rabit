@@ -1,61 +1,45 @@
 {
-  "$schema": "../../../schemas/burrow.json",
-  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
   "kind": "burrow",
-  "title": "Acme API Reference",
-  "description": "Example API reference burrow demonstrating the Rabit specification.",
-  "updated": "2026-01-13T00:00:00Z",
-  "repo": {
-    "readme": "README.md"
-  },
-  "agents": {
-    "context": "API reference documentation for the fictional Acme Platform. Includes authentication guide, endpoint reference, and OpenAPI specification.",
-    "entryPoint": "readme",
-    "hints": [
-      "Start with auth.md to understand authentication",
-      "OpenAPI spec (openapi.yaml) is machine-readable"
-    ]
-  },
+  "title": "api-burrow",
+  "description": "Auto-generated burrow for api-burrow",
+  "updated": "2026-01-13T17:33:28.073Z",
   "entries": [
     {
       "id": "readme",
       "kind": "file",
       "uri": "README.md",
-      "title": "API Reference Overview",
-      "summary": "Overview of the Acme API.",
+      "title": "README.md",
       "mediaType": "text/markdown",
-      "priority": 100,
-      "tags": ["start-here", "api"]
+      "sizeBytes": 343,
+      "priority": 100
     },
     {
       "id": "auth",
       "kind": "file",
       "uri": "auth.md",
-      "title": "Authentication",
-      "summary": "How to authenticate with the Acme API.",
+      "title": "auth.md",
       "mediaType": "text/markdown",
-      "priority": 90,
-      "tags": ["api", "auth"]
+      "sizeBytes": 1312,
+      "priority": 80
     },
     {
       "id": "endpoints",
       "kind": "file",
       "uri": "endpoints.md",
-      "title": "API Endpoints",
-      "summary": "Complete list of API endpoints and their usage.",
+      "title": "endpoints.md",
       "mediaType": "text/markdown",
-      "priority": 80,
-      "tags": ["api", "reference"]
+      "sizeBytes": 1582,
+      "priority": 80
     },
     {
       "id": "openapi",
       "kind": "file",
       "uri": "openapi.yaml",
-      "title": "OpenAPI Specification",
-      "summary": "Machine-readable OpenAPI 3.0 specification.",
+      "title": "openapi.yaml",
       "mediaType": "application/x-yaml",
-      "priority": 70,
-      "tags": ["api", "openapi", "spec"]
+      "sizeBytes": 3050,
+      "priority": 80
     }
   ]
 }

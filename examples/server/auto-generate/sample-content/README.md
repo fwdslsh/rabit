@@ -32,4 +32,4 @@ Edit `docker-compose.yml` to:
 
 - Mount your own directory by editing `docker-compose.yml`
 - Check the [README](../README.md) for all environment variables
-- See the [Rabit specification](../../../docs/rabit-spec-v0.3.0.md) for details
+- See the [Rabit specification](../../../docs/rabit-spec.md) for details

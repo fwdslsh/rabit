@@ -1,0 +1,33 @@
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "burrows",
+  "description": "Auto-generated burrow for burrows",
+  "updated": "2026-01-13T17:33:28.074Z",
+  "entries": [
+    {
+      "id": "api-burrow",
+      "kind": "burrow",
+      "uri": "api-burrow/",
+      "title": "api-burrow",
+      "summary": "Burrow containing 4 entries",
+      "priority": 70
+    },
+    {
+      "id": "blog-burrow",
+      "kind": "burrow",
+      "uri": "blog-burrow/",
+      "title": "blog-burrow",
+      "summary": "Burrow containing 2 entries",
+      "priority": 70
+    },
+    {
+      "id": "docs-burrow",
+      "kind": "burrow",
+      "uri": "docs-burrow/",
+      "title": "docs-burrow",
+      "summary": "Burrow containing 5 entries",
+      "priority": 70
+    }
+  ]
+}

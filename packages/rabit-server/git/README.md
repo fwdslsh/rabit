@@ -312,7 +312,7 @@ docker build -t fwdslsh/rabit-server-git:latest .
 
 ## See Also
 
-- [Rabit Specification](../../../docs/rabit-spec-v0.3.0.md)
+- [Rabit Specification](../../../docs/rabit-spec.md)
 - [Rabit HTTP Server](../http/README.md)
 - [Git Server Examples](../../../examples/server/git-readonly/)
 - [Docker Hub](https://hub.docker.com/r/fwdslsh/rabit-server-git)

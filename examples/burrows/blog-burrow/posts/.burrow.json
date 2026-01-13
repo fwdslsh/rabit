@@ -1,0 +1,36 @@
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "posts",
+  "description": "Auto-generated burrow for posts",
+  "updated": "2026-01-13T17:33:28.073Z",
+  "entries": [
+    {
+      "id": "introducing-acme-2",
+      "kind": "file",
+      "uri": "introducing-acme-2.md",
+      "title": "introducing-acme-2.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 1351,
+      "priority": 80
+    },
+    {
+      "id": "kubernetes-journey",
+      "kind": "file",
+      "uri": "kubernetes-journey.md",
+      "title": "kubernetes-journey.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 2008,
+      "priority": 80
+    },
+    {
+      "id": "scaling-million-users",
+      "kind": "file",
+      "uri": "scaling-million-users.md",
+      "title": "scaling-million-users.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 1376,
+      "priority": 80
+    }
+  ]
+}

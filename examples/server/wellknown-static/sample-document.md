@@ -52,5 +52,5 @@ That's it! No nginx configuration, no dotfile allowlists, no special setup.
 ## Next Steps
 
 - Check out the [README](README.md) for more examples
-- See the [Rabit specification](../../../docs/rabit-spec-v0.3.0.md) for full details
+- See the [Rabit specification](../../../docs/rabit-spec.md) for full details
 - Try the [auto-generate example](../auto-generate/) for zero-config burrows

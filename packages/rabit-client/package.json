@@ -1,6 +1,6 @@
 {
   "name": "@fwdslsh/rabit-client",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Reference implementation of Rabit Burrow Traversal (RBT) client - Git-first, agent-friendly content distribution",
   "keywords": [
     "rabit",

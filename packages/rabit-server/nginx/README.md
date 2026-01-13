@@ -414,7 +414,7 @@ docker build -t fwdslsh/rabit-server:latest .
 
 ## See Also
 
-- [Rabit Specification](../../../docs/rabit-spec-v0.3.0.md)
+- [Rabit Specification](../../../docs/rabit-spec.md)
 - [Rabit Git Server](../git/README.md)
 - [Docker Compose Examples](../../../examples/server/docker-compose-examples/)
 - [Docker Hub](https://hub.docker.com/r/fwdslsh/rabit-server)

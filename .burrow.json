@@ -1,151 +1,77 @@
 {
-  "$schema": "./schemas/burrow.json",
-  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
   "kind": "burrow",
-  "title": "Rabit: Burrows for the Agentic Web",
-  "description": "Specification and reference implementation for Rabit, a convention for publishing agent-friendly content spaces. This is a Bun.js monorepo with packages for the client, server, and OpenCode plugin.",
-  "updated": "2026-01-13T00:00:00Z",
-  "baseUri": "https://github.com/fwdslsh/rabit/",
-  "repo": {
-    "readme": "README.md",
-    "license": "LICENSE"
-  },
-  "agents": {
-    "context": "Official Rabit project repository. Contains the v0.3.0 specification (docs/rabit-spec-v0.3.0.md), reference implementations in packages/ (rabit-client, rabit-server, rabit-mcp), and example burrows in examples/.",
-    "entryPoint": "readme",
-    "hints": [
-      "The specification document (docs/rabit-spec-v0.3.0.md) is the authoritative reference",
-      "The packages/rabit-client directory contains a TypeScript/Bun client implementation",
-      "The examples/ directory contains example burrows demonstrating the format"
-    ]
-  },
+  "title": "rabit",
+  "description": "Auto-generated burrow from /home/founder3/code/github/itlackey/rabit",
+  "updated": "2026-01-13T17:33:28.076Z",
   "entries": [
-    {
-      "id": "readme",
-      "kind": "file",
-      "uri": "README.md",
-      "title": "Rabit: Burrows for the Agentic Web",
-      "summary": "Introduction to Rabit, a specification for publishing content that both humans and AI agents can navigate reliably.",
-      "mediaType": "text/markdown",
-      "priority": 100
-    },
     {
       "id": "license",
       "kind": "file",
       "uri": "LICENSE",
-      "title": "CC-BY-4.0 License",
-      "mediaType": "text/plain",
-      "tags": ["license"]
+      "title": "LICENSE",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 1468,
+      "priority": 80
     },
     {
-      "id": "specification",
+      "id": "readme",
       "kind": "file",
-      "uri": "docs/rabit-spec-v0.3.0.md",
-      "title": "Rabit Specification v0.3.0",
-      "summary": "The full technical specification for Rabit Burrow & Warren format, defining manifest formats and schema.",
+      "uri": "README.md",
+      "title": "README.md",
       "mediaType": "text/markdown",
-      "priority": 90,
-      "tags": ["spec", "docs"]
+      "sizeBytes": 7323,
+      "priority": 100
     },
     {
-      "id": "client-spec",
+      "id": "bun",
       "kind": "file",
-      "uri": "packages/rabit-client/docs/CLIENT_SPEC.md",
-      "title": "Client Implementation Specification",
-      "summary": "Implementation guide for the rabit-client, including transport protocols, traversal algorithms, and caching.",
-      "mediaType": "text/markdown",
-      "priority": 85,
-      "tags": ["spec", "docs", "implementation"]
+      "uri": "bun.lock",
+      "title": "bun.lock",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 24394,
+      "priority": 80
     },
     {
-      "id": "packages",
-      "kind": "dir",
-      "uri": "packages/",
-      "title": "Packages",
-      "summary": "Monorepo packages: rabit-client, rabit-server, rabit-mcp.",
-      "priority": 70,
-      "tags": ["code"]
-    },
-    {
-      "id": "client-readme",
-      "kind": "file",
-      "uri": "packages/rabit-client/README.md",
-      "title": "Rabit Client Documentation",
-      "summary": "Documentation for the TypeScript/Bun rabit-client implementation.",
-      "mediaType": "text/markdown",
-      "tags": ["docs", "client"]
-    },
-    {
-      "id": "server-readme",
-      "kind": "file",
-      "uri": "packages/rabit-server/README.md",
-      "title": "Rabit Server Documentation",
-      "summary": "Documentation for the Docker-based rabit-server implementation.",
-      "mediaType": "text/markdown",
-      "tags": ["docs", "server"]
-    },
-    {
-      "id": "mcp-readme",
-      "kind": "file",
-      "uri": "packages/rabit-mcp/README.md",
-      "title": "Rabit MCP Plugin Documentation",
-      "summary": "Documentation for the MCP plugin that provides Rabit tools for AI agents.",
-      "mediaType": "text/markdown",
-      "tags": ["docs", "mcp", "plugin"]
+      "id": "docs",
+      "kind": "burrow",
+      "uri": "docs/",
+      "title": "docs",
+      "summary": "Burrow containing 2 entries",
+      "priority": 70
     },
     {
       "id": "examples",
-      "kind": "dir",
+      "kind": "burrow",
       "uri": "examples/",
-      "title": "Examples",
-      "summary": "Example burrows, warren setup, and proof-of-concept CLI client.",
-      "priority": 60,
-      "tags": ["examples"]
+      "title": "examples",
+      "summary": "Burrow containing 5 entries",
+      "priority": 70
     },
     {
-      "id": "examples-readme",
+      "id": "package",
       "kind": "file",
-      "uri": "examples/README.md",
-      "title": "Examples Documentation",
-      "summary": "Documentation for example burrows and warren setup.",
-      "mediaType": "text/markdown",
-      "tags": ["docs", "examples"]
+      "uri": "package.json",
+      "title": "package.json",
+      "mediaType": "application/json",
+      "sizeBytes": 1118,
+      "priority": 80
     },
     {
-      "id": "conventions-demo",
-      "kind": "dir",
-      "uri": "examples/conventions-demo/",
-      "title": "File Naming Conventions Demo",
-      "summary": "Examples demonstrating the three supported file naming conventions: dotfile, non-dotfile, and RFC 8615 .well-known.",
-      "mediaType": "text/markdown",
-      "priority": 75,
-      "tags": ["examples", "conventions"]
-    },
-    {
-      "id": "wellknown-server",
-      "kind": "dir",
-      "uri": "examples/server/wellknown-static/",
-      "title": "RFC 8615 .well-known Server Example",
-      "summary": "Zero-config server example using .well-known/burrow.json convention. Works with any static file server without configuration.",
-      "priority": 72,
-      "tags": ["examples", "server", "wellknown"]
-    },
-    {
-      "id": "auto-generate-server",
-      "kind": "dir",
-      "uri": "examples/server/auto-generate/",
-      "title": "Auto-Generate Burrow Server",
-      "summary": "Dynamic burrow server that automatically generates manifests from any mounted directory. Zero setup required.",
-      "priority": 71,
-      "tags": ["examples", "server", "dynamic"]
+      "id": "packages",
+      "kind": "burrow",
+      "uri": "packages/",
+      "title": "packages",
+      "summary": "Burrow containing 4 entries",
+      "priority": 70
     },
     {
       "id": "schemas",
-      "kind": "dir",
+      "kind": "burrow",
       "uri": "schemas/",
-      "title": "JSON Schemas",
-      "summary": "JSON Schema files for validating .burrow.json and .warren.json files.",
-      "tags": ["schemas"]
+      "title": "schemas",
+      "summary": "Burrow containing 2 entries",
+      "priority": 70
     }
   ]
 }

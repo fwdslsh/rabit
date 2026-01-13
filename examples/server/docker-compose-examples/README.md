@@ -236,4 +236,4 @@ docker compose -f production-traefik.yml ps
 
 - [HTTP Server Documentation](../../../packages/rabit-server/http/README.md)
 - [Git Server Documentation](../../../packages/rabit-server/git/README.md)
-- [Rabit Specification](../../../docs/rabit-spec-v0.3.0.md)
+- [Rabit Specification](../../../docs/rabit-spec.md)

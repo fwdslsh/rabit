@@ -433,6 +433,7 @@ export function detectTransport(uri: string): TransportType {
   if (uri.startsWith('http://')) return 'http';
   if (uri.startsWith('file://')) return 'file';
   if (uri.startsWith('/') || /^[A-Z]:\\/.test(uri)) return 'file';
+  if (uri.startsWith('./') || uri.startsWith('../') || uri === '.' || uri === '..') return 'file';
   if (uri.startsWith('git://') || uri.startsWith('git@')) return 'git';
   if (uri.includes('.git')) return 'git';
   if (uri.startsWith('ssh://') || uri.startsWith('sftp://')) return 'ssh';
@@ -474,6 +475,82 @@ export function getParentUri(uri: string): string {
   const lastSlash = trimmed.lastIndexOf('/');
   if (lastSlash === -1) return uri;
   return trimmed.slice(0, lastSlash + 1);
+}
+
+/**
+ * GitHub repository information
+ */
+export interface GitHubRepoInfo {
+  owner: string;
+  repo: string;
+  branch: string;
+  path: string;
+  repoUrl: string;
+}
+
+/**
+ * Parse GitHub URL and extract repository information
+ * @param uri The GitHub URI to parse
+ * @param defaultBranch The default branch if not specified (default: 'main')
+ * @returns Repository information or null if not a GitHub URL
+ */
+export function parseGitHubUrl(uri: string, defaultBranch: string = 'main'): GitHubRepoInfo | null {
+  const githubRepoMatch = uri.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(\/.*)?$/);
+
+  if (!githubRepoMatch) {
+    return null; // Not a GitHub URL
+  }
+
+  const [, owner, repo, path = ''] = githubRepoMatch;
+
+  // Check if URL already includes a branch/tree path
+  const treeBranchMatch = path.match(/^\/tree\/([^/]+)(\/.*)?$/);
+
+  let branch = defaultBranch;
+  let subPath = path;
+
+  if (treeBranchMatch) {
+    // URL has explicit branch: https://github.com/user/repo/tree/branch/path
+    branch = treeBranchMatch[1];
+    subPath = treeBranchMatch[2] || '';
+  }
+
+  return {
+    owner,
+    repo,
+    branch,
+    path: subPath,
+    repoUrl: `https://github.com/${owner}/${repo}`,
+  };
+}
+
+/**
+ * Check if a URI is a GitHub URL (including raw.githubusercontent.com)
+ * @param uri The URI to check
+ * @returns true if the URI is a GitHub URL
+ */
+export function isGitHubUrl(uri: string): boolean {
+  return /^https:\/\/(github\.com|raw\.githubusercontent\.com)\/[^/]+\/[^/]+/.test(uri);
+}
+
+/**
+ * Normalize GitHub repository URLs to raw.githubusercontent.com URLs
+ * Converts:
+ *   - https://github.com/user/repo -> https://raw.githubusercontent.com/user/repo/main
+ *   - https://github.com/user/repo/ -> https://raw.githubusercontent.com/user/repo/main/
+ *   - https://github.com/user/repo/tree/branch -> https://raw.githubusercontent.com/user/repo/branch
+ * @param uri The URI to normalize
+ * @param defaultBranch The default branch to use if not specified (default: 'main')
+ * @returns Normalized URI
+ */
+export function normalizeGitHubUrl(uri: string, defaultBranch: string = 'main'): string {
+  const info = parseGitHubUrl(uri, defaultBranch);
+
+  if (!info) {
+    return uri; // Not a GitHub URL, return as-is
+  }
+
+  return `https://raw.githubusercontent.com/${info.owner}/${info.repo}/${info.branch}${info.path}`;
 }
 
 /**

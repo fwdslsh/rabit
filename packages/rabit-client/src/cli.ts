@@ -19,6 +19,7 @@ import {
   type Burrow,
   type Warren,
 } from './index';
+import { resolveUri } from './types';
 
 // ANSI colors
 const colors = {
@@ -114,11 +115,11 @@ async function cmdDiscover(uri: string) {
 }
 
 async function cmdList(uri: string, options: {
-  depth?: number;
+  maxDepth?: number;
   kind?: string;
   format?: 'json' | 'table' | 'tree';
 }) {
-  const result = await client.fetchBurrow(uri);
+  const result = await client.fetchBurrowWithDiscovery(uri);
 
   if (!result.ok || !result.data) {
     error(result.error?.message || 'Failed to fetch burrow');
@@ -126,52 +127,169 @@ async function cmdList(uri: string, options: {
   }
 
   const burrow = result.data;
-  let entries = burrow.entries;
-
-  // Apply kind filter
-  if (options.kind) {
-    entries = entries.filter(e => e.kind === options.kind);
-  }
+  const maxDepth = options.maxDepth ?? 1;
 
   // Format output
   const format = options.format || (process.stdout.isTTY ? 'table' : 'json');
 
-  if (format === 'json') {
-    console.log(JSON.stringify(entries, null, 2));
-  } else if (format === 'table') {
-    header(`Entries in ${burrow.title || uri}`);
-    log('');
+  if (maxDepth === 1) {
+    // Flat listing (original behavior)
+    let entries = burrow.entries;
 
-    for (const entry of entries) {
-      const kindIcon = {
-        file: '📄',
-        dir: '📁',
-        burrow: '🐰',
-        map: '🗺️',
-        link: '🔗',
-      }[entry.kind];
+    // Apply kind filter
+    if (options.kind) {
+      entries = entries.filter(e => e.kind === options.kind);
+    }
 
-      log(`${kindIcon} ${colors.bold}${entry.title || entry.id}${colors.reset}`);
-      log(`   ${colors.dim}ID:${colors.reset} ${entry.id}`);
-      log(`   ${colors.dim}URI:${colors.reset} ${entry.uri}`);
+    if (format === 'json') {
+      console.log(JSON.stringify(entries, null, 2));
+    } else if (format === 'table') {
+      header(`Entries in ${burrow.title || uri}`);
+      log('');
+
+      for (const entry of entries) {
+        const kindIcon = {
+          file: '📄',
+          dir: '📁',
+          burrow: '🐰',
+          map: '🗺️',
+          link: '🔗',
+        }[entry.kind];
+
+        log(`${kindIcon} ${colors.bold}${entry.title || entry.id}${colors.reset}`);
+        log(`   ${colors.dim}ID:${colors.reset} ${entry.id}`);
+        log(`   ${colors.dim}URI:${colors.reset} ${entry.uri}`);
+        if (entry.mediaType) {
+          log(`   ${colors.dim}Type:${colors.reset} ${entry.mediaType}`);
+        }
+        if (entry.sizeBytes) {
+          log(`   ${colors.dim}Size:${colors.reset} ${formatBytes(entry.sizeBytes)}`);
+        }
+        if (entry.summary) {
+          log(`   ${colors.dim}${entry.summary}${colors.reset}`);
+        }
+        log('');
+      }
+    } else if (format === 'tree') {
+      log(burrow.title || uri);
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        const isLast = i === entries.length - 1;
+        const prefix = isLast ? '└── ' : '├── ';
+        log(`${prefix}${entry.title || entry.id} (${entry.kind})`);
+      }
+    }
+  } else {
+    // Recursive listing
+    if (format === 'json') {
+      // For JSON, collect all entries recursively with nesting
+      const nestedEntries = await collectEntriesNested(burrow, 0, maxDepth, options.kind);
+      console.log(JSON.stringify(nestedEntries, null, 2));
+    } else {
+      // For table and tree formats, display recursively
+      header(`Entries in ${burrow.title || uri} (max-depth: ${maxDepth})`);
+      log('');
+      await displayEntriesRecursive(burrow, 0, maxDepth, options.kind, '', format === 'tree');
+    }
+  }
+}
+
+async function collectEntriesNested(
+  burrow: Burrow,
+  currentDepth: number,
+  maxDepth: number,
+  kindFilter: string | undefined
+): Promise<any[]> {
+  let entries = burrow.entries;
+  if (kindFilter) {
+    entries = entries.filter(e => e.kind === kindFilter);
+  }
+
+  const result: any[] = [];
+
+  for (const entry of entries) {
+    const entryWithChildren: any = { ...entry };
+
+    // Recurse into burrows/dirs if we haven't reached max depth
+    if (currentDepth < maxDepth - 1 && (entry.kind === 'burrow' || entry.kind === 'dir')) {
+      const childUri = resolveUri(burrow.baseUri, entry.uri);
+      const childResult = await client.fetchBurrowWithDiscovery(childUri);
+      if (childResult.ok && childResult.data) {
+        entryWithChildren.children = await collectEntriesNested(
+          childResult.data,
+          currentDepth + 1,
+          maxDepth,
+          kindFilter
+        );
+      }
+    }
+
+    result.push(entryWithChildren);
+  }
+
+  return result;
+}
+
+async function displayEntriesRecursive(
+  burrow: Burrow,
+  currentDepth: number,
+  maxDepth: number,
+  kindFilter: string | undefined,
+  prefix: string,
+  isTree: boolean
+) {
+  let entries = burrow.entries;
+  if (kindFilter) {
+    entries = entries.filter(e => e.kind === kindFilter);
+  }
+
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    const isLast = i === entries.length - 1;
+
+    const kindIcon = {
+      file: '📄',
+      dir: '📁',
+      burrow: '🐰',
+      map: '🗺️',
+      link: '🔗',
+    }[entry.kind];
+
+    if (isTree) {
+      const connector = isLast ? '└── ' : '├── ';
+      log(`${prefix}${connector}${entry.title || entry.id} (${entry.kind})`);
+    } else {
+      const indent = '  '.repeat(currentDepth);
+      log(`${indent}${kindIcon} ${colors.bold}${entry.title || entry.id}${colors.reset}`);
+      log(`${indent}   ${colors.dim}ID:${colors.reset} ${entry.id}`);
+      log(`${indent}   ${colors.dim}URI:${colors.reset} ${entry.uri}`);
       if (entry.mediaType) {
-        log(`   ${colors.dim}Type:${colors.reset} ${entry.mediaType}`);
+        log(`${indent}   ${colors.dim}Type:${colors.reset} ${entry.mediaType}`);
       }
       if (entry.sizeBytes) {
-        log(`   ${colors.dim}Size:${colors.reset} ${formatBytes(entry.sizeBytes)}`);
+        log(`${indent}   ${colors.dim}Size:${colors.reset} ${formatBytes(entry.sizeBytes)}`);
       }
       if (entry.summary) {
-        log(`   ${colors.dim}${entry.summary}${colors.reset}`);
+        log(`${indent}   ${colors.dim}${entry.summary}${colors.reset}`);
       }
       log('');
     }
-  } else if (format === 'tree') {
-    log(burrow.title || uri);
-    for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i];
-      const isLast = i === entries.length - 1;
-      const prefix = isLast ? '└── ' : '├── ';
-      log(`${prefix}${entry.title || entry.id} (${entry.kind})`);
+
+    // Recurse into burrows/dirs if we haven't reached max depth
+    if (currentDepth < maxDepth - 1 && (entry.kind === 'burrow' || entry.kind === 'dir')) {
+      const childUri = resolveUri(burrow.baseUri, entry.uri);
+      const childResult = await client.fetchBurrowWithDiscovery(childUri);
+      if (childResult.ok && childResult.data) {
+        const childPrefix = isTree ? (prefix + (isLast ? '    ' : '│   ')) : '';
+        await displayEntriesRecursive(
+          childResult.data,
+          currentDepth + 1,
+          maxDepth,
+          kindFilter,
+          childPrefix,
+          isTree
+        );
+      }
     }
   }
 }
@@ -179,7 +297,7 @@ async function cmdList(uri: string, options: {
 async function cmdFetch(uri: string, entryId: string, options: {
   output?: string;
 }) {
-  const burrowResult = await client.fetchBurrow(uri);
+  const burrowResult = await client.fetchBurrowWithDiscovery(uri);
 
   if (!burrowResult.ok || !burrowResult.data) {
     error(burrowResult.error?.message || 'Failed to fetch burrow');
@@ -232,7 +350,7 @@ async function cmdTraverse(uri: string, options: {
   maxDepth?: number;
   maxEntries?: number;
 }) {
-  const burrowResult = await client.fetchBurrow(uri);
+  const burrowResult = await client.fetchBurrowWithDiscovery(uri);
 
   if (!burrowResult.ok || !burrowResult.data) {
     error(burrowResult.error?.message || 'Failed to fetch burrow');
@@ -571,7 +689,7 @@ ${colors.bold}Commands:${colors.reset}
 
 ${colors.bold}Options:${colors.reset}
   list:
-    --depth N                           Max traversal depth
+    --max-depth N                       Max traversal depth (default: 1)
     --kind <file|dir|burrow|map|link>   Filter by entry kind
     --format <json|table|tree>          Output format
 
@@ -631,14 +749,14 @@ try {
     case 'list': {
       if (!args[1]) {
         error('Missing URI argument');
-        log('Usage: rabit list <uri> [--depth N] [--kind <type>] [--format <json|table|tree>]');
+        log('Usage: rabit list <uri> [--max-depth N] [--kind <type>] [--format <json|table|tree>]');
         process.exit(1);
       }
 
       const options: any = {};
       for (let i = 2; i < args.length; i++) {
-        if (args[i] === '--depth' && args[i + 1]) {
-          options.depth = parseInt(args[i + 1], 10);
+        if (args[i] === '--max-depth' && args[i + 1]) {
+          options.maxDepth = parseInt(args[i + 1], 10);
           i++;
         } else if (args[i] === '--kind' && args[i + 1]) {
           options.kind = args[i + 1];

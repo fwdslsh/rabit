@@ -2,14 +2,14 @@
 
 > **Reference implementation of Rabit Burrow Traversal (RBT) - Full Client Conformance**
 
-A production-ready TypeScript/Bun client for traversing and consuming Rabit burrows and warrens. Implements the Rabit specification v0.3.0 with full transport support, SHA256 content verification, caching, and comprehensive error handling.
+A production-ready TypeScript/Bun client for traversing and consuming Rabit burrows and warrens. Implements the Rabit specification v0.4.0 with full transport support, SHA256 content verification, caching, and comprehensive error handling.
 
 [![License](https://img.shields.io/badge/License-CC--BY--4.0-blue.svg)](LICENSE)
-[![Rabit Spec](https://img.shields.io/badge/Rabit-v0.3.0-green.svg)](../../docs/rabit-spec-v0.3.0.md)
+[![Rabit Spec](https://img.shields.io/badge/Rabit-v0.4.0-green.svg)](../../docs/rabit-spec.md)
 
 ## Features
 
-✅ **Rabit v0.3.0 Implementation**
+✅ **Rabit v0.4.0 Implementation**
 - ✅ HTTPS static hosting support
 - ✅ HTTP support with self-signed certificate option (for dev/homelab)
 - ✅ File path support (local, SMB/CIFS, NFS via native OS access)
@@ -550,14 +550,14 @@ This project is licensed under [CC-BY-4.0](LICENSE).
 
 ## Links
 
-- **Specification**: [docs/rabit-spec-v0.3.0.md](../../docs/rabit-spec-v0.3.0.md)
+- **Specification**: [docs/rabit-spec.md](../../docs/rabit-spec.md)
 - **Client Implementation Spec**: [docs/CLIENT_SPEC.md](./docs/CLIENT_SPEC.md)
 - **Repository**: https://github.com/fwdslsh/rabit
 - **Issues**: https://github.com/fwdslsh/rabit/issues
 
 ## Specification Compliance
 
-This implementation conforms to Rabit v0.3.0:
+This implementation conforms to Rabit v0.4.0:
 - ✅ Discovery Algorithm - Specification §5
 - ✅ Warren Schema - Specification §7
 - ✅ Burrow Schema - Specification §8

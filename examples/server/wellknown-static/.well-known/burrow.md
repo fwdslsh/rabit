@@ -38,4 +38,4 @@ curl http://localhost:8090/.well-known/burrow.json
 ## Learn More
 
 - [RFC 8615](https://www.rfc-editor.org/rfc/rfc8615.html) - Well-Known URIs standard
-- [Rabit Specification](../../../docs/rabit-spec-v0.3.0.md) - Full spec with discovery order
+- [Rabit Specification](../../../docs/rabit-spec.md) - Full spec with discovery order

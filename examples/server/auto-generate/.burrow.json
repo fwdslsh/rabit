@@ -1,0 +1,71 @@
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "auto-generate",
+  "description": "Auto-generated burrow for auto-generate",
+  "updated": "2026-01-13T17:33:28.074Z",
+  "entries": [
+    {
+      "id": "dockerfile",
+      "kind": "file",
+      "uri": "Dockerfile",
+      "title": "Dockerfile",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 519,
+      "priority": 80
+    },
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 5488,
+      "priority": 100
+    },
+    {
+      "id": "docker-compose",
+      "kind": "file",
+      "uri": "docker-compose.yml",
+      "title": "docker-compose.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 1074,
+      "priority": 80
+    },
+    {
+      "id": "entrypoint",
+      "kind": "file",
+      "uri": "entrypoint.sh",
+      "title": "entrypoint.sh",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 679,
+      "priority": 80
+    },
+    {
+      "id": "generate-burrow",
+      "kind": "file",
+      "uri": "generate-burrow.sh",
+      "title": "generate-burrow.sh",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 4157,
+      "priority": 80
+    },
+    {
+      "id": "nginx",
+      "kind": "file",
+      "uri": "nginx.conf",
+      "title": "nginx.conf",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 1917,
+      "priority": 80
+    },
+    {
+      "id": "sample-content",
+      "kind": "burrow",
+      "uri": "sample-content/",
+      "title": "sample-content",
+      "summary": "Burrow containing 2 entries",
+      "priority": 70
+    }
+  ]
+}

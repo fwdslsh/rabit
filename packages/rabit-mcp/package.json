@@ -1,6 +1,6 @@
 {
   "name": "@fwdslsh/rabit-mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "MCP (Model Context Protocol) plugin providing Rabit Burrow Traversal (RBT) tools for AI agents",
   "keywords": [
     "opencode",

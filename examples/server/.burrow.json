@@ -1,0 +1,41 @@
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
+  "kind": "burrow",
+  "title": "server",
+  "description": "Auto-generated burrow for server",
+  "updated": "2026-01-13T17:33:28.074Z",
+  "entries": [
+    {
+      "id": "auto-generate",
+      "kind": "burrow",
+      "uri": "auto-generate/",
+      "title": "auto-generate",
+      "summary": "Burrow containing 7 entries",
+      "priority": 70
+    },
+    {
+      "id": "docker-compose-examples",
+      "kind": "burrow",
+      "uri": "docker-compose-examples/",
+      "title": "docker-compose-examples",
+      "summary": "Burrow containing 6 entries",
+      "priority": 70
+    },
+    {
+      "id": "ngnix-dotfiles",
+      "kind": "burrow",
+      "uri": "ngnix-dotfiles/",
+      "title": "ngnix-dotfiles",
+      "summary": "Burrow containing 2 entries",
+      "priority": 70
+    },
+    {
+      "id": "wellknown-static",
+      "kind": "burrow",
+      "uri": "wellknown-static/",
+      "title": "wellknown-static",
+      "summary": "Burrow containing 3 entries",
+      "priority": 70
+    }
+  ]
+}
