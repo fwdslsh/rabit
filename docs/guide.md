@@ -215,6 +215,88 @@ Optionally provide guidance for AI agents in your burrow or warren:
 
 ---
 
+## Smart Consolidation (Reducing Burrow File Sprawl)
+
+When generating burrows with the `rabit map` command, the client implements **smart consolidation** to reduce the number of `.burrow.json` files created.
+
+### How It Works
+
+- **Directories with ≥ 10 entries** → Get their own `.burrow.json` file
+- **Directories with < 10 entries** → Entries are merged into parent's burrow
+- **Root directory** → Always gets a `.burrow.json` (even if empty)
+
+### Benefits
+
+✅ **Fewer files** — Eliminates .burrow.json clutter in small directories
+✅ **Cleaner structure** — No single-file burrows
+✅ **Spec compliant** — Entries are still discoverable and navigable
+✅ **Recursive** — Works at all levels of the directory tree
+
+### Example
+
+Given this structure:
+```
+docs/
+├── README.md
+├── guides/                    (2 files - consolidates)
+│   ├── getting-started.md
+│   └── advanced-topics.md
+├── api/                       (12 files - creates burrow)
+│   ├── rest-api.md
+│   ├── graphql-api.md
+│   ├── ... (10 more files)
+└── examples/
+    └── basic/                 (1 file - consolidates)
+        └── example.ts
+```
+
+Result:
+```
+docs/
+├── .burrow.json (root)
+├── api/
+│   └── .burrow.json (10+ entries warranted)
+├── ... other files ...
+```
+
+Root `.burrow.json` includes guide entries directly:
+```json
+{
+  "entries": [
+    {
+      "id": "guides-getting-started",
+      "kind": "file",
+      "uri": "guides/getting-started.md",
+      "title": "Getting Started"
+    },
+    {
+      "id": "guides-advanced-topics",
+      "kind": "file",
+      "uri": "guides/advanced-topics.md",
+      "title": "Advanced Topics"
+    },
+    {
+      "id": "api",
+      "kind": "burrow",
+      "uri": "api/",
+      "title": "API Reference"
+    },
+    {
+      "id": "examples-basic-example",
+      "kind": "file",
+      "uri": "examples/basic/example.ts",
+      "title": "example.ts"
+    }
+  ]
+}
+```
+
+### Disabling Smart Consolidation
+
+To always create separate burrows for every directory regardless of entry count, you would need to modify the client code (currently not exposed as a CLI flag, but can be edited in the source).
+
+---
+
 ## Example: Multi-level Burrow Structure
 
 Here's a realistic example with nested burrows:

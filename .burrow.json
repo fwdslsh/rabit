@@ -3,7 +3,7 @@
   "kind": "burrow",
   "title": "rabit",
   "description": "Auto-generated burrow from /home/founder3/code/github/itlackey/rabit",
-  "updated": "2026-01-13T17:33:28.076Z",
+  "updated": "2026-01-13T18:47:03.757Z",
   "entries": [
     {
       "id": "license",
@@ -20,7 +20,7 @@
       "uri": "README.md",
       "title": "README.md",
       "mediaType": "text/markdown",
-      "sizeBytes": 7323,
+      "sizeBytes": 4146,
       "priority": 100
     },
     {
@@ -33,20 +33,400 @@
       "priority": 80
     },
     {
-      "id": "docs",
-      "kind": "burrow",
-      "uri": "docs/",
-      "title": "docs",
-      "summary": "Burrow containing 2 entries",
-      "priority": 70
+      "id": "docs-security",
+      "kind": "file",
+      "uri": "docs/SECURITY.md",
+      "title": "SECURITY.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 3757,
+      "priority": 80
     },
     {
-      "id": "examples",
-      "kind": "burrow",
-      "uri": "examples/",
-      "title": "examples",
-      "summary": "Burrow containing 5 entries",
-      "priority": 70
+      "id": "docs-about",
+      "kind": "file",
+      "uri": "docs/about.md",
+      "title": "about.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 2997,
+      "priority": 80
+    },
+    {
+      "id": "docs-guide",
+      "kind": "file",
+      "uri": "docs/guide.md",
+      "title": "guide.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 10660,
+      "priority": 80
+    },
+    {
+      "id": "docs-rabit-spec",
+      "kind": "file",
+      "uri": "docs/rabit-spec.md",
+      "title": "rabit-spec.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 26458,
+      "priority": 80
+    },
+    {
+      "id": "examples-readme",
+      "kind": "file",
+      "uri": "examples/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 7900,
+      "priority": 100
+    },
+    {
+      "id": "examples-burrows-api-burrow-readme",
+      "kind": "file",
+      "uri": "examples/burrows/api-burrow/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 343,
+      "priority": 100
+    },
+    {
+      "id": "examples-burrows-api-burrow-auth",
+      "kind": "file",
+      "uri": "examples/burrows/api-burrow/auth.md",
+      "title": "auth.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 1312,
+      "priority": 80
+    },
+    {
+      "id": "examples-burrows-api-burrow-endpoints",
+      "kind": "file",
+      "uri": "examples/burrows/api-burrow/endpoints.md",
+      "title": "endpoints.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 1582,
+      "priority": 80
+    },
+    {
+      "id": "examples-burrows-api-burrow-openapi",
+      "kind": "file",
+      "uri": "examples/burrows/api-burrow/openapi.yaml",
+      "title": "openapi.yaml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 3050,
+      "priority": 80
+    },
+    {
+      "id": "examples-burrows-blog-burrow-readme",
+      "kind": "file",
+      "uri": "examples/burrows/blog-burrow/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 452,
+      "priority": 100
+    },
+    {
+      "id": "examples-burrows-blog-burrow-posts-introducing-acme-2",
+      "kind": "file",
+      "uri": "examples/burrows/blog-burrow/posts/introducing-acme-2.md",
+      "title": "introducing-acme-2.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 1351,
+      "priority": 80
+    },
+    {
+      "id": "examples-burrows-blog-burrow-posts-kubernetes-journey",
+      "kind": "file",
+      "uri": "examples/burrows/blog-burrow/posts/kubernetes-journey.md",
+      "title": "kubernetes-journey.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 2008,
+      "priority": 80
+    },
+    {
+      "id": "examples-burrows-blog-burrow-posts-scaling-million-users",
+      "kind": "file",
+      "uri": "examples/burrows/blog-burrow/posts/scaling-million-users.md",
+      "title": "scaling-million-users.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 1376,
+      "priority": 80
+    },
+    {
+      "id": "examples-burrows-docs-burrow-license",
+      "kind": "file",
+      "uri": "examples/burrows/docs-burrow/LICENSE",
+      "title": "LICENSE",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 1468,
+      "priority": 80
+    },
+    {
+      "id": "examples-burrows-docs-burrow-readme",
+      "kind": "file",
+      "uri": "examples/burrows/docs-burrow/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 331,
+      "priority": 100
+    },
+    {
+      "id": "examples-burrows-docs-burrow-api-overview",
+      "kind": "file",
+      "uri": "examples/burrows/docs-burrow/api/overview.md",
+      "title": "overview.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 1040,
+      "priority": 80
+    },
+    {
+      "id": "examples-burrows-docs-burrow-faq",
+      "kind": "file",
+      "uri": "examples/burrows/docs-burrow/faq.md",
+      "title": "faq.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 878,
+      "priority": 80
+    },
+    {
+      "id": "examples-burrows-docs-burrow-guides-configuration",
+      "kind": "file",
+      "uri": "examples/burrows/docs-burrow/guides/configuration.md",
+      "title": "configuration.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 627,
+      "priority": 80
+    },
+    {
+      "id": "examples-burrows-docs-burrow-guides-installation",
+      "kind": "file",
+      "uri": "examples/burrows/docs-burrow/guides/installation.md",
+      "title": "installation.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 439,
+      "priority": 80
+    },
+    {
+      "id": "examples-client-cli",
+      "kind": "file",
+      "uri": "examples/client/cli.ts",
+      "title": "cli.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 10744,
+      "priority": 80
+    },
+    {
+      "id": "examples-client-package",
+      "kind": "file",
+      "uri": "examples/client/package.json",
+      "title": "package.json",
+      "mediaType": "application/json",
+      "sizeBytes": 364,
+      "priority": 80
+    },
+    {
+      "id": "examples-client-rabit",
+      "kind": "file",
+      "uri": "examples/client/rabit.ts",
+      "title": "rabit.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 6284,
+      "priority": 80
+    },
+    {
+      "id": "examples-client-types",
+      "kind": "file",
+      "uri": "examples/client/types.ts",
+      "title": "types.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 2893,
+      "priority": 80
+    },
+    {
+      "id": "examples-conventions-demo-readme",
+      "kind": "file",
+      "uri": "examples/conventions-demo/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 1975,
+      "priority": 100
+    },
+    {
+      "id": "examples-conventions-demo-burrow",
+      "kind": "file",
+      "uri": "examples/conventions-demo/burrow.json",
+      "title": "burrow.json",
+      "mediaType": "application/json",
+      "sizeBytes": 572,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-auto-generate-dockerfile",
+      "kind": "file",
+      "uri": "examples/server/auto-generate/Dockerfile",
+      "title": "Dockerfile",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 519,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-auto-generate-readme",
+      "kind": "file",
+      "uri": "examples/server/auto-generate/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 5481,
+      "priority": 100
+    },
+    {
+      "id": "examples-server-auto-generate-docker-compose",
+      "kind": "file",
+      "uri": "examples/server/auto-generate/docker-compose.yml",
+      "title": "docker-compose.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 1074,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-auto-generate-entrypoint",
+      "kind": "file",
+      "uri": "examples/server/auto-generate/entrypoint.sh",
+      "title": "entrypoint.sh",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 679,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-auto-generate-generate-burrow",
+      "kind": "file",
+      "uri": "examples/server/auto-generate/generate-burrow.sh",
+      "title": "generate-burrow.sh",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 4157,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-auto-generate-nginx",
+      "kind": "file",
+      "uri": "examples/server/auto-generate/nginx.conf",
+      "title": "nginx.conf",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 1917,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-auto-generate-sample-content-readme",
+      "kind": "file",
+      "uri": "examples/server/auto-generate/sample-content/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 1077,
+      "priority": 100
+    },
+    {
+      "id": "examples-server-auto-generate-sample-content-guide",
+      "kind": "file",
+      "uri": "examples/server/auto-generate/sample-content/guide.md",
+      "title": "guide.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 721,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-docker-compose-examples-readme",
+      "kind": "file",
+      "uri": "examples/server/docker-compose-examples/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 6041,
+      "priority": 100
+    },
+    {
+      "id": "examples-server-docker-compose-examples-git-single-repo",
+      "kind": "file",
+      "uri": "examples/server/docker-compose-examples/git-single-repo.yml",
+      "title": "git-single-repo.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 513,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-docker-compose-examples-http-single-burrow",
+      "kind": "file",
+      "uri": "examples/server/docker-compose-examples/http-single-burrow.yml",
+      "title": "http-single-burrow.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 513,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-docker-compose-examples-hybrid-http-git",
+      "kind": "file",
+      "uri": "examples/server/docker-compose-examples/hybrid-http-git.yml",
+      "title": "hybrid-http-git.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 1068,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-docker-compose-examples-nginx-examples",
+      "kind": "file",
+      "uri": "examples/server/docker-compose-examples/nginx-examples.yml",
+      "title": "nginx-examples.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 5656,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-docker-compose-examples-nginx-quick-start",
+      "kind": "file",
+      "uri": "examples/server/docker-compose-examples/nginx-quick-start.yml",
+      "title": "nginx-quick-start.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 1039,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-ngnix-dotfiles-docker-compose",
+      "kind": "file",
+      "uri": "examples/server/ngnix-dotfiles/docker-compose.yml",
+      "title": "docker-compose.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 2286,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-ngnix-dotfiles-nginx-cors",
+      "kind": "file",
+      "uri": "examples/server/ngnix-dotfiles/nginx-cors.conf",
+      "title": "nginx-cors.conf",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 817,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-wellknown-static-readme",
+      "kind": "file",
+      "uri": "examples/server/wellknown-static/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 3977,
+      "priority": 100
+    },
+    {
+      "id": "examples-server-wellknown-static-docker-compose",
+      "kind": "file",
+      "uri": "examples/server/wellknown-static/docker-compose.yml",
+      "title": "docker-compose.yml",
+      "mediaType": "application/x-yaml",
+      "sizeBytes": 932,
+      "priority": 80
+    },
+    {
+      "id": "examples-server-wellknown-static-sample-document",
+      "kind": "file",
+      "uri": "examples/server/wellknown-static/sample-document.md",
+      "title": "sample-document.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 1501,
+      "priority": 80
     },
     {
       "id": "package",
@@ -58,20 +438,355 @@
       "priority": 80
     },
     {
-      "id": "packages",
-      "kind": "burrow",
-      "uri": "packages/",
-      "title": "packages",
-      "summary": "Burrow containing 4 entries",
-      "priority": 70
+      "id": "packages-opencode-rabit-readme",
+      "kind": "file",
+      "uri": "packages/opencode-rabit/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 4809,
+      "priority": 100
     },
     {
-      "id": "schemas",
-      "kind": "burrow",
-      "uri": "schemas/",
-      "title": "schemas",
-      "summary": "Burrow containing 2 entries",
-      "priority": 70
+      "id": "packages-opencode-rabit-index",
+      "kind": "file",
+      "uri": "packages/opencode-rabit/index.ts",
+      "title": "index.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 17476,
+      "priority": 95
+    },
+    {
+      "id": "packages-opencode-rabit-package",
+      "kind": "file",
+      "uri": "packages/opencode-rabit/package.json",
+      "title": "package.json",
+      "mediaType": "application/json",
+      "sizeBytes": 596,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-license",
+      "kind": "file",
+      "uri": "packages/rabit-client/LICENSE",
+      "title": "LICENSE",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 782,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-readme",
+      "kind": "file",
+      "uri": "packages/rabit-client/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 14211,
+      "priority": 100
+    },
+    {
+      "id": "packages-rabit-client-bun",
+      "kind": "file",
+      "uri": "packages/rabit-client/bun.lock",
+      "title": "bun.lock",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 4237,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-docs-client-spec",
+      "kind": "file",
+      "uri": "packages/rabit-client/docs/CLIENT_SPEC.md",
+      "title": "CLIENT_SPEC.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 24084,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-docs-conformance",
+      "kind": "file",
+      "uri": "packages/rabit-client/docs/CONFORMANCE.md",
+      "title": "CONFORMANCE.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 7716,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-docs-implementors-guide",
+      "kind": "file",
+      "uri": "packages/rabit-client/docs/IMPLEMENTORS_GUIDE.md",
+      "title": "IMPLEMENTORS_GUIDE.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 23856,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-examples-basic-usage",
+      "kind": "file",
+      "uri": "packages/rabit-client/examples/basic-usage.ts",
+      "title": "basic-usage.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 6944,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-package",
+      "kind": "file",
+      "uri": "packages/rabit-client/package.json",
+      "title": "package.json",
+      "mediaType": "application/json",
+      "sizeBytes": 1769,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-src-cli",
+      "kind": "file",
+      "uri": "packages/rabit-client/src/cli.ts",
+      "title": "cli.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 34521,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-src-client-test",
+      "kind": "file",
+      "uri": "packages/rabit-client/src/client.test.ts",
+      "title": "client.test.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 7203,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-src-client",
+      "kind": "file",
+      "uri": "packages/rabit-client/src/client.ts",
+      "title": "client.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 29681,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-src-git",
+      "kind": "file",
+      "uri": "packages/rabit-client/src/git.ts",
+      "title": "git.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 10008,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-src-helpers",
+      "kind": "file",
+      "uri": "packages/rabit-client/src/helpers.ts",
+      "title": "helpers.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 6052,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-src-index",
+      "kind": "file",
+      "uri": "packages/rabit-client/src/index.ts",
+      "title": "index.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 1794,
+      "priority": 95
+    },
+    {
+      "id": "packages-rabit-client-src-types",
+      "kind": "file",
+      "uri": "packages/rabit-client/src/types.ts",
+      "title": "types.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 16064,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-src-utils",
+      "kind": "file",
+      "uri": "packages/rabit-client/src/utils.ts",
+      "title": "utils.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 7541,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-client-tsconfig",
+      "kind": "file",
+      "uri": "packages/rabit-client/tsconfig.json",
+      "title": "tsconfig.json",
+      "mediaType": "application/json",
+      "sizeBytes": 478,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-mcp-license",
+      "kind": "file",
+      "uri": "packages/rabit-mcp/LICENSE",
+      "title": "LICENSE",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 1468,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-mcp-readme",
+      "kind": "file",
+      "uri": "packages/rabit-mcp/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 2306,
+      "priority": 100
+    },
+    {
+      "id": "packages-rabit-mcp-package",
+      "kind": "file",
+      "uri": "packages/rabit-mcp/package.json",
+      "title": "package.json",
+      "mediaType": "application/json",
+      "sizeBytes": 1709,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-mcp-src-index",
+      "kind": "file",
+      "uri": "packages/rabit-mcp/src/index.ts",
+      "title": "index.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 17834,
+      "priority": 95
+    },
+    {
+      "id": "packages-rabit-mcp-tsconfig",
+      "kind": "file",
+      "uri": "packages/rabit-mcp/tsconfig.json",
+      "title": "tsconfig.json",
+      "mediaType": "application/json",
+      "sizeBytes": 506,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-server-license",
+      "kind": "file",
+      "uri": "packages/rabit-server/LICENSE",
+      "title": "LICENSE",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 1468,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-server-makefile",
+      "kind": "file",
+      "uri": "packages/rabit-server/Makefile",
+      "title": "Makefile",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 6536,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-server-readme",
+      "kind": "file",
+      "uri": "packages/rabit-server/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 9035,
+      "priority": 100
+    },
+    {
+      "id": "packages-rabit-server-git-dockerfile",
+      "kind": "file",
+      "uri": "packages/rabit-server/git/Dockerfile",
+      "title": "Dockerfile",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 2791,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-server-git-readme",
+      "kind": "file",
+      "uri": "packages/rabit-server/git/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 7543,
+      "priority": 100
+    },
+    {
+      "id": "packages-rabit-server-git-config-sshd-config",
+      "kind": "file",
+      "uri": "packages/rabit-server/git/config/sshd_config",
+      "title": "sshd_config",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 1003,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-server-git-git-shell-commands-git-receive-pack",
+      "kind": "file",
+      "uri": "packages/rabit-server/git/git-shell-commands/git-receive-pack",
+      "title": "git-receive-pack",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 269,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-server-git-git-shell-commands-no-interactive-login",
+      "kind": "file",
+      "uri": "packages/rabit-server/git/git-shell-commands/no-interactive-login",
+      "title": "no-interactive-login",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 543,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-server-nginx-dockerfile",
+      "kind": "file",
+      "uri": "packages/rabit-server/nginx/Dockerfile",
+      "title": "Dockerfile",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 2744,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-server-nginx-readme",
+      "kind": "file",
+      "uri": "packages/rabit-server/nginx/README.md",
+      "title": "README.md",
+      "mediaType": "text/markdown",
+      "sizeBytes": 9975,
+      "priority": 100
+    },
+    {
+      "id": "packages-rabit-server-nginx-scripts-entrypoint",
+      "kind": "file",
+      "uri": "packages/rabit-server/nginx/scripts/entrypoint.sh",
+      "title": "entrypoint.sh",
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 2080,
+      "priority": 80
+    },
+    {
+      "id": "packages-rabit-server-nginx-scripts-generate-wellknown",
+      "kind": "file",
+      "uri": "packages/rabit-server/nginx/scripts/generate-wellknown.ts",
+      "title": "generate-wellknown.ts",
+      "mediaType": "application/typescript",
+      "sizeBytes": 9981,
+      "priority": 80
+    },
+    {
+      "id": "schemas-burrow",
+      "kind": "file",
+      "uri": "schemas/burrow.json",
+      "title": "burrow.json",
+      "mediaType": "application/json",
+      "sizeBytes": 5345,
+      "priority": 80
+    },
+    {
+      "id": "schemas-warren",
+      "kind": "file",
+      "uri": "schemas/warren.json",
+      "title": "warren.json",
+      "mediaType": "application/json",
+      "sizeBytes": 3943,
+      "priority": 80
     }
   ]
 }

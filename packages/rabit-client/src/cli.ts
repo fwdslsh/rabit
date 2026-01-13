@@ -172,11 +172,73 @@ async function cmdList(uri: string, options: {
       }
     } else if (format === 'tree') {
       log(burrow.title || uri);
-      for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i];
-        const isLast = i === entries.length - 1;
-        const prefix = isLast ? '└── ' : '├── ';
-        log(`${prefix}${entry.title || entry.id} (${entry.kind})`);
+
+      // Build tree structure from URIs - group by directory level
+      const tree = buildFileTree(entries);
+      const sortedKeys = Array.from(tree.keys()).sort();
+
+      // Group entries by their top-level directory
+      const rootEntries: string[] = [];
+      const dirMap = new Map<string, string[]>();
+
+      for (const key of sortedKeys) {
+        if (key.endsWith('/')) {
+          // It's a directory node - add to dirMap as a key
+          if (!dirMap.has(key)) {
+            dirMap.set(key, []);
+          }
+        } else if (!key.includes('/')) {
+          // Top-level file
+          rootEntries.push(key);
+        } else {
+          // File within a directory - group by top-level directory
+          const topDir = key.split('/')[0] + '/';
+          if (!dirMap.has(topDir)) {
+            dirMap.set(topDir, []);
+          }
+          dirMap.get(topDir)!.push(key);
+        }
+      }
+
+      // Display top-level entries and directories
+      const allTopLevel = [...rootEntries];
+      for (const dir of dirMap.keys()) {
+        allTopLevel.push(dir);
+      }
+      allTopLevel.sort();
+
+      for (let i = 0; i < allTopLevel.length; i++) {
+        const item = allTopLevel[i];
+        const isLastTopLevel = i === allTopLevel.length - 1;
+        const connector = isLastTopLevel ? '└── ' : '├── ';
+
+        if (item.endsWith('/')) {
+          // It's a directory, show it
+          log(`${connector}${item}`);
+
+          // Show files in this directory
+          const dirContents = dirMap.get(item) || [];
+          const dirContents2: string[] = [];
+          for (const content of dirContents) {
+            if (!content.includes('/', item.length)) {
+              // Direct child of this directory
+              dirContents2.push(content);
+            }
+          }
+          dirContents2.sort();
+
+          for (let j = 0; j < dirContents2.length; j++) {
+            const file = dirContents2[j];
+            const isLastFile = j === dirContents2.length - 1;
+            const fileConnector = isLastFile ? '└── ' : '├── ';
+            const filePrefix = isLastTopLevel ? '    ' : '│   ';
+            const fileName = file.substring(item.length);
+            log(`${filePrefix}${fileConnector}${fileName}`);
+          }
+        } else {
+          // It's a file
+          log(`${connector}${item}`);
+        }
       }
     }
   } else {
@@ -230,35 +292,166 @@ async function collectEntriesNested(
   return result;
 }
 
+// Helper to build a tree structure from flat URIs
+function buildFileTree(entries: Entry[]): Map<string, any> {
+  const tree = new Map<string, any>();
+
+  for (const entry of entries) {
+    const parts = entry.uri.split('/').filter(p => p);
+
+    if (parts.length === 1) {
+      // Top-level entry
+      tree.set(entry.uri, { ...entry, isLeaf: true });
+    } else {
+      // Nested entry - build directory structure
+      let currentPath = '';
+
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        const isLast = i === parts.length - 1;
+
+        if (!currentPath) {
+          currentPath = part;
+        } else {
+          currentPath += '/' + part;
+        }
+
+        if (isLast) {
+          // Leaf node (file)
+          tree.set(currentPath, { ...entry, isLeaf: true });
+        } else {
+          // Directory node
+          const dirKey = currentPath + '/';
+          if (!tree.has(dirKey)) {
+            tree.set(dirKey, {
+              id: part,
+              kind: 'dir',
+              uri: dirKey,
+              title: part,
+              isDir: true,
+              children: [],
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return tree;
+}
+
+async function displayTreeNode(
+  entries: Entry[],
+  prefix: string,
+  isLast: boolean[] = []
+): Promise<void> {
+  const tree = buildFileTree(entries);
+  const sortedKeys = Array.from(tree.keys()).sort();
+
+  for (let i = 0; i < sortedKeys.length; i++) {
+    const key = sortedKeys[i];
+    const node = tree.get(key)!;
+    const isLastNode = i === sortedKeys.length - 1;
+
+    const connector = isLastNode ? '└── ' : '├── ';
+    const newPrefix = prefix + (isLastNode ? '    ' : '│   ');
+
+    log(`${prefix}${connector}${key}`);
+  }
+}
+
 async function displayEntriesRecursive(
   burrow: Burrow,
   currentDepth: number,
   maxDepth: number,
   kindFilter: string | undefined,
   prefix: string,
-  isTree: boolean
+  isTree: boolean,
+  currentPath: string = '',
+  visitedUris: Set<string> = new Set()
 ) {
   let entries = burrow.entries;
   if (kindFilter) {
     entries = entries.filter(e => e.kind === kindFilter);
   }
 
-  for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i];
-    const isLast = i === entries.length - 1;
+  if (isTree) {
+    // Build and display tree structure from URIs - group by directory level
+    const tree = buildFileTree(entries);
+    const sortedKeys = Array.from(tree.keys()).sort();
 
-    const kindIcon = {
-      file: '📄',
-      dir: '📁',
-      burrow: '🐰',
-      map: '🗺️',
-      link: '🔗',
-    }[entry.kind];
+    // Group entries by their top-level directory
+    const rootEntries: string[] = [];
+    const dirMap = new Map<string, string[]>();
 
-    if (isTree) {
-      const connector = isLast ? '└── ' : '├── ';
-      log(`${prefix}${connector}${entry.title || entry.id} (${entry.kind})`);
-    } else {
+    for (const key of sortedKeys) {
+      if (key.endsWith('/')) {
+        // It's a directory node - add to dirMap as a key
+        if (!dirMap.has(key)) {
+          dirMap.set(key, []);
+        }
+      } else if (!key.includes('/')) {
+        // Top-level file
+        rootEntries.push(key);
+      } else {
+        // File within a directory - group by top-level directory
+        const topDir = key.split('/')[0] + '/';
+        if (!dirMap.has(topDir)) {
+          dirMap.set(topDir, []);
+        }
+        dirMap.get(topDir)!.push(key);
+      }
+    }
+
+    // Display top-level entries and directories
+    const allTopLevel = [...rootEntries];
+    for (const dir of dirMap.keys()) {
+      allTopLevel.push(dir);
+    }
+    allTopLevel.sort();
+
+    for (let i = 0; i < allTopLevel.length; i++) {
+      const item = allTopLevel[i];
+      const isLastTopLevel = i === allTopLevel.length - 1;
+      const connector = isLastTopLevel ? '└── ' : '├── ';
+
+      if (item.endsWith('/')) {
+        log(`${prefix}${connector}${item}`);
+
+        const dirContents = dirMap.get(item) || [];
+        const dirContents2: string[] = [];
+        for (const content of dirContents) {
+          if (!content.includes('/', item.length)) {
+            dirContents2.push(content);
+          }
+        }
+        dirContents2.sort();
+
+        for (let j = 0; j < dirContents2.length; j++) {
+          const file = dirContents2[j];
+          const isLastFile = j === dirContents2.length - 1;
+          const fileConnector = isLastFile ? '└── ' : '├── ';
+          const filePrefix = isLastTopLevel ? '    ' : '│   ';
+          const fileName = file.substring(item.length);
+          log(`${prefix}${filePrefix}${fileConnector}${fileName}`);
+        }
+      } else {
+        log(`${prefix}${connector}${item}`);
+      }
+    }
+  } else {
+    // Table format - show detailed info
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+
+      const kindIcon = {
+        file: '📄',
+        dir: '📁',
+        burrow: '🐰',
+        map: '🗺️',
+        link: '🔗',
+      }[entry.kind];
+
       const indent = '  '.repeat(currentDepth);
       log(`${indent}${kindIcon} ${colors.bold}${entry.title || entry.id}${colors.reset}`);
       log(`${indent}   ${colors.dim}ID:${colors.reset} ${entry.id}`);
@@ -273,22 +466,30 @@ async function displayEntriesRecursive(
         log(`${indent}   ${colors.dim}${entry.summary}${colors.reset}`);
       }
       log('');
-    }
 
-    // Recurse into burrows/dirs if we haven't reached max depth
-    if (currentDepth < maxDepth - 1 && (entry.kind === 'burrow' || entry.kind === 'dir')) {
-      const childUri = resolveUri(burrow.baseUri, entry.uri);
-      const childResult = await client.fetchBurrowWithDiscovery(childUri);
-      if (childResult.ok && childResult.data) {
-        const childPrefix = isTree ? (prefix + (isLast ? '    ' : '│   ')) : '';
-        await displayEntriesRecursive(
-          childResult.data,
-          currentDepth + 1,
-          maxDepth,
-          kindFilter,
-          childPrefix,
-          isTree
-        );
+      // Recurse into burrows/dirs with cycle detection
+      if (currentDepth < maxDepth - 1 && (entry.kind === 'burrow' || entry.kind === 'dir')) {
+        const childUri = resolveUri(burrow.baseUri, entry.uri);
+
+        // Check if we've already visited this URI to prevent infinite loops
+        if (!visitedUris.has(childUri)) {
+          const newVisitedUris = new Set(visitedUris);
+          newVisitedUris.add(childUri);
+
+          const childResult = await client.fetchBurrowWithDiscovery(childUri);
+          if (childResult.ok && childResult.data) {
+            await displayEntriesRecursive(
+              childResult.data,
+              currentDepth + 1,
+              maxDepth,
+              kindFilter,
+              '',
+              isTree,
+              '',
+              newVisitedUris
+            );
+          }
+        }
       }
     }
   }
@@ -484,7 +685,18 @@ async function cmdMap(inputDir: string, options: {
     });
   }
 
-  // Scan directory and create burrow (non-recursive for entries)
+  // Helper: Count entries in a directory (without creating burrows)
+  function countDirEntries(dir: string): number {
+    try {
+      const items = readdirSync(dir);
+      return items.filter(item => !shouldExclude(item)).length;
+    } catch {
+      return 0;
+    }
+  }
+
+  // Scan directory and create burrow with smart consolidation
+  // Consolidates directories with < 10 entries into parent (except root)
   async function scanDirectoryAndCreateBurrow(
     dir: string,
     depth: number,
@@ -508,35 +720,59 @@ async function cmdMap(inputDir: string, options: {
           const isDir = stats.isDirectory();
 
           if (isDir) {
-            // For directories, create a nested burrow if depth allows
+            // For directories, check if we should create a nested burrow
             if (depth < maxDepth) {
-              // Create .burrow.json in the subdirectory
-              const subBurrowPath = join(itemPath, '.burrow.json');
-              const subEntries = await scanDirectoryAndCreateBurrow(itemPath, depth + 1, itemPath);
+              // Count entries in this subdirectory
+              const subEntryCount = countDirEntries(itemPath);
 
-              const subBurrow: Burrow = {
-                specVersion: 'fwdslsh.dev/rabit/schemas/0.4.0/burrow',
-                kind: 'burrow',
-                title: item,
-                description: `Auto-generated burrow for ${item}`,
-                updated: new Date().toISOString(),
-                entries: subEntries,
-              };
+              // Smart consolidation: only create separate burrow if >= 10 entries
+              // Root burrow is always created separately (line 728)
+              const shouldCreateSeparateBurrow = subEntryCount >= 10;
 
-              // Write the sub-burrow
-              await Bun.write(subBurrowPath, JSON.stringify(subBurrow, null, 2) + '\n');
-              log(`  Created: ${relative(targetDir, subBurrowPath)}`);
+              if (shouldCreateSeparateBurrow) {
+                // Create .burrow.json in the subdirectory
+                const subBurrowPath = join(itemPath, '.burrow.json');
+                const subEntries = await scanDirectoryAndCreateBurrow(itemPath, depth + 1, itemPath);
 
-              // Reference it as a burrow entry
-              const entry: Entry = {
-                id: generateId(item),
-                kind: 'burrow',
-                uri: relativePath + '/',
-                title: item,
-                summary: `Burrow containing ${subEntries.length} entries`,
-                priority: getPriority(item, true),
-              };
-              entries.push(entry);
+                const subBurrow: Burrow = {
+                  specVersion: 'fwdslsh.dev/rabit/schemas/0.4.0/burrow',
+                  kind: 'burrow',
+                  title: item,
+                  description: `Auto-generated burrow for ${item}`,
+                  updated: new Date().toISOString(),
+                  entries: subEntries,
+                };
+
+                // Write the sub-burrow
+                await Bun.write(subBurrowPath, JSON.stringify(subBurrow, null, 2) + '\n');
+                log(`  Created: ${relative(targetDir, subBurrowPath)} (${subEntries.length} entries)`);
+
+                // Reference it as a burrow entry
+                const entry: Entry = {
+                  id: generateId(item),
+                  kind: 'burrow',
+                  uri: relativePath + '/',
+                  title: item,
+                  summary: `Burrow containing ${subEntries.length} entries`,
+                  priority: getPriority(item, true),
+                };
+                entries.push(entry);
+              } else {
+                // Consolidate: include entries from small directory directly in parent
+                const subEntries = await scanDirectoryAndCreateBurrow(itemPath, depth + 1, rootDir);
+
+                // Add entries from subdirectory with path prefix to avoid ID collisions
+                for (const subEntry of subEntries) {
+                  const consolidatedEntry: Entry = {
+                    ...subEntry,
+                    // Prefix ID with directory name to avoid collisions
+                    id: `${generateId(item)}-${subEntry.id}`,
+                  };
+                  entries.push(consolidatedEntry);
+                }
+
+                log(`  Consolidated: ${item}/ (${subEntries.length} entries merged into parent)`);
+              }
             } else {
               // At max depth, just reference as dir
               const entry: Entry = {
@@ -595,11 +831,19 @@ async function cmdMap(inputDir: string, options: {
     success(`Generated burrow map with ${entries.length} entries`);
     label('Output', outputFile);
 
-    // Count nested burrows
+    // Count nested burrows and consolidated entries
     const burrowCount = entries.filter(e => e.kind === 'burrow').length;
+    const consolidatedCount = entries.filter(e => e.id.includes('-')).length;
+
     if (burrowCount > 0) {
       log(`  ${colors.green}✓${colors.reset} Created ${burrowCount} nested burrow(s)`);
     }
+    if (consolidatedCount > 0) {
+      log(`  ${colors.yellow}↓${colors.reset} Consolidated ${consolidatedCount} entries from small directories`);
+    }
+
+    log('');
+    label('Smart Consolidation', 'Enabled (< 10 entries merged into parent)');
   } catch (err) {
     error(`Failed to generate burrow: ${err}`);
     process.exit(1);

@@ -183,7 +183,20 @@ This document certifies that `@fwdslsh/rabit-client` v0.4.0 implements the Rabit
 - ✅ `rabit fetch <uri> <entry-id>` - fetch entry
 - ✅ `rabit traverse <uri>` - traverse burrow
 - ✅ `rabit validate <file>` - validate manifest
+- ✅ `rabit map <dir>` - generate burrows with smart consolidation
 - ✅ Rich terminal output with colors
+
+## Burrow Generation (Smart Consolidation)
+
+The client implements smart consolidation when generating burrows to reduce manifest file sprawl:
+
+- ✅ Directories with ≥ 10 entries get their own `.burrow.json`
+- ✅ Directories with < 10 entries have entries merged into parent
+- ✅ Root directory always receives a `.burrow.json` (per spec)
+- ✅ Consolidation works recursively at all directory levels
+- ✅ ID prefixing prevents collisions from merged entries
+- ✅ Maintains spec compliance - entries remain discoverable and navigable
+- ✅ Reduces file count while preserving full directory structure visibility
 
 ## Certification
 
