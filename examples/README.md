@@ -16,9 +16,18 @@ See the [conventions-demo](conventions-demo/) directory for examples and detaile
 ```
 examples/
 ├── server/
-│   ├── ngnix-dotfiles/      # Docker setup for hosting burrows
-│   │   ├── docker-compose.yml  # Hosts all burrows and warren
-│   │   └── nginx-cors.conf     # CORS configuration for nginx
+│   ├── ngnix-dotfiles/      # Docker setup for hosting burrows (dotfile convention)
+│   │   ├── docker-compose.yml
+│   │   └── nginx-cors.conf
+│   ├── wellknown-static/    # RFC 8615 .well-known example (zero config)
+│   │   ├── docker-compose.yml
+│   │   ├── .well-known/burrow.json
+│   │   └── sample-document.md
+│   ├── auto-generate/       # Dynamic manifest generation (zero setup)
+│   │   ├── Dockerfile
+│   │   ├── docker-compose.yml
+│   │   ├── generate-burrow.sh
+│   │   └── sample-content/
 │   └── git-readonly/        # Git server example for burrows
 │       ├── docker-compose.yml
 │       ├── setup.sh
@@ -62,6 +71,33 @@ examples/
     ├── rabit.ts             # Client library
     └── cli.ts               # CLI commands
 ```
+
+### Server Examples
+
+The `server/` directory contains multiple approaches for serving burrows:
+
+#### 1. **ngnix-dotfiles** - Traditional dotfile approach
+- Uses `.burrow.json` dotfile convention
+- Requires nginx configuration for dotfile serving
+- Hosts multiple burrows and a warren
+- Best for: Git repos, controlled environments
+
+#### 2. **wellknown-static** - RFC 8615 approach
+- Uses `.well-known/burrow.json` convention
+- **Zero web server configuration** needed
+- Standards-compliant (RFC 8615)
+- Best for: Static hosts, CDNs, enterprise environments
+
+#### 3. **auto-generate** - Dynamic generation
+- **Zero setup** - just mount any directory
+- Automatically generates `burrow.json` on-the-fly
+- Supports all three naming conventions
+- Best for: Quick sharing, dynamic content, development
+
+#### 4. **git-readonly** - Git server
+- Serve burrows via Git with SSH authentication
+- Read-only access for clients
+- Clean URLs with standard port 22
 
 ### Human-Readable Companion Files
 

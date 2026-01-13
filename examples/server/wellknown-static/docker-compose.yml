@@ -1,0 +1,37 @@
+version: '3.8'
+
+# RFC 8615 .well-known Static Burrow Example
+#
+# Demonstrates serving a burrow using the .well-known convention
+# with zero web server configuration required.
+#
+# Usage:
+#   docker compose up -d
+#
+# Access:
+#   http://localhost:8090/.well-known/burrow.json
+#   http://localhost:8090/.well-known/burrow.md
+#   http://localhost:8090/sample-document.md
+
+services:
+  wellknown-burrow:
+    image: nginx:alpine
+    container_name: wellknown-burrow
+    ports:
+      - "${PORT:-8090}:80"
+    volumes:
+      # Mount current directory as web root
+      # .well-known/ is served automatically - no nginx config needed!
+      - .:/usr/share/nginx/html:ro
+    networks:
+      - rabit-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/.well-known/burrow.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  rabit-network:
+    driver: bridge

@@ -122,6 +122,24 @@
       "tags": ["examples", "conventions"]
     },
     {
+      "id": "wellknown-server",
+      "kind": "dir",
+      "uri": "examples/server/wellknown-static/",
+      "title": "RFC 8615 .well-known Server Example",
+      "summary": "Zero-config server example using .well-known/burrow.json convention. Works with any static file server without configuration.",
+      "priority": 72,
+      "tags": ["examples", "server", "wellknown"]
+    },
+    {
+      "id": "auto-generate-server",
+      "kind": "dir",
+      "uri": "examples/server/auto-generate/",
+      "title": "Auto-Generate Burrow Server",
+      "summary": "Dynamic burrow server that automatically generates manifests from any mounted directory. Zero setup required.",
+      "priority": 71,
+      "tags": ["examples", "server", "dynamic"]
+    },
+    {
       "id": "schemas",
       "kind": "dir",
       "uri": "schemas/",

@@ -1,0 +1,38 @@
+version: '3.8'
+
+# Auto-Generate Burrow Server
+#
+# Automatically generates burrow.json from any directory you mount.
+# Zero configuration - just mount and go!
+#
+# Usage:
+#   docker compose up -d
+#
+# Access:
+#   http://localhost:8095/burrow.json
+#   http://localhost:8095/.burrow.json
+#   http://localhost:8095/.well-known/burrow.json
+
+services:
+  auto-generate:
+    build: .
+    container_name: rabit-auto-generate
+    ports:
+      - "${PORT:-8095}:80"
+    volumes:
+      # Mount your content directory here
+      - ${CONTENT_DIR:-.}/sample-content:/data:ro
+    environment:
+      - DATA_DIR=/data
+      - BURROW_TITLE=${BURROW_TITLE:-Auto-Generated Example Burrow}
+      - BURROW_DESCRIPTION=${BURROW_DESCRIPTION:-Automatically generated burrow from directory contents}
+      - BURROW_MAX_DEPTH=${BURROW_MAX_DEPTH:-3}
+      - BURROW_INCLUDE_HIDDEN=${BURROW_INCLUDE_HIDDEN:-false}
+      - BURROW_EXCLUDE_PATTERNS=${BURROW_EXCLUDE_PATTERNS:-node_modules,dist,.git}
+    networks:
+      - rabit-network
+    restart: unless-stopped
+
+networks:
+  rabit-network:
+    driver: bridge
