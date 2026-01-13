@@ -51,14 +51,14 @@ test: test-nginx test-git ## Test both images
 
 test-nginx: build-nginx ## Test Nginx server image
 	@echo "Testing Nginx server..."
-	@mkdir -p /tmp/rabit-test-nginx
-	@echo "# Test Document" > /tmp/rabit-test-nginx/README.md
-	@echo "Test content" > /tmp/rabit-test-nginx/test.md
+	@mkdir -p $(PWD)/.test-data-nginx
+	@echo "# Test Document" > $(PWD)/.test-data-nginx/README.md
+	@echo "Test content" > $(PWD)/.test-data-nginx/test.md
 
 	@echo "Starting test container..."
 	@docker run -d --name rabit-nginx-test \
 		-p 18080:80 \
-		-v /tmp/rabit-test-nginx:/data:ro \
+		-v $(PWD)/.test-data-nginx:/data:ro \
 		-e RABIT_TITLE="Test Burrow" \
 		-e RABIT_AUTO_GENERATE=true \
 		$(NGINX_IMAGE):latest
@@ -78,22 +78,22 @@ test-nginx: build-nginx ## Test Nginx server image
 	@echo "Cleaning up..."
 	@docker stop rabit-nginx-test >/dev/null 2>&1 || true
 	@docker rm rabit-nginx-test >/dev/null 2>&1 || true
-	@rm -rf /tmp/rabit-test-nginx
+	@rm -rf $(PWD)/.test-data-nginx
 
 	@echo "✓ Nginx server tests passed!"
 
 test-git: build-git ## Test Git server image
 	@echo "Testing Git server..."
-	@mkdir -p /tmp/rabit-test-git/{repos,keys}
-	@chmod 700 /tmp/rabit-test-git/keys
+	@mkdir -p $(PWD)/.test-data-git/repos $(PWD)/.test-data-git/keys
+	@chmod 700 $(PWD)/.test-data-git/keys
 
 	@echo "Creating test repository..."
-	@cd /tmp/rabit-test-git/repos && git init --bare test.git >/dev/null 2>&1
+	@cd $(PWD)/.test-data-git/repos && git init --bare test.git >/dev/null 2>&1
 
 	@echo "Starting test container..."
 	@docker run -d --name rabit-git-test \
 		-p 2223:22 \
-		-v /tmp/rabit-test-git/repos:/repos:ro \
+		-v $(PWD)/.test-data-git/repos:/repos:ro \
 		$(GIT_IMAGE):latest || (echo "❌ Failed to start Git server"; exit 1)
 
 	@echo "Waiting for SSH server to start..."
@@ -105,7 +105,7 @@ test-git: build-git ## Test Git server image
 	@echo "Cleaning up..."
 	@docker stop rabit-git-test >/dev/null 2>&1 || true
 	@docker rm rabit-git-test >/dev/null 2>&1 || true
-	@rm -rf /tmp/rabit-test-git
+	@rm -rf $(PWD)/.test-data-git
 
 	@echo "✓ Git server tests passed!"
 

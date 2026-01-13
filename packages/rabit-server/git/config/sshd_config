@@ -7,10 +7,11 @@ Protocol 2
 AddressFamily any
 ListenAddress 0.0.0.0
 
-# Host keys (mounted from host for persistence)
-HostKey /etc/ssh/host-keys/ssh_host_rsa_key
-HostKey /etc/ssh/host-keys/ssh_host_ed25519_key
-HostKey /etc/ssh/host-keys/ssh_host_ecdsa_key
+# Host keys - using default system keys
+# Users can mount custom keys at /etc/ssh/ssh_host_*_key if needed
+#HostKey /etc/ssh/host-keys/ssh_host_rsa_key
+#HostKey /etc/ssh/host-keys/ssh_host_ed25519_key
+#HostKey /etc/ssh/host-keys/ssh_host_ecdsa_key
 
 # Authentication
 PermitRootLogin no
@@ -21,14 +22,6 @@ ChallengeResponseAuthentication no
 
 # Only allow the git user
 AllowUsers git
-
-# Use git-shell for the git user (restricts to git commands only)
-# The git-shell-commands directory provides read-only enforcement
-Match User git
-    X11Forwarding no
-    AllowTcpForwarding no
-    AllowAgentForwarding no
-    PermitTTY no
 
 # Logging
 SyslogFacility AUTH
@@ -41,3 +34,11 @@ MaxSessions 10
 
 # Performance
 UseDNS no
+
+# Use git-shell for the git user (restricts to git commands only)
+# The git-shell-commands directory provides read-only enforcement
+Match User git
+    X11Forwarding no
+    AllowTcpForwarding no
+    AllowAgentForwarding no
+    PermitTTY no

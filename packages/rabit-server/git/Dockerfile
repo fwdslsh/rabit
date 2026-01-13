@@ -46,11 +46,8 @@ RUN echo '#!/bin/sh' > /usr/local/bin/rabit-init.sh && \
 ENV GIT_BASE_PATH=/repos \
     SSH_AUTH_METHODS=publickey
 
-# Repository volume (mount as read-only in docker run/compose)
-VOLUME ["/repos"]
-
-# SSH keys volume
-VOLUME ["/home/git/.ssh"]
+# Note: No VOLUME directives - users mount with -v flag
+# Declaring VOLUME here prevents bind mounts from working
 
 # Expose SSH port
 EXPOSE 22
@@ -60,4 +57,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD pgrep sshd || exit 1
 
 ENTRYPOINT ["/usr/local/bin/rabit-init.sh"]
-CMD ["sshd"]
+CMD ["/usr/sbin/sshd", "-D"]

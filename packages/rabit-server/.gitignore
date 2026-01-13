@@ -4,6 +4,7 @@
 
 # Docker test artifacts
 git-example/
+.test-data-*
 
 # Build artifacts
 *.log

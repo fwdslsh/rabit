@@ -86,8 +86,8 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD wget -q --spider http://localhost/health || exit 1
 
-# Volume for content (user mounts their directory here)
-VOLUME ["/data"]
+# Note: No VOLUME directive - users mount with -v flag
+# Declaring VOLUME here prevents bind mounts from working
 
 ENTRYPOINT ["/opt/rabit/entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
