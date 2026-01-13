@@ -10,6 +10,8 @@ This guide helps you publish Rabit burrows using tools and platforms you're like
 - [Publishing with GitHub](#publishing-with-github)
 - [Publishing with GitLab](#publishing-with-gitlab)
 - [Publishing with Azure DevOps](#publishing-with-azure-devops)
+- [HTTP Roots for Development and Homelab](#http-roots-for-development-and-homelab)
+- [FTP/FTPS/SFTP Access](#ftpftpssftp-access)
 - [Static Hosting](#static-hosting)
 - [Local and Network File Shares](#local-and-network-file-shares)
 - [Human-Readable Companion Files](#human-readable-companion-files)
@@ -344,6 +346,145 @@ For private repositories, use authentication:
 ```
 
 Clients will use SSH key authentication configured in their Git credentials.
+
+---
+
+## HTTP Roots for Development and Homelab
+
+For development environments, homelabs, or internal networks that may use self-signed certificates or plain HTTP, use the HTTP root descriptor:
+
+### Development Server (Plain HTTP)
+
+```json
+{
+  "manifest": {
+    "roots": [
+      {
+        "http": {
+          "base": "http://localhost:8080/docs/"
+        }
+      }
+    ]
+  }
+}
+```
+
+### Homelab with Self-Signed Certificate
+
+```json
+{
+  "manifest": {
+    "roots": [
+      {
+        "http": {
+          "base": "https://homelab.local/docs/",
+          "insecure": true
+        }
+      }
+    ]
+  }
+}
+```
+
+### Internal Network Server
+
+```json
+{
+  "manifest": {
+    "roots": [
+      {
+        "git": {
+          "remote": "git@internal.company.com:docs.git",
+          "ref": "refs/heads/main"
+        }
+      },
+      {
+        "http": {
+          "base": "https://docs.internal.company.com/",
+          "insecure": true
+        }
+      }
+    ]
+  }
+}
+```
+
+**Security Note:** The `insecure` option should only be used in trusted environments. It allows the client to accept invalid or self-signed TLS certificates.
+
+---
+
+## FTP/FTPS/SFTP Access
+
+For legacy systems or environments that use FTP-based protocols, RBT supports FTP root descriptors:
+
+### Plain FTP
+
+```json
+{
+  "manifest": {
+    "roots": [
+      {
+        "ftp": {
+          "url": "ftp://docs.example.com/public/"
+        }
+      }
+    ]
+  }
+}
+```
+
+### FTPS (FTP over TLS)
+
+```json
+{
+  "manifest": {
+    "roots": [
+      {
+        "ftp": {
+          "url": "ftps://secure.example.com/docs/",
+          "protocol": "ftps"
+        }
+      }
+    ]
+  }
+}
+```
+
+### SFTP (SSH File Transfer)
+
+```json
+{
+  "manifest": {
+    "roots": [
+      {
+        "ftp": {
+          "url": "sftp://files.example.com/docs/",
+          "protocol": "sftp"
+        }
+      }
+    ]
+  }
+}
+```
+
+### FTP with Insecure Certificate
+
+```json
+{
+  "manifest": {
+    "roots": [
+      {
+        "ftp": {
+          "url": "ftps://internal.example.com/docs/",
+          "insecure": true
+        }
+      }
+    ]
+  }
+}
+```
+
+**Note:** The client auto-detects the protocol from the URL scheme (`ftp://`, `ftps://`, `sftp://`). Use the `protocol` field to force a specific protocol when the URL scheme doesn't match your intended transport.
 
 ---
 

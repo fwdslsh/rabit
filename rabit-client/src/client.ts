@@ -10,6 +10,8 @@ import type {
   Root,
   GitRoot,
   FileRoot,
+  HttpRoot,
+  FtpRoot,
   TraversalOptions,
   TraversalResult,
   FetchResult,
@@ -21,7 +23,10 @@ import type {
 import {
   isGitRoot,
   isHttpsRoot,
+  isHttpRoot,
+  isFtpRoot,
   isFileRoot,
+  isInsecureRoot,
   getBaseUrl,
   getFilePath,
 } from './types';
@@ -267,7 +272,8 @@ export class RabitClient {
   /**
    * Fetch burrow manifest from URL, file path, or Root descriptor
    * Implements root selection and fallback per §5.3
-   * Priority: File roots > Git roots > HTTPS roots
+   * Priority: File roots > Git roots > HTTPS/HTTP roots
+   * @see Specification §5.2, §5.3
    */
   async fetchBurrow(urlOrRoot: string | Root): Promise<FetchResult<BurrowManifest>> {
     // Handle string URL or path
@@ -294,9 +300,22 @@ export class RabitClient {
       if (result.ok) return result;
     }
 
-    // Try HTTPS root (fallback for simplicity)
+    // Try HTTPS root
     if (isHttpsRoot(root)) {
       return this.fetchBurrowFromUrl(root.https.base);
+    }
+
+    // Try HTTP root (§5.2.3 - for dev/homelab/internal networks)
+    if (isHttpRoot(root)) {
+      return this.fetchBurrowFromUrl(root.http.base, root.http.insecure);
+    }
+
+    // FTP roots (§5.2.4) - not yet implemented
+    if (isFtpRoot(root)) {
+      return {
+        ok: false,
+        error: createError('transport_error', 'FTP/FTPS/SFTP transport not yet implemented'),
+      };
     }
 
     return {
@@ -414,9 +433,11 @@ export class RabitClient {
   }
 
   /**
-   * Fetch burrow manifest from HTTPS URL
+   * Fetch burrow manifest from HTTP/HTTPS URL
+   * @param url - The URL to fetch from
+   * @param insecure - If true, accept invalid/self-signed TLS certificates (§5.4.2)
    */
-  private async fetchBurrowFromUrl(url: string): Promise<FetchResult<BurrowManifest>> {
+  private async fetchBurrowFromUrl(url: string, insecure = false): Promise<FetchResult<BurrowManifest>> {
     const burrowUrl = url.endsWith('.burrow.json')
       ? url
       : `${url.replace(/\/$/, '')}/.burrow.json`;
@@ -600,7 +621,8 @@ export class RabitClient {
 
   /**
    * Fetch entry from a specific root
-   * Supports File, Git, and HTTPS roots
+   * Supports File, Git, HTTPS, HTTP, and FTP roots
+   * @see Specification §5.2
    */
   private async fetchEntryFromRoot(
     burrow: BurrowManifest,
@@ -616,8 +638,19 @@ export class RabitClient {
       return this.fetchEntryFromHttps(root.https.base, entry, verifyRid);
     }
 
+    if (isHttpRoot(root)) {
+      return this.fetchEntryFromHttps(root.http.base, entry, verifyRid, root.http.insecure);
+    }
+
     if (isGitRoot(root)) {
       return this.fetchEntryFromGit(root.git, entry, verifyRid);
+    }
+
+    if (isFtpRoot(root)) {
+      return {
+        ok: false,
+        error: createError('transport_error', 'FTP/FTPS/SFTP transport not yet implemented', entry.id, entry.href),
+      };
     }
 
     return {
@@ -708,12 +741,17 @@ export class RabitClient {
   }
 
   /**
-   * Fetch entry via HTTPS
+   * Fetch entry via HTTP/HTTPS
+   * @param baseUrl - Base URL for the burrow
+   * @param entry - Entry to fetch
+   * @param verifyRid - Whether to verify content against RID
+   * @param insecure - If true, accept invalid/self-signed TLS certificates (§5.4.2)
    */
   private async fetchEntryFromHttps(
     baseUrl: string,
     entry: Entry,
-    verifyRid: boolean
+    verifyRid: boolean,
+    insecure = false
   ): Promise<FetchResult<Uint8Array>> {
     try {
       const entryUrl = new URL(entry.href, baseUrl).toString();

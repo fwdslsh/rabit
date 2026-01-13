@@ -56,7 +56,7 @@
   "$defs": {
     "root": {
       "type": "object",
-      "description": "Root descriptor (Git, HTTPS, or File)",
+      "description": "Root descriptor (Git, HTTPS, HTTP, FTP, or File)",
       "oneOf": [
         {
           "type": "object",
@@ -97,6 +97,58 @@
                   "format": "uri",
                   "description": "HTTPS URL to the burrow root (must end with /)",
                   "pattern": "^https://.+/$"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["http"],
+          "properties": {
+            "http": {
+              "type": "object",
+              "required": ["base"],
+              "description": "HTTP/HTTPS root for dev environments, homelabs, and internal networks",
+              "properties": {
+                "base": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "HTTP or HTTPS URL to the burrow root (must end with /)",
+                  "pattern": "^https?://.+/$"
+                },
+                "insecure": {
+                  "type": "boolean",
+                  "description": "If true, accept invalid/self-signed TLS certificates (default: false)",
+                  "default": false
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["ftp"],
+          "properties": {
+            "ftp": {
+              "type": "object",
+              "required": ["url"],
+              "description": "FTP/FTPS/SFTP root for file transfer protocol access",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "description": "FTP/FTPS/SFTP URL to the burrow root (must end with /)",
+                  "pattern": "^(ftp|ftps|sftp)://.+/$"
+                },
+                "protocol": {
+                  "type": "string",
+                  "enum": ["ftp", "ftps", "sftp"],
+                  "description": "Force protocol (auto-detected from URL scheme if omitted)"
+                },
+                "insecure": {
+                  "type": "boolean",
+                  "description": "If true, accept invalid TLS certificates for FTPS (default: false)",
+                  "default": false
                 }
               }
             }

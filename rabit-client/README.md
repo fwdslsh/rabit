@@ -12,7 +12,10 @@ A production-ready TypeScript/Bun client for traversing and consuming Rabit burr
 ✅ **Full RBT Client Conformance** (Specification §3.2.2)
 - ✅ Git transport support (HTTPS and SSH remotes)
 - ✅ HTTPS static hosting support
+- ✅ HTTP support with self-signed certificate option (for dev/homelab)
+- ✅ FTP/FTPS/SFTP protocol support (specification support, transport pending)
 - ✅ File path support (local, SMB/CIFS, NFS via native OS access)
+- ✅ Automatic transport protocol detection
 - ✅ RID verification for content integrity
 - ✅ Automatic mirror fallback on failure
 - ✅ Cycle detection during traversal
@@ -143,6 +146,14 @@ const result = await fetchBurrow({
 const result = await fetchBurrow({
   https: {
     base: 'https://example.org/burrow/',
+  },
+});
+
+// From HTTP root (dev/homelab with self-signed cert)
+const result = await fetchBurrow({
+  http: {
+    base: 'https://homelab.local/docs/',
+    insecure: true,  // Accept self-signed certificates
   },
 });
 
@@ -547,10 +558,14 @@ This project is licensed under [CC-BY-4.0](LICENSE).
 
 ## Specification Compliance
 
-This implementation conforms to:
+This implementation conforms to draft-rabit-rbt-04:
 - ✅ RBT Client (Full) - Specification §3.2.2
-- ✅ Git Transport - Specification §5.1
-- ✅ File Transport (local/SMB/NFS) - Specification §5.2.3
+- ✅ Git Transport - Specification §5.2.1
+- ✅ HTTPS Transport - Specification §5.2.2
+- ✅ HTTP Transport (with insecure option) - Specification §5.2.3
+- ⚠️ FTP/FTPS/SFTP Transport - Specification §5.2.4 (not yet implemented)
+- ✅ File Transport (local/SMB/NFS) - Specification §5.2.5
+- ✅ Transport Protocol Detection - Specification §5.4
 - ✅ RID Verification - Specification §7.3, §7.4
 - ✅ Traversal Algorithm - Specification §8
 - ✅ Error Handling - Specification §9

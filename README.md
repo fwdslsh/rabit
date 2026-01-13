@@ -124,8 +124,14 @@ Publishing a burrow is simple:
 Rabit is an early-stage specification. The current draft (0.2) defines the core mechanics:
 
 - Manifest and registry formats
-- Git and HTTPS transport
+- Multiple transport protocols:
+  - Git (HTTPS and SSH remotes)
+  - HTTPS (static hosting)
+  - HTTP (for development/homelab with self-signed cert support)
+  - FTP/FTPS/SFTP (for legacy and enterprise systems)
+  - File system (local paths, SMB/NFS network shares)
 - Content-addressed identity
+- Automatic transport protocol detection
 - Traversal algorithms
 - Agent instruction hints
 

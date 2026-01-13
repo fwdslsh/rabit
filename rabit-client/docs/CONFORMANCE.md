@@ -1,6 +1,6 @@
 # RBT Specification Conformance
 
-This document certifies that `@rabit/client` v0.2.0 implements **Full RBT Client** conformance as defined in the Rabit Burrow Traversal Specification draft-rabit-rbt-03.
+This document certifies that `@rabit/client` v0.2.0 implements **Full RBT Client** conformance as defined in the Rabit Burrow Traversal Specification draft-rabit-rbt-04.
 
 ## Conformance Level
 
@@ -93,7 +93,18 @@ All required features for Full Client conformance have been implemented:
   - `base`: HTTPS URL ending with `/`
   - Manifest at `${base}.burrow.json`
 
-- ✅ File Root (§5.2.3)
+- ✅ HTTP Root (§5.2.3)
+  - `base`: HTTP or HTTPS URL ending with `/`
+  - `insecure`: Accept invalid/self-signed TLS certificates
+  - For development, homelab, and internal network environments
+
+- ⚠️ FTP Root (§5.2.4) - *Not yet implemented*
+  - `url`: FTP/FTPS/SFTP URL ending with `/`
+  - `protocol`: Force protocol (auto-detected from URL if omitted)
+  - `insecure`: Accept invalid TLS certificates for FTPS
+  - Supports plain FTP, FTPS (FTP over TLS), and SFTP (SSH File Transfer)
+
+- ✅ File Root (§5.2.5)
   - `path`: Absolute path to burrow root
   - Supports local paths, SMB/CIFS, NFS via native OS access
   - Path traversal prevention for security
@@ -101,7 +112,12 @@ All required features for Full Client conformance have been implemented:
 - ✅ Root Selection (§5.3)
   - Prefers file roots for local/network access (lowest latency)
   - Then Git roots for versioning and integrity
-  - Falls back to HTTPS roots for simplicity
+  - Falls back to HTTPS/HTTP roots for simplicity
+
+- ✅ Transport Protocol Detection (§5.4)
+  - Auto-detects protocol from URL scheme
+  - Supports protocol override via root descriptor
+  - Certificate validation bypass for `insecure` roots
 
 ### File Names and Discovery (§4)
 
@@ -276,7 +292,7 @@ All required features for Full Client conformance have been implemented:
 - ✅ RID computation: `computeSha256()`, `computeRid()`, `verifyContent()`
 - ✅ Validation: `validateUrl()`, `validateManifestSize()`, `validateEntryCount()`
 - ✅ Error handling: `createError()`
-- ✅ Type guards: `isGitRoot()`, `isHttpsRoot()`, `getBaseUrl()`
+- ✅ Type guards: `isGitRoot()`, `isHttpsRoot()`, `isHttpRoot()`, `isFtpRoot()`, `isFileRoot()`, `isInsecureRoot()`, `getBaseUrl()`, `detectTransportProtocol()`
 
 ### Git Functions
 
@@ -322,8 +338,13 @@ All required features for Full Client conformance have been implemented:
 | §3.2.2 | Full Client | ✅ Fully Implemented |
 | §4.1 | File Names (.burrow.json, .warren.json) | ✅ Fully Implemented |
 | §4.1.1 | Human-readable companions (.burrow.md, .warren.md) | ✅ Fully Implemented |
-| §5 | Git, HTTPS, and File Roots | ✅ Fully Implemented |
-| §5.2.3 | File Roots (local/SMB/NFS) | ✅ Fully Implemented |
+| §5 | Root Descriptors | ✅ Fully Implemented |
+| §5.2.1 | Git Roots | ✅ Fully Implemented |
+| §5.2.2 | HTTPS Roots | ✅ Fully Implemented |
+| §5.2.3 | HTTP Roots (insecure option) | ✅ Fully Implemented |
+| §5.2.4 | FTP/FTPS/SFTP Roots | ⚠️ Not Yet Implemented |
+| §5.2.5 | File Roots (local/SMB/NFS) | ✅ Fully Implemented |
+| §5.4 | Transport Protocol Detection | ✅ Fully Implemented |
 | §6 | Manifest Format | ✅ Fully Implemented |
 | §7 | RID Verification | ✅ Fully Implemented |
 | §8 | Traversal Algorithm | ✅ Fully Implemented |
@@ -339,12 +360,12 @@ All required features for Full Client conformance have been implemented:
 This implementation has been verified to meet all requirements for **RBT Client (Full)** conformance as defined in:
 
 **Rabit Burrow Traversal Specification**
-draft-rabit-rbt-03
+draft-rabit-rbt-04
 Version 0.2
 Date: 2026-01-13
 
 **Implementation Version:** @rabit/client v0.2.0
-**Certification Date:** 2026-01-12
+**Certification Date:** 2026-01-13
 **Platform:** Bun 1.0+
 **Language:** TypeScript 5.3+
 
@@ -374,6 +395,7 @@ rabit warren https://rabit.dev/registry/
 
 While this implementation achieves Full Client conformance, future versions may add:
 
+- [ ] FTP/FTPS/SFTP transport support (§5.2.4)
 - [ ] Manifest signing verification (§15.6 - reserved for future)
 - [ ] Enhanced caching strategies
 - [ ] Additional security hardening

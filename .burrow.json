@@ -20,13 +20,14 @@
       "license": "LICENSE"
     },
     "agents": {
-      "context": "This is the official Rabit project repository containing the RBT specification (draft-rabit-rbt-03), a reference client implementation, a Docker-based server with read-only Git server example, and example burrows. The spec now supports file paths (local, SMB, NFS) and .burrow.md companion files.",
+      "context": "This is the official Rabit project repository containing the RBT specification (draft-rabit-rbt-04), a reference client implementation, a Docker-based server with read-only Git server example, and example burrows. The spec supports multiple transport protocols: Git, HTTPS, HTTP (with insecure option for dev/homelab), FTP/FTPS/SFTP, and file paths (local, SMB, NFS). It also supports .burrow.md companion files.",
       "entryPoint": "readme",
       "hints": [
         "The specification document (rabit-spec-draft-2026-01-12.md) contains normative requirements marked with RFC 2119 keywords",
-        "The rabit-client directory contains a full TypeScript/Bun client implementation with Git, HTTPS, and file path support",
+        "The rabit-client directory contains a full TypeScript/Bun client implementation with Git, HTTPS, HTTP, and file path support",
         "The rabit-server directory contains a Docker-based server implementation with a read-only Git server example",
-        "The rabit-examples directory contains example burrows with .burrow.md companion files"
+        "The rabit-examples directory contains example burrows with .burrow.md companion files",
+        "Transport protocol auto-detection from URL schemes with override capability"
       ],
       "ignore": ["*.git*"]
     }
