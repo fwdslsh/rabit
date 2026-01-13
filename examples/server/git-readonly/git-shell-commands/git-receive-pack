@@ -1,7 +1,0 @@
-#!/bin/sh
-# Block git-receive-pack (push operations)
-# This enforces read-only access to repositories
-
-printf '%s\n' "fatal: Push access is disabled on this read-only server." >&2
-printf '%s\n' "This Rabit Git server only allows clone and fetch operations." >&2
-exit 1
