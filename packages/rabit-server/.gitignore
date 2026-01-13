@@ -1,0 +1,9 @@
+# Environment files with secrets
+.env
+.env.local
+
+# Docker test artifacts
+git-example/
+
+# Build artifacts
+*.log

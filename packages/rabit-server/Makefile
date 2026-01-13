@@ -8,12 +8,26 @@ VERSION ?= 0.3.0
 NGINX_IMAGE ?= fwdslsh/rabit-server-nginx
 GIT_IMAGE ?= fwdslsh/rabit-server-git
 
-.PHONY: help build build-http build-git test test-http test-git publish publish-http publish-git clean
+.PHONY: help login build build-nginx build-git test test-nginx test-git publish publish-nginx publish-git clean
 
 help: ## Show this help
 	@echo "Rabit Server Build System"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+login: ## Login to Docker Hub (uses env vars, .env file, or interactive)
+	@echo "Logging in to Docker Hub..."
+	@if [ -n "$$DOCKERHUB_USERNAME" ] && [ -n "$$DOCKERHUB_TOKEN" ]; then \
+		echo "Using credentials from environment variables (GitHub Actions)"; \
+		echo $$DOCKERHUB_TOKEN | docker login -u $$DOCKERHUB_USERNAME --password-stdin; \
+	elif [ -f .env ]; then \
+		echo "Loading credentials from .env file (local)"; \
+		export $$(cat .env | grep -v '^#' | xargs) && echo $$DOCKERHUB_TOKEN | docker login -u $$DOCKERHUB_USERNAME --password-stdin; \
+	else \
+		echo "No credentials found. Running interactive login..."; \
+		docker login; \
+	fi
+	@echo "✓ Logged in to Docker Hub"
 
 build: build-nginx build-git ## Build both images
 
@@ -95,7 +109,7 @@ test-git: build-git ## Test Git server image
 
 	@echo "✓ Git server tests passed!"
 
-publish: publish-nginx publish-git ## Publish both images to Docker Hub
+publish: login publish-nginx publish-git ## Publish both images to Docker Hub
 
 publish-nginx: build-nginx test-nginx ## Publish Nginx server to Docker Hub
 	@echo "Publishing Nginx server to Docker Hub..."

@@ -1,0 +1,79 @@
+name: Publish Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set version from tag or use latest
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Extract version from tag (v0.3.0 -> 0.3.0)
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Publishing version: $VERSION"
+          else
+            # Use default version from Makefile
+            VERSION=$(grep '^VERSION ?=' packages/rabit-server/Makefile | cut -d'=' -f2 | tr -d ' ')
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Publishing default version: $VERSION (from Makefile)"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          cd packages/rabit-server
+          make login
+
+      - name: Build and test images
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cd packages/rabit-server
+          make test
+
+      - name: Publish to Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cd packages/rabit-server
+          make publish-nginx
+          make publish-git
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          echo "## ✅ Published Docker Images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Nginx Server" >> $GITHUB_STEP_SUMMARY
+          echo "- \`fwdslsh/rabit-server-nginx:$VERSION\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`fwdslsh/rabit-server-nginx:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Git Server" >> $GITHUB_STEP_SUMMARY
+          echo "- \`fwdslsh/rabit-server-git:$VERSION\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`fwdslsh/rabit-server-git:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Pull Commands" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull fwdslsh/rabit-server-nginx:$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull fwdslsh/rabit-server-git:$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
