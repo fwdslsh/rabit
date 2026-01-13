@@ -153,7 +153,7 @@ ENTRIES=$(scan_directory "$DATA_DIR" 1)
 # Build burrow JSON
 cat <<EOF
 {
-  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
   "kind": "burrow",
   "title": "$BURROW_TITLE",
   "description": "$BURROW_DESCRIPTION",

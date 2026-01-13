@@ -65,8 +65,15 @@ examples/
 │           ├── scaling-million-users.md
 │           ├── introducing-acme-2.md
 │           └── kubernetes-journey.md
-└── client/                  # Bun.js CLI client
-    ├── package.json
+└── client/                  # CLI client implementations
+    ├── bash/                # Bash examples using curl/jq
+    │   ├── README.md        # Bash examples guide
+    │   ├── 01-fetch-burrow.sh
+    │   ├── 02-list-entries.sh
+    │   ├── 03-fetch-entry.sh
+    │   ├── 04-search-entries.sh
+    │   └── 05-discover-burrow.sh
+    ├── package.json         # TypeScript client
     ├── types.ts             # TypeScript types for RBT
     ├── rabit.ts             # Client library
     └── cli.ts               # CLI commands
@@ -108,6 +115,26 @@ Each burrow includes a `.burrow.md` file that provides:
 - Links to the machine-readable `.burrow.json`
 
 These companion files make burrows browsable via GitHub, file managers, or any Markdown viewer.
+
+### Bash Client Examples
+
+The `client/bash/` directory contains **simple, educational examples** for browsing burrows using standard Unix tools (`curl` and `jq`). These examples implement the Rabit v0.4.0 specification in pure bash:
+
+- **01-fetch-burrow.sh** - Fetch and display a burrow manifest
+- **02-list-entries.sh** - List entries in a formatted table
+- **03-fetch-entry.sh** - Fetch and display a specific entry's content
+- **04-search-entries.sh** - Search entries by title or summary
+- **05-discover-burrow.sh** - Auto-discover burrows using the discovery algorithm
+
+These examples are ideal for:
+- **Learning** how the Rabit specification works
+- **Quick exploration** of burrows without installing dependencies
+- **Scripting** and automation on systems with only bash/curl/jq
+- **Understanding** the URI resolution and discovery algorithms
+
+For production use or advanced features (caching, authentication, multiple transports), use the [TypeScript client](./client/README.md).
+
+See [client/bash/README.md](./client/bash/README.md) for complete documentation and examples.
 
 ## Quick Start
 
