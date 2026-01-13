@@ -3,3 +3,4 @@ ralph*
 .ralph*
 .drafts/
 node_modules/
+packages/rabit-client/dist/

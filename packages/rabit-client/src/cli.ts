@@ -696,12 +696,42 @@ async function cmdMap(inputDir: string, options: {
     }
   }
 
+  // Helper: Load existing burrow if it exists
+  async function loadExistingBurrow(filePath: string): Promise<Burrow | null> {
+    try {
+      const file = Bun.file(filePath);
+      if (await file.exists()) {
+        const content = await file.text();
+        return JSON.parse(content) as Burrow;
+      }
+    } catch {
+      // File doesn't exist or isn't valid JSON
+    }
+    return null;
+  }
+
+  // Helper: Merge entry data from existing burrow
+  function mergeEntry(newEntry: Entry, existingEntry: Entry | undefined): Entry {
+    if (!existingEntry) return newEntry;
+
+    // Preserve user-customizable fields from existing entry
+    return {
+      ...newEntry,
+      // Keep existing custom fields if present
+      ...(existingEntry.title && !newEntry.title ? { title: existingEntry.title } : {}),
+      ...(existingEntry.summary ? { summary: existingEntry.summary } : {}),
+      ...(existingEntry.tags ? { tags: existingEntry.tags } : {}),
+      ...(existingEntry.metadata ? { metadata: existingEntry.metadata } : {}),
+    };
+  }
+
   // Scan directory and create burrow with smart consolidation
   // Consolidates directories with < 10 entries into parent (except root)
   async function scanDirectoryAndCreateBurrow(
     dir: string,
     depth: number,
-    rootDir: string
+    rootDir: string,
+    existingEntriesMap?: Map<string, Entry>
   ): Promise<Entry[]> {
     if (depth > maxDepth) return [];
 
@@ -733,23 +763,36 @@ async function cmdMap(inputDir: string, options: {
               if (shouldCreateSeparateBurrow) {
                 // Create .burrow.json in the subdirectory
                 const subBurrowPath = join(itemPath, '.burrow.json');
-                const subEntries = await scanDirectoryAndCreateBurrow(itemPath, depth + 1, itemPath);
+
+                // Load existing sub-burrow if it exists to preserve metadata
+                const existingSubBurrow = await loadExistingBurrow(subBurrowPath);
+                const existingSubEntriesMap = new Map(
+                  existingSubBurrow?.entries.map(e => [e.id, e]) || []
+                );
+
+                const subEntries = await scanDirectoryAndCreateBurrow(itemPath, depth + 1, itemPath, existingSubEntriesMap);
 
                 const subBurrow: Burrow = {
                   specVersion: 'fwdslsh.dev/rabit/schemas/0.4.0/burrow',
                   kind: 'burrow',
-                  title: item,
-                  description: `Auto-generated burrow for ${item}`,
+                  title: existingSubBurrow?.title || item,
+                  description: existingSubBurrow?.description || `Auto-generated burrow for ${item}`,
                   updated: new Date().toISOString(),
                   entries: subEntries,
                 };
+
+                // Preserve existing metadata if present
+                if (existingSubBurrow?.baseUri) subBurrow.baseUri = existingSubBurrow.baseUri;
+                if (existingSubBurrow?.metadata) subBurrow.metadata = existingSubBurrow.metadata;
+                if (existingSubBurrow?.repo) subBurrow.repo = existingSubBurrow.repo;
+                if (existingSubBurrow?.agents) subBurrow.agents = existingSubBurrow.agents;
 
                 // Write the sub-burrow
                 await Bun.write(subBurrowPath, JSON.stringify(subBurrow, null, 2) + '\n');
                 log(`  Created: ${relative(targetDir, subBurrowPath)} (${subEntries.length} entries)`);
 
                 // Reference it as a burrow entry
-                const entry: Entry = {
+                const newEntry: Entry = {
                   id: generateId(item),
                   kind: 'burrow',
                   uri: relativePath + '/',
@@ -757,38 +800,46 @@ async function cmdMap(inputDir: string, options: {
                   summary: `Burrow containing ${subEntries.length} entries`,
                   priority: getPriority(item, true),
                 };
-                entries.push(entry);
+
+                const entryId = generateId(item);
+                const mergedEntry = mergeEntry(newEntry, existingEntriesMap?.get(entryId));
+                entries.push(mergedEntry);
               } else {
                 // Consolidate: include entries from small directory directly in parent
-                const subEntries = await scanDirectoryAndCreateBurrow(itemPath, depth + 1, rootDir);
+                const subEntries = await scanDirectoryAndCreateBurrow(itemPath, depth + 1, rootDir, existingEntriesMap);
 
                 // Add entries from subdirectory with path prefix to avoid ID collisions
                 for (const subEntry of subEntries) {
+                  const consolidatedId = `${generateId(item)}-${subEntry.id}`;
                   const consolidatedEntry: Entry = {
                     ...subEntry,
                     // Prefix ID with directory name to avoid collisions
-                    id: `${generateId(item)}-${subEntry.id}`,
+                    id: consolidatedId,
                   };
-                  entries.push(consolidatedEntry);
+                  const mergedConsolidated = mergeEntry(consolidatedEntry, existingEntriesMap?.get(consolidatedId));
+                  entries.push(mergedConsolidated);
                 }
 
                 log(`  Consolidated: ${item}/ (${subEntries.length} entries merged into parent)`);
               }
             } else {
               // At max depth, just reference as dir
-              const entry: Entry = {
-                id: generateId(item),
+              const entryId = generateId(item);
+              const newEntry: Entry = {
+                id: entryId,
                 kind: 'dir',
                 uri: relativePath + '/',
                 title: item,
                 priority: getPriority(item, true),
               };
-              entries.push(entry);
+              const mergedEntry = mergeEntry(newEntry, existingEntriesMap?.get(entryId));
+              entries.push(mergedEntry);
             }
           } else {
             // For files, add as file entry
-            const entry: Entry = {
-              id: generateId(item),
+            const entryId = generateId(item);
+            const newEntry: Entry = {
+              id: entryId,
               kind: 'file',
               uri: relativePath,
               title: item,
@@ -796,7 +847,8 @@ async function cmdMap(inputDir: string, options: {
               sizeBytes: stats.size,
               priority: getPriority(item, false),
             };
-            entries.push(entry);
+            const mergedEntry = mergeEntry(newEntry, existingEntriesMap?.get(entryId));
+            entries.push(mergedEntry);
           }
         } catch (err) {
           warning(`Failed to process ${item}: ${err}`);
@@ -811,20 +863,33 @@ async function cmdMap(inputDir: string, options: {
 
   // Generate burrow
   try {
-    const entries = await scanDirectoryAndCreateBurrow(targetDir, 0, targetDir);
+    // Load existing burrow if it exists to preserve metadata
+    const existingBurrow = await loadExistingBurrow(outputFile);
+    const existingEntriesMap = new Map(
+      existingBurrow?.entries.map(e => [e.id, e]) || []
+    );
+
+    const entries = await scanDirectoryAndCreateBurrow(targetDir, 0, targetDir, existingEntriesMap);
 
     const burrow: Burrow = {
       specVersion: 'fwdslsh.dev/rabit/schemas/0.4.0/burrow',
       kind: 'burrow',
-      title: options.title || pathBasename(targetDir),
-      description: options.description || `Auto-generated burrow from ${targetDir}`,
+      title: options.title || existingBurrow?.title || pathBasename(targetDir),
+      description: options.description || existingBurrow?.description || `Auto-generated burrow from ${targetDir}`,
       updated: new Date().toISOString(),
       entries,
     };
 
     if (options.baseUri) {
       burrow.baseUri = options.baseUri;
+    } else if (existingBurrow?.baseUri) {
+      burrow.baseUri = existingBurrow.baseUri;
     }
+
+    // Preserve existing metadata if present
+    if (existingBurrow?.metadata) burrow.metadata = existingBurrow.metadata;
+    if (existingBurrow?.repo) burrow.repo = existingBurrow.repo;
+    if (existingBurrow?.agents) burrow.agents = existingBurrow.agents;
 
     // Write root burrow to file
     await Bun.write(outputFile, JSON.stringify(burrow, null, 2) + '\n');
