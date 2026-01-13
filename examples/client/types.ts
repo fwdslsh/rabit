@@ -1,46 +1,25 @@
 /**
- * Rabit Burrow Traversal (RBT) Types
- * Based on draft-rabit-rbt-02
+ * Rabit Burrow & Warren Types (Example Client)
+ * Based on Rabit Specification v0.3.0
  */
 
-// Root descriptors
-export interface GitRoot {
-  git: {
-    remote: string;
-    ref: string;
-    path?: string;
-  };
-}
+// Entry kind
+export type EntryKind = 'file' | 'dir' | 'burrow' | 'link';
 
-export interface HttpsRoot {
-  https: {
-    base: string;
-    auth?: 'mtls' | 'bearer';
-  };
-}
-
-export type Root = GitRoot | HttpsRoot;
-
-// Entry in a burrow manifest
+// Entry in a burrow
 export interface Entry {
   id: string;
-  rid: string;
-  href: string;
-  type: string;
-  rel: string[];
+  kind: EntryKind;
+  uri: string;
   title?: string;
   summary?: string;
-  hash?: string;
-  size?: number;
+  path?: string;
+  mediaType?: string;
+  sizeBytes?: number;
   modified?: string;
-  lang?: string;
-  links?: string[];
-  children?: {
-    href: string;
-    offset: number;
-    limit: number;
-    total?: number;
-  };
+  sha256?: string;
+  tags?: string[];
+  priority?: number;
 }
 
 // Agent instructions
@@ -48,8 +27,6 @@ export interface AgentInstructions {
   context?: string;
   entryPoint?: string;
   hints?: string[];
-  ignore?: string[];
-  permissions?: Record<string, unknown>;
 }
 
 // Repository metadata
@@ -58,73 +35,79 @@ export interface RepoMetadata {
   license?: string;
   contributing?: string;
   changelog?: string;
-  security?: string;
 }
 
-// Burrow manifest (.burrow.json)
-export interface BurrowManifest {
-  rbt: string;
+// Burrow (.burrow.json)
+export interface Burrow {
   $schema?: string;
-  manifest: {
-    title: string;
-    description?: string;
-    updated: string;
-    rid: string;
-    roots: Root[];
-    mirrors?: Root[];
-    repo?: RepoMetadata;
-    agents?: AgentInstructions;
-    auth?: {
-      required?: boolean;
-      documentation?: string;
-    };
-    cache?: {
-      maxAge?: number;
-      staleWhileRevalidate?: number;
-    };
-  };
-  entries: Entry[];
-}
-
-// Warren entry
-export interface WarrenEntry {
-  name: string;
-  title: string;
-  summary: string;
-  roots: Root[];
-  rid?: string;
-  tags?: string[];
+  specVersion: string;
+  kind: 'burrow';
+  title?: string;
+  description?: string;
   updated?: string;
+  baseUri?: string;
+  repo?: RepoMetadata;
+  agents?: AgentInstructions;
+  entries: Entry[];
+  extensions?: Record<string, unknown>;
 }
 
-// Warren registry (.warren.json)
-export interface WarrenRegistry {
-  rbt: string;
+// Burrow reference in warren
+export interface BurrowReference {
+  id: string;
+  uri: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
+  priority?: number;
+}
+
+// Warren reference (federation)
+export interface WarrenReference {
+  id: string;
+  uri: string;
+  title?: string;
+  description?: string;
+}
+
+// Warren (.warren.json)
+export interface Warren {
   $schema?: string;
-  registry: {
-    title: string;
-    description?: string;
-    updated: string;
-    rid?: string;
-  };
-  entries: WarrenEntry[];
+  specVersion: string;
+  kind: 'warren';
+  title?: string;
+  description?: string;
+  updated?: string;
+  baseUri?: string;
+  burrows?: BurrowReference[];
+  warrens?: WarrenReference[];
+  extensions?: Record<string, unknown>;
 }
 
-// Helper type guards
-export function isGitRoot(root: Root): root is GitRoot {
-  return 'git' in root;
+// Type guards
+export function isBurrow(doc: Burrow | Warren): doc is Burrow {
+  return doc.kind === 'burrow';
 }
 
-export function isHttpsRoot(root: Root): root is HttpsRoot {
-  return 'https' in root;
+export function isWarren(doc: Burrow | Warren): doc is Warren {
+  return doc.kind === 'warren';
 }
 
-// Get base URL from a root
-export function getBaseUrl(root: Root): string | null {
-  if (isHttpsRoot(root)) {
-    return root.https.base;
+// Helper to resolve URI against base
+export function resolveUri(base: string | undefined, relative: string): string {
+  if (!base) return relative;
+  if (relative.startsWith('http://') || relative.startsWith('https://') || relative.startsWith('file://')) {
+    return relative;
   }
-  // For Git roots, we'd need to clone or use a Git hosting API
-  // This POC only supports HTTPS roots
-  return null;
+  const baseWithSlash = base.endsWith('/') ? base : base + '/';
+  return baseWithSlash + relative;
+}
+
+// Sort entries by priority
+export function sortByPriority(entries: Entry[]): Entry[] {
+  return [...entries].sort((a, b) => {
+    const priorityA = a.priority ?? 0;
+    const priorityB = b.priority ?? 0;
+    return priorityB - priorityA;
+  });
 }

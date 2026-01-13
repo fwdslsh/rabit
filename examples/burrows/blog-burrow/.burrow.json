@@ -1,0 +1,74 @@
+{
+  "$schema": "../../../schemas/burrow.schema.json",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "kind": "burrow",
+  "title": "Acme Engineering Blog",
+  "description": "Example blog burrow demonstrating the Rabit specification.",
+  "updated": "2026-01-13T00:00:00Z",
+  "repo": {
+    "readme": "README.md"
+  },
+  "agents": {
+    "context": "Engineering blog for the fictional Acme team. Contains technical posts about scaling, product announcements, and infrastructure.",
+    "entryPoint": "readme",
+    "hints": [
+      "Posts are in chronological order by priority",
+      "Technical deep-dives have the 'technical' tag"
+    ]
+  },
+  "entries": [
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "README.md",
+      "title": "Acme Engineering Blog",
+      "summary": "Welcome to the Acme engineering team's blog.",
+      "mediaType": "text/markdown",
+      "priority": 100,
+      "tags": ["start-here"]
+    },
+    {
+      "id": "posts",
+      "kind": "dir",
+      "uri": "posts/",
+      "title": "Blog Posts",
+      "summary": "All blog posts.",
+      "priority": 90,
+      "tags": ["posts"]
+    },
+    {
+      "id": "introducing-acme-2",
+      "kind": "file",
+      "uri": "posts/introducing-acme-2.md",
+      "path": "posts/introducing-acme-2.md",
+      "title": "Introducing Acme 2.0",
+      "summary": "Announcing the next generation of the Acme Platform.",
+      "mediaType": "text/markdown",
+      "priority": 85,
+      "tags": ["posts", "announcement"]
+    },
+    {
+      "id": "scaling-million-users",
+      "kind": "file",
+      "uri": "posts/scaling-million-users.md",
+      "path": "posts/scaling-million-users.md",
+      "title": "Scaling to a Million Users",
+      "summary": "How we scaled our infrastructure to handle a million concurrent users.",
+      "mediaType": "text/markdown",
+      "priority": 80,
+      "tags": ["posts", "technical", "scaling"]
+    },
+    {
+      "id": "kubernetes-journey",
+      "kind": "file",
+      "uri": "posts/kubernetes-journey.md",
+      "path": "posts/kubernetes-journey.md",
+      "title": "Our Kubernetes Journey",
+      "summary": "Lessons learned migrating to Kubernetes.",
+      "mediaType": "text/markdown",
+      "priority": 75,
+      "tags": ["posts", "technical", "kubernetes"]
+    }
+  ],
+  "extensions": {}
+}

@@ -449,13 +449,13 @@ The goal is a spec that someone can read in 10 minutes and implement in an after
 
 1. [X] Review this analysis document
 2. [X] Make decisions on open questions
-3. [ ] Draft new v0.3.0 spec based on decisions
-4. [ ] Create a client spec from the details in the 0.2 spec that target client implementation.
-   - We should keep the details that are helpful for the client implementation and keep a client implementation spec for our rabit-client implementation that works like a universal burrow browser regardless of transport protocol
-4. [ ] Update JSON schemas
-5. [ ] Update TypeScript types
+3. [X] Draft new v0.3.0 spec based on decisions (see `rabit-spec-v0.3.0.md`)
+4. [X] Create a client spec from the details in the 0.2 spec that target client implementation.
+   - See `packages/rabit-client/docs/CLIENT_SPEC.md`
+4. [X] Update JSON schemas (see `schemas/burrow.schema.json`, `schemas/warren.schema.json`)
+5. [X] Update TypeScript types (see `packages/rabit-client/src/types.ts`)
 6. [ ] Update client implementation
-7. [ ] Update example manifests
+7. [X] Update example manifests (root .burrow.json, examples/.warren.json, example burrows)
 8. [ ] Update server/generator
 9. [ ] Update README and documentation
 

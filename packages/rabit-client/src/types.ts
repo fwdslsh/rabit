@@ -1,216 +1,72 @@
 /**
- * Rabit Burrow Traversal (RBT) Types
- * Based on draft-rabit-rbt-04
+ * Rabit Burrow & Warren Types
+ * Based on Rabit Specification v0.3.0
  *
- * This file contains all type definitions for the RBT specification.
+ * This file contains all type definitions for burrows and warrens.
  */
 
 // ============================================================================
-// Root Descriptors (§5.2)
+// Common Types
 // ============================================================================
 
 /**
- * Git root descriptor for accessing burrows via Git transport
- * @see Specification §5.2.1
+ * Specification version string format
+ * Example: "fwdslsh.dev/rabit/schemas/0.3.0/burrow"
  */
-export interface GitRoot {
-  git: {
-    /** Git remote URL (HTTPS or SSH) */
-    remote: string;
-    /** Fully-qualified ref (refs/heads/main) or 40-char commit SHA */
-    ref: string;
-    /** Path within repository (default: /) */
-    path?: string;
-  };
-}
+export type SpecVersion = string;
 
 /**
- * HTTPS root descriptor for accessing burrows via static hosting
- * @see Specification §5.2.2
+ * Document kind
  */
-export interface HttpsRoot {
-  https: {
-    /** HTTPS URL to the burrow root (MUST end with /) */
-    base: string;
-  };
-}
+export type DocumentKind = 'burrow' | 'warren';
 
 /**
- * HTTP root descriptor for dev environments, homelabs, and internal networks
- * Supports both HTTP and HTTPS with optional certificate validation bypass
- * @see Specification §5.2.3
+ * Entry kind - the type of menu item
  */
-export interface HttpRoot {
-  http: {
-    /** HTTP or HTTPS URL to the burrow root (MUST end with /) */
-    base: string;
-    /** If true, accept invalid/self-signed TLS certificates (default: false) */
-    insecure?: boolean;
-  };
-}
-
-/**
- * FTP root descriptor for FTP, FTPS, and SFTP access
- * @see Specification §5.2.4
- */
-export interface FtpRoot {
-  ftp: {
-    /** FTP/FTPS/SFTP URL to the burrow root (MUST end with /) */
-    url: string;
-    /** Force protocol: 'ftp', 'ftps', or 'sftp' (auto-detected from URL scheme if omitted) */
-    protocol?: 'ftp' | 'ftps' | 'sftp';
-    /** If true, accept invalid TLS certificates for FTPS (default: false) */
-    insecure?: boolean;
-  };
-}
-
-/**
- * File root descriptor for accessing burrows via local or network file systems
- * Supports local paths, SMB/CIFS shares, NFS mounts, and any OS-accessible paths
- * @see Specification §5.2.5
- */
-export interface FileRoot {
-  file: {
-    /** Absolute path to the burrow root (local, SMB, NFS). MUST end with path separator. */
-    path: string;
-  };
-}
-
-/**
- * Union type for all root descriptors
- */
-export type Root = GitRoot | HttpsRoot | HttpRoot | FtpRoot | FileRoot;
-
-/**
- * Supported transport protocols
- * @see Specification §5.4
- */
-export type TransportProtocol =
-  | 'git'
-  | 'git-ssh'
-  | 'https'
-  | 'http'
-  | 'ftp'
-  | 'ftps'
-  | 'sftp'
-  | 'file';
+export type EntryKind = 'file' | 'dir' | 'burrow' | 'link';
 
 // ============================================================================
-// Entry Objects (§6.4)
+// Entry Schema (§9)
 // ============================================================================
 
 /**
- * Pagination descriptor for collections with many children
- * @see Specification §6.7
- */
-export interface PaginationDescriptor {
-  /** URI to next page of entries */
-  href: string;
-  /** Starting index of next page */
-  offset: number;
-  /** Maximum entries per page */
-  limit: number;
-  /** Total number of children (optional) */
-  total?: number;
-}
-
-/**
- * Entry in a burrow manifest
- * @see Specification §6.4
+ * Entry in a burrow - a menu item
+ * @see Specification §9
  */
 export interface Entry {
-  /** Stable identifier within this manifest */
+  /** Unique identifier within the burrow (required) */
   id: string;
-  /** Cross-machine Resource Identifier (RID) */
-  rid: string;
-  /** URI-reference (relative or absolute) */
-  href: string;
-  /** Media type (e.g., text/markdown) */
-  type: string;
-  /** Array of relation types */
-  rel: string[];
-  /** Human-readable title (optional) */
+  /** Entry type (required) */
+  kind: EntryKind;
+  /** URI to fetch or enter (required) */
+  uri: string;
+  /** Human-readable title */
   title?: string;
-  /** Brief description (optional) */
+  /** Short description for agents */
   summary?: string;
-  /** Content hash for verification (optional) */
-  hash?: string;
-  /** Size in bytes (optional) */
-  size?: number;
-  /** RFC 3339 timestamp (optional) */
+  /** Relative path inside the burrow */
+  path?: string;
+  /** MIME type (e.g., text/markdown) */
+  mediaType?: string;
+  /** File size in bytes */
+  sizeBytes?: number;
+  /** RFC 3339 timestamp */
   modified?: string;
-  /** BCP 47 language tag (optional) */
-  lang?: string;
-  /** Related entry references (optional) */
-  links?: string[];
-  /** Pagination descriptor (optional) */
-  children?: PaginationDescriptor;
+  /** Hex digest for cache validation */
+  sha256?: string;
+  /** Categorization tags */
+  tags?: string[];
+  /** Higher values = more prominent in menus */
+  priority?: number;
 }
 
 // ============================================================================
-// Relation Types (§6.5)
-// ============================================================================
-
-/**
- * Normative relation types defined by RBT
- * @see Specification §6.5
- */
-export type RelationType =
-  | 'item'        // Leaf resource
-  | 'collection'  // Grouping of related entries
-  | 'index'       // Primary entry point or TOC
-  | 'about'       // Describes the burrow itself
-  | 'alternate'   // Alternative representation
-  | 'parent'      // Reference to parent collection
-  | 'related'     // Semantically related resource
-  | 'license'     // Licensing information
-  | 'author';     // Author information
-
-// ============================================================================
-// Agent Instructions (§13.4)
-// ============================================================================
-
-/**
- * Permissions guidance for agent behavior
- * @see Specification §13.5
- */
-export interface PermissionsGuidance {
-  /** May agents summarize content? */
-  summarize?: boolean;
-  /** May agents quote content? */
-  quote?: boolean | 'with-attribution';
-  /** May agents index for search? */
-  index?: boolean;
-  /** May content be used for model training? */
-  train?: boolean;
-  /** Additional custom permissions */
-  [key: string]: unknown;
-}
-
-/**
- * Agent instructions for processing burrow content
- * @see Specification §13.4
- */
-export interface AgentInstructions {
-  /** Brief description for LLM context (recommended: <500 chars) */
-  context?: string;
-  /** Suggested starting entry ID or href */
-  entryPoint?: string;
-  /** Freeform processing hints */
-  hints?: string[];
-  /** Glob patterns for entries agents may skip */
-  ignore?: string[];
-  /** Usage guidance (advisory, not enforced) */
-  permissions?: PermissionsGuidance;
-}
-
-// ============================================================================
-// Repository Metadata (§13.3)
+// Repository Metadata (§8.3)
 // ============================================================================
 
 /**
  * Standard repository files metadata
- * @see Specification §13.3
+ * @see Specification §8.3
  */
 export interface RepoMetadata {
   /** Path to README file */
@@ -221,240 +77,266 @@ export interface RepoMetadata {
   contributing?: string;
   /** Path to CHANGELOG file */
   changelog?: string;
-  /** Path to SECURITY file */
-  security?: string;
 }
 
 // ============================================================================
-// Authentication (§14)
+// Agent Instructions (§8.4)
 // ============================================================================
 
 /**
- * Authentication requirements metadata
- * @see Specification §14
+ * Agent instructions for LLM-based clients
+ * @see Specification §8.4
  */
-export interface AuthMetadata {
-  /** Whether authentication is required */
-  required?: boolean;
-  /** URL to access documentation */
-  documentation?: string;
+export interface AgentInstructions {
+  /** Brief description for LLM context (recommended: <500 chars) */
+  context?: string;
+  /** Suggested starting entry ID */
+  entryPoint?: string;
+  /** Freeform processing hints */
+  hints?: string[];
 }
 
 // ============================================================================
-// Cache Control (§8.5)
-// ============================================================================
-
-/**
- * Cache control directives for manifests
- * @see Specification §8.5
- */
-export interface CacheDirectives {
-  /** Seconds the manifest may be cached */
-  maxAge?: number;
-  /** Seconds stale content may be served while revalidating */
-  staleWhileRevalidate?: number;
-}
-
-// ============================================================================
-// Git Provenance (§12)
-// ============================================================================
-
-/**
- * Git provenance information for auditability
- * @see Specification §12
- */
-export interface GitProvenance {
-  /** Git remote URL */
-  remote: string;
-  /** Ref or commit */
-  ref: string;
-  /** 40-character commit SHA */
-  commit?: string;
-  /** Path within repository */
-  path?: string;
-  /** Author information */
-  author?: string;
-  /** RFC 3339 timestamp */
-  timestamp?: string;
-}
-
-// ============================================================================
-// Burrow Manifest (§6)
+// Burrow Schema (§8)
 // ============================================================================
 
 /**
  * Burrow manifest (.burrow.json)
- * @see Specification §6
+ * @see Specification §8
  */
-export interface BurrowManifest {
-  /** Specification version (e.g., "0.2") */
-  rbt: string;
-  /** JSON Schema URI for validation (recommended) */
+export interface Burrow {
+  /** JSON Schema URI for validation */
   $schema?: string;
-  /** Manifest metadata */
-  manifest: {
-    /** Human-readable title */
-    title: string;
-    /** Brief description (optional) */
-    description?: string;
-    /** RFC 3339 timestamp of last update */
-    updated: string;
-    /** RID of this manifest */
-    rid: string;
-    /** Array of root descriptors */
-    roots: Root[];
-    /** Array of mirror root descriptors (optional) */
-    mirrors?: Root[];
-    /** Standard repository files (optional) */
-    repo?: RepoMetadata;
-    /** Agent instructions (optional) */
-    agents?: AgentInstructions;
-    /** Authentication metadata (optional) */
-    auth?: AuthMetadata;
-    /** Cache control directives (optional) */
-    cache?: CacheDirectives;
-    /** Git provenance (optional) */
-    git?: GitProvenance;
-  };
-  /** Array of entry objects */
+  /** Specification version identifier (required) */
+  specVersion: SpecVersion;
+  /** Document type (required) */
+  kind: 'burrow';
+  /** Human-readable title */
+  title?: string;
+  /** Brief description of the burrow */
+  description?: string;
+  /** RFC 3339 timestamp of last update */
+  updated?: string;
+  /** Base URI for resolving relative paths */
+  baseUri?: string;
+  /** Standard repository file locations */
+  repo?: RepoMetadata;
+  /** Agent-specific guidance */
+  agents?: AgentInstructions;
+  /** Array of entry objects (required) */
   entries: Entry[];
+  /** Vendor/plugin-specific data */
+  extensions?: Record<string, unknown>;
 }
 
 // ============================================================================
-// Warren Registry (§10)
+// Warren Schema (§7)
 // ============================================================================
 
 /**
- * Entry in a warren registry
- * @see Specification §10.5
+ * Reference to a burrow in a warren
+ * @see Specification §7.3
  */
-export interface WarrenEntry {
-  /** Short identifier (slug) */
-  name: string;
+export interface BurrowReference {
+  /** Stable identifier (required) */
+  id: string;
+  /** Location of the burrow root (required) */
+  uri: string;
   /** Human-readable title */
-  title: string;
-  /** 1-3 sentence description */
-  summary: string;
-  /** Array of root descriptors */
-  roots: Root[];
-  /** RID of the burrow's manifest (optional) */
-  rid?: string;
-  /** Categorization tags (optional) */
+  title?: string;
+  /** Brief description */
+  description?: string;
+  /** Categorization tags */
   tags?: string[];
-  /** Last update timestamp (optional) */
-  updated?: string;
+  /** Higher values = more prominent in menus */
+  priority?: number;
+}
+
+/**
+ * Reference to another warren (federation)
+ * @see Specification §7.4
+ */
+export interface WarrenReference {
+  /** Stable identifier (required) */
+  id: string;
+  /** Location of the warren (required) */
+  uri: string;
+  /** Human-readable title */
+  title?: string;
+  /** Brief description */
+  description?: string;
 }
 
 /**
  * Warren registry (.warren.json)
- * @see Specification §10
+ * @see Specification §7
  */
-export interface WarrenRegistry {
-  /** Specification version */
-  rbt: string;
-  /** JSON Schema URI (recommended) */
+export interface Warren {
+  /** JSON Schema URI for validation */
   $schema?: string;
-  /** Registry metadata */
-  registry: {
-    /** Human-readable title */
-    title: string;
-    /** Brief description (optional) */
-    description?: string;
-    /** RFC 3339 timestamp */
-    updated: string;
-    /** RID of this registry (optional) */
-    rid?: string;
-  };
-  /** Array of burrow entries */
-  entries: WarrenEntry[];
+  /** Specification version identifier (required) */
+  specVersion: SpecVersion;
+  /** Document type (required) */
+  kind: 'warren';
+  /** Human-readable title */
+  title?: string;
+  /** Brief description of the warren */
+  description?: string;
+  /** RFC 3339 timestamp of last update */
+  updated?: string;
+  /** Base URI for resolving relative paths */
+  baseUri?: string;
+  /** Array of burrow references */
+  burrows?: BurrowReference[];
+  /** Array of warren references (federation) */
+  warrens?: WarrenReference[];
+  /** Vendor/plugin-specific data */
+  extensions?: Record<string, unknown>;
 }
 
 // ============================================================================
-// Well-Known Discovery (§11)
+// Discovery Types
 // ============================================================================
 
 /**
- * Well-known burrow discovery endpoint
- * @see Specification §11.1
+ * Result of discovering burrows/warrens at a location
  */
-export interface WellKnownBurrow {
-  /** Specification version */
-  rbt: string;
-  /** URL to manifest */
-  manifest: string;
-  /** Array of root descriptors (optional) */
-  roots?: Root[];
-}
-
-/**
- * Well-known warren discovery endpoint
- * @see Specification §11.2
- */
-export interface WellKnownWarren {
-  /** Specification version */
-  rbt: string;
-  /** Registry files */
-  registry: {
-    /** URL to .warren.json */
-    json: string;
-    /** URL to .warren.md (optional) */
-    md?: string;
-  };
+export interface DiscoveryResult {
+  /** Discovered warren (if present) */
+  warren: Warren | null;
+  /** Discovered burrow (if present) */
+  burrow: Burrow | null;
+  /** Base URI where discovery occurred */
+  baseUri: string;
+  /** Depth from original URI (0 = found at original, -1 = not found) */
+  depth: number;
 }
 
 // ============================================================================
-// Error Handling (§9)
+// Client Types
 // ============================================================================
 
 /**
- * Error categories defined by the specification
- * @see Specification §9.1
+ * Supported transport protocols (client implementation detail)
  */
-export type ErrorCategory =
-  | 'manifest_invalid'      // Malformed or missing required fields
-  | 'manifest_not_found'    // Manifest not found at expected location
-  | 'entry_not_found'       // Entry resource not found
-  | 'verification_failed'   // RID/hash mismatch
-  | 'transport_error'       // Network or Git transport failure
-  | 'rate_limited';         // Server returned 429
+export type TransportType =
+  | 'https'
+  | 'http'
+  | 'file'
+  | 'git'
+  | 'ssh'
+  | 'ftp';
 
 /**
- * Error details for a failed operation
+ * Options for discovery
  */
-export interface RbtError {
-  /** Error category */
-  category: ErrorCategory;
-  /** Human-readable error message */
-  message: string;
-  /** Entry ID if applicable */
-  entryId?: string;
-  /** URL/href that failed if applicable */
-  href?: string;
-  /** Retry attempts made */
-  attempts?: Array<{
-    root: string;
-    error: string;
-    status?: number;
-  }>;
+export interface DiscoverOptions {
+  /** Maximum parent directories to walk (default: 2) */
+  maxParentWalk?: number;
+  /** Request timeout in milliseconds */
+  timeout?: number;
 }
 
 /**
- * Traversal report structure
- * @see Specification §9.3
+ * Options for fetching
  */
-export interface TraversalReport {
-  /** URL to manifest */
-  manifest: string;
-  /** Start timestamp (RFC 3339) */
-  started: string;
-  /** Completion timestamp (RFC 3339) */
-  completed: string;
+export interface FetchOptions {
+  /** Force specific transport */
+  transport?: TransportType;
+  /** Skip TLS certificate validation */
+  insecure?: boolean;
+  /** Request timeout in milliseconds */
+  timeout?: number;
+}
+
+/**
+ * Traversal strategy
+ */
+export type TraversalStrategy = 'breadth-first' | 'depth-first' | 'priority';
+
+/**
+ * Options for burrow traversal
+ */
+export interface TraversalOptions {
+  /** Traversal strategy (default: breadth-first) */
+  strategy?: TraversalStrategy;
+  /** Maximum traversal depth (default: 100) */
+  maxDepth?: number;
+  /** Maximum total entries to process (default: 100000) */
+  maxEntries?: number;
+  /** Filter function for entries */
+  filter?: (entry: Entry) => boolean;
+}
+
+/**
+ * Event types emitted during traversal
+ */
+export type TraversalEventType =
+  | 'entry'           // Normal entry found
+  | 'cycle-detected'  // Cycle detected, skipping
+  | 'depth-limit'     // Max depth reached
+  | 'error';          // Error fetching entry
+
+/**
+ * Event emitted during traversal
+ */
+export interface TraversalEvent {
+  /** Event type */
+  type: TraversalEventType;
+  /** The entry */
+  entry: Entry;
+  /** Current depth in traversal */
+  depth?: number;
+  /** Error message (if type is 'error') */
+  error?: string;
+}
+
+/**
+ * Summary of a completed traversal
+ */
+export interface TraversalSummary {
   /** Number of entries successfully processed */
   entriesProcessed: number;
   /** Number of entries skipped */
   entriesSkipped: number;
-  /** Array of errors encountered */
-  errors: RbtError[];
+  /** Errors encountered */
+  errors: Array<{
+    entryId: string;
+    uri: string;
+    error: string;
+  }>;
+  /** Duration in milliseconds */
+  duration: number;
+}
+
+// ============================================================================
+// Error Types
+// ============================================================================
+
+/**
+ * Error categories (client implementation detail)
+ */
+export type ErrorCategory =
+  | 'manifest-invalid'    // JSON parse error or schema violation
+  | 'manifest-not-found'  // 404 or file not found
+  | 'entry-not-found'     // Entry resource missing
+  | 'transport-error'     // Network or protocol error
+  | 'hash-mismatch'       // SHA256 verification failed
+  | 'timeout'             // Request timeout
+  | 'rate-limited';       // 429 or similar
+
+/**
+ * Rabit client error
+ */
+export interface RabitError {
+  /** Error category */
+  category: ErrorCategory;
+  /** Human-readable message */
+  message: string;
+  /** URI that failed */
+  uri?: string;
+  /** Entry ID if applicable */
+  entryId?: string;
 }
 
 // ============================================================================
@@ -462,156 +344,114 @@ export interface TraversalReport {
 // ============================================================================
 
 /**
- * Type guard for GitRoot
+ * Type guard for Burrow
  */
-export function isGitRoot(root: Root): root is GitRoot {
-  return 'git' in root;
+export function isBurrow(doc: Burrow | Warren): doc is Burrow {
+  return doc.kind === 'burrow';
 }
 
 /**
- * Type guard for HttpsRoot
+ * Type guard for Warren
  */
-export function isHttpsRoot(root: Root): root is HttpsRoot {
-  return 'https' in root;
+export function isWarren(doc: Burrow | Warren): doc is Warren {
+  return doc.kind === 'warren';
 }
 
 /**
- * Type guard for HttpRoot
+ * Type guard for file entries
  */
-export function isHttpRoot(root: Root): root is HttpRoot {
-  return 'http' in root;
+export function isFileEntry(entry: Entry): boolean {
+  return entry.kind === 'file';
 }
 
 /**
- * Type guard for FtpRoot
+ * Type guard for directory entries
  */
-export function isFtpRoot(root: Root): root is FtpRoot {
-  return 'ftp' in root;
+export function isDirEntry(entry: Entry): boolean {
+  return entry.kind === 'dir';
 }
 
 /**
- * Type guard for FileRoot
+ * Type guard for burrow entries (sub-burrows)
  */
-export function isFileRoot(root: Root): root is FileRoot {
-  return 'file' in root;
+export function isBurrowEntry(entry: Entry): boolean {
+  return entry.kind === 'burrow';
 }
 
 /**
- * Get base URL from a root descriptor
- * Returns null for Git roots (requires cloning)
- * Returns file:// URL for file roots
- * @see Specification §5.4
+ * Type guard for link entries
  */
-export function getBaseUrl(root: Root): string | null {
-  if (isHttpsRoot(root)) {
-    return root.https.base;
-  }
-  if (isHttpRoot(root)) {
-    return root.http.base;
-  }
-  if (isFtpRoot(root)) {
-    return root.ftp.url;
-  }
-  if (isFileRoot(root)) {
-    // Convert file path to file:// URL format
-    const path = root.file.path;
-    // Handle Windows paths (C:\...) and Unix paths (/...)
-    if (path.startsWith('/')) {
-      return `file://${path}`;
-    } else if (/^[a-zA-Z]:/.test(path)) {
-      // Windows path - convert backslashes to forward slashes
-      return `file:///${path.replace(/\\/g, '/')}`;
-    } else if (path.startsWith('\\\\')) {
-      // UNC path (\\server\share)
-      return `file:${path.replace(/\\/g, '/')}`;
-    }
-    return `file://${path}`;
-  }
-  return null;
-}
-
-/**
- * Get file system path from a FileRoot
- * Returns the native OS path for file system access
- */
-export function getFilePath(root: FileRoot): string {
-  return root.file.path;
-}
-
-/**
- * Detect transport protocol from URL string
- * @see Specification §5.4
- */
-export function detectTransportProtocol(url: string): TransportProtocol {
-  if (url.startsWith('https://')) return 'https';
-  if (url.startsWith('http://')) return 'http';
-  if (url.startsWith('git://')) return 'git';
-  if (url.startsWith('git@') || url.includes('@') && url.includes(':') && !url.includes('://')) return 'git-ssh';
-  if (url.startsWith('ssh://')) return 'git-ssh'; // Default to git-ssh for ssh:// URLs
-  if (url.startsWith('sftp://')) return 'sftp';
-  if (url.startsWith('ftps://')) return 'ftps';
-  if (url.startsWith('ftp://')) return 'ftp';
-  if (url.startsWith('file://') || url.startsWith('/') || /^[a-zA-Z]:/.test(url) || url.startsWith('\\\\')) return 'file';
-  return 'https'; // Default to https
-}
-
-/**
- * Check if a root requires insecure TLS handling
- */
-export function isInsecureRoot(root: Root): boolean {
-  if (isHttpRoot(root)) return root.http.insecure === true;
-  if (isFtpRoot(root)) return root.ftp.insecure === true;
-  return false;
+export function isLinkEntry(entry: Entry): boolean {
+  return entry.kind === 'link';
 }
 
 // ============================================================================
-// Client Options
+// Utility Functions
 // ============================================================================
 
 /**
- * Options for burrow traversal
+ * Detect transport type from URI
  */
-export interface TraversalOptions {
-  /** Maximum traversal depth (default: 100) */
-  maxDepth?: number;
-  /** Maximum total entries to process (default: 1000000) */
-  maxEntries?: number;
-  /** Follow child manifests (default: false) */
-  followChildren?: boolean;
-  /** Filter function for entries */
-  filter?: (entry: Entry) => boolean;
-  /** Verify RIDs when fetching (default: true) */
-  verifyRids?: boolean;
-  /** Use mirrors on failure (default: true) */
-  useMirrors?: boolean;
-  /** Rate limit: max concurrent requests per host (default: 10) */
-  maxConcurrent?: number;
-  /** Rate limit: min delay between requests in ms (default: 100) */
-  minDelay?: number;
+export function detectTransport(uri: string): TransportType {
+  if (uri.startsWith('https://')) return 'https';
+  if (uri.startsWith('http://')) return 'http';
+  if (uri.startsWith('file://')) return 'file';
+  if (uri.startsWith('/') || /^[A-Z]:\\/.test(uri)) return 'file';
+  if (uri.startsWith('git://') || uri.startsWith('git@')) return 'git';
+  if (uri.includes('.git')) return 'git';
+  if (uri.startsWith('ssh://') || uri.startsWith('sftp://')) return 'ssh';
+  if (uri.startsWith('ftp://') || uri.startsWith('ftps://')) return 'ftp';
+  // Default to HTTPS for unrecognized schemes
+  return 'https';
 }
 
 /**
- * Result from fetching a single entry
+ * Sort entries by priority (descending)
  */
-export interface TraversalResult {
-  /** The entry object */
-  entry: Entry;
-  /** Fetched content (if successful) */
-  content?: Uint8Array;
-  /** Error (if failed) */
-  error?: RbtError;
-  /** Whether content was fetched from a mirror */
-  fromMirror?: boolean;
+export function sortByPriority(entries: Entry[]): Entry[] {
+  return [...entries].sort((a, b) => {
+    const priorityA = a.priority ?? 0;
+    const priorityB = b.priority ?? 0;
+    return priorityB - priorityA;
+  });
 }
 
 /**
- * Result wrapper for fetch operations
+ * Resolve a relative URI against a base URI
  */
-export interface FetchResult<T> {
-  /** Whether the operation succeeded */
-  ok: boolean;
-  /** The fetched data (if successful) */
-  data?: T;
-  /** Error details (if failed) */
-  error?: RbtError;
+export function resolveUri(base: string | undefined, relative: string): string {
+  if (!base) return relative;
+  if (relative.startsWith('http://') || relative.startsWith('https://') || relative.startsWith('file://')) {
+    return relative;
+  }
+  // Simple resolution - append relative to base
+  const baseWithSlash = base.endsWith('/') ? base : base + '/';
+  return baseWithSlash + relative;
+}
+
+/**
+ * Get the parent URI (go up one directory level)
+ */
+export function getParentUri(uri: string): string {
+  // Remove trailing slash if present
+  const trimmed = uri.endsWith('/') ? uri.slice(0, -1) : uri;
+  const lastSlash = trimmed.lastIndexOf('/');
+  if (lastSlash === -1) return uri;
+  return trimmed.slice(0, lastSlash + 1);
+}
+
+/**
+ * Validate specVersion format
+ */
+export function isValidSpecVersion(specVersion: string): boolean {
+  return specVersion.startsWith('fwdslsh.dev/rabit/schemas/');
+}
+
+/**
+ * Extract version number from specVersion
+ * Example: "fwdslsh.dev/rabit/schemas/0.3.0/burrow" -> "0.3.0"
+ */
+export function extractVersion(specVersion: string): string | null {
+  const match = specVersion.match(/fwdslsh\.dev\/rabit\/schemas\/([^/]+)\//);
+  return match ? match[1] : null;
 }

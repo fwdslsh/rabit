@@ -1,156 +1,49 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rabit.dev/schemas/burrow-0.2.json",
-  "title": "Rabit Burrow Manifest",
-  "description": "JSON Schema for .burrow.json manifest files per RBT v0.2 specification",
+  "$id": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "title": "Rabit Burrow",
+  "description": "JSON Schema for .burrow.json manifest files per Rabit v0.3.0 specification",
   "type": "object",
-  "required": ["rbt", "manifest", "entries"],
+  "required": ["specVersion", "kind", "entries"],
   "additionalProperties": true,
   "properties": {
-    "rbt": {
-      "type": "string",
-      "description": "RBT specification version",
-      "pattern": "^[0-9]+\\.[0-9]+$",
-      "examples": ["0.2"]
-    },
     "$schema": {
       "type": "string",
-      "format": "uri-reference",
       "description": "JSON Schema URI for validation"
     },
-    "manifest": {
-      "type": "object",
-      "description": "Manifest metadata",
-      "required": ["title", "updated", "rid", "roots"],
-      "additionalProperties": true,
-      "properties": {
-        "title": {
-          "type": "string",
-          "description": "Human-readable title",
-          "minLength": 1
-        },
-        "description": {
-          "type": "string",
-          "description": "Brief description (1-3 sentences)"
-        },
-        "updated": {
-          "type": "string",
-          "format": "date-time",
-          "description": "RFC 3339 timestamp of last update"
-        },
-        "rid": {
-          "type": "string",
-          "description": "RID of this manifest",
-          "pattern": "^urn:rabit:(sha256:[a-f0-9]{64}|collection:[a-f0-9]{16}:[a-zA-Z0-9-]+|.+)$"
-        },
-        "roots": {
-          "type": "array",
-          "description": "Array of root descriptors",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/$defs/root"
-          }
-        },
-        "mirrors": {
-          "type": "array",
-          "description": "Array of mirror root descriptors",
-          "items": {
-            "$ref": "#/$defs/root"
-          }
-        },
-        "git": {
-          "type": "object",
-          "description": "Git provenance information",
-          "properties": {
-            "remote": {
-              "type": "string",
-              "description": "Git remote URL"
-            },
-            "ref": {
-              "type": "string",
-              "description": "Fully-qualified ref or commit SHA"
-            },
-            "commit": {
-              "type": "string",
-              "description": "40-character commit SHA",
-              "pattern": "^[a-f0-9]{40}$"
-            },
-            "path": {
-              "type": "string",
-              "description": "Path within repository"
-            },
-            "author": {
-              "type": "string",
-              "description": "Commit author"
-            },
-            "timestamp": {
-              "type": "string",
-              "format": "date-time",
-              "description": "Commit timestamp"
-            }
-          }
-        },
-        "cache": {
-          "type": "object",
-          "description": "Cache control directives",
-          "properties": {
-            "maxAge": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Seconds the manifest may be cached"
-            },
-            "staleWhileRevalidate": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Seconds stale content may be served while revalidating"
-            }
-          }
-        },
-        "repo": {
-          "type": "object",
-          "description": "Standard repository files",
-          "properties": {
-            "readme": {
-              "type": "string",
-              "description": "Path to README file"
-            },
-            "license": {
-              "type": "string",
-              "description": "Path to LICENSE file"
-            },
-            "contributing": {
-              "type": "string",
-              "description": "Path to CONTRIBUTING file"
-            },
-            "changelog": {
-              "type": "string",
-              "description": "Path to CHANGELOG file"
-            },
-            "security": {
-              "type": "string",
-              "description": "Path to SECURITY file"
-            }
-          }
-        },
-        "agents": {
-          "$ref": "#/$defs/agentInstructions"
-        },
-        "auth": {
-          "type": "object",
-          "description": "Authentication hints",
-          "properties": {
-            "required": {
-              "type": "boolean",
-              "description": "Whether authentication is required"
-            },
-            "documentation": {
-              "type": "string",
-              "format": "uri",
-              "description": "URL to access documentation"
-            }
-          }
-        }
-      }
+    "specVersion": {
+      "type": "string",
+      "description": "Specification version identifier",
+      "const": "fwdslsh.dev/rabit/schemas/0.3.0/burrow"
+    },
+    "kind": {
+      "type": "string",
+      "description": "Document type",
+      "const": "burrow"
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of the burrow"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp of last update"
+    },
+    "baseUri": {
+      "type": "string",
+      "format": "uri-reference",
+      "description": "Base URI for resolving relative paths"
+    },
+    "repo": {
+      "$ref": "#/$defs/repoMetadata"
+    },
+    "agents": {
+      "$ref": "#/$defs/agentInstructions"
     },
     "entries": {
       "type": "array",
@@ -158,160 +51,33 @@
       "items": {
         "$ref": "#/$defs/entry"
       }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Vendor/plugin-specific data",
+      "additionalProperties": true
     }
   },
   "$defs": {
-    "root": {
-      "type": "object",
-      "description": "Root descriptor (Git, HTTPS, HTTP, FTP, or File)",
-      "oneOf": [
-        {
-          "type": "object",
-          "required": ["git"],
-          "properties": {
-            "git": {
-              "type": "object",
-              "required": ["remote", "ref"],
-              "properties": {
-                "remote": {
-                  "type": "string",
-                  "description": "Git remote URL (HTTPS or SSH)"
-                },
-                "ref": {
-                  "type": "string",
-                  "description": "Fully-qualified ref (refs/heads/main) or 40-char commit SHA",
-                  "pattern": "^(refs/.+|[a-f0-9]{40})$"
-                },
-                "path": {
-                  "type": "string",
-                  "description": "Path within repository",
-                  "default": "/"
-                }
-              }
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["https"],
-          "properties": {
-            "https": {
-              "type": "object",
-              "required": ["base"],
-              "properties": {
-                "base": {
-                  "type": "string",
-                  "format": "uri",
-                  "description": "HTTPS URL to the burrow root (must end with /)",
-                  "pattern": "^https://.+/$"
-                }
-              }
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["http"],
-          "properties": {
-            "http": {
-              "type": "object",
-              "required": ["base"],
-              "description": "HTTP/HTTPS root for dev environments, homelabs, and internal networks",
-              "properties": {
-                "base": {
-                  "type": "string",
-                  "format": "uri",
-                  "description": "HTTP or HTTPS URL to the burrow root (must end with /)",
-                  "pattern": "^https?://.+/$"
-                },
-                "insecure": {
-                  "type": "boolean",
-                  "description": "If true, accept invalid/self-signed TLS certificates (default: false)",
-                  "default": false
-                }
-              }
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["ftp"],
-          "properties": {
-            "ftp": {
-              "type": "object",
-              "required": ["url"],
-              "description": "FTP/FTPS/SFTP root for file transfer protocol access",
-              "properties": {
-                "url": {
-                  "type": "string",
-                  "description": "FTP/FTPS/SFTP URL to the burrow root (must end with /)",
-                  "pattern": "^(ftp|ftps|sftp)://.+/$"
-                },
-                "protocol": {
-                  "type": "string",
-                  "enum": ["ftp", "ftps", "sftp"],
-                  "description": "Force protocol (auto-detected from URL scheme if omitted)"
-                },
-                "insecure": {
-                  "type": "boolean",
-                  "description": "If true, accept invalid TLS certificates for FTPS (default: false)",
-                  "default": false
-                }
-              }
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["file"],
-          "properties": {
-            "file": {
-              "type": "object",
-              "required": ["path"],
-              "description": "File-based root for local or network file system access (SMB, NFS, local paths)",
-              "properties": {
-                "path": {
-                  "type": "string",
-                  "description": "Absolute path to the burrow root (local path, SMB share, or NFS mount). Must end with path separator."
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
     "entry": {
       "type": "object",
-      "description": "Entry in the manifest",
-      "required": ["id", "rid", "href", "type", "rel"],
+      "description": "A menu item in the burrow",
+      "required": ["id", "kind", "uri"],
       "additionalProperties": true,
       "properties": {
         "id": {
           "type": "string",
-          "description": "Stable identifier within this manifest",
+          "description": "Unique identifier within the burrow",
           "minLength": 1
         },
-        "rid": {
+        "kind": {
           "type": "string",
-          "description": "Cross-machine RID",
-          "pattern": "^urn:rabit:.+"
+          "description": "Entry type",
+          "enum": ["file", "dir", "burrow", "link"]
         },
-        "href": {
+        "uri": {
           "type": "string",
-          "description": "URI-reference (relative or absolute)"
-        },
-        "type": {
-          "type": "string",
-          "description": "Media type (e.g., text/markdown)"
-        },
-        "rel": {
-          "type": "array",
-          "description": "Array of relation types",
-          "minItems": 1,
-          "items": {
-            "type": "string",
-            "enum": ["item", "collection", "index", "about", "alternate", "parent", "related", "license", "author"]
-          }
+          "description": "URI to fetch or enter (relative resolved to baseUri)"
         },
         "title": {
           "type": "string",
@@ -319,65 +85,71 @@
         },
         "summary": {
           "type": "string",
-          "description": "Brief description"
+          "description": "Short description for agents"
         },
-        "hash": {
+        "path": {
           "type": "string",
-          "description": "Content hash for verification",
-          "pattern": "^sha256:[a-f0-9]{64}$"
+          "description": "Relative path inside the burrow"
         },
-        "size": {
+        "mediaType": {
+          "type": "string",
+          "description": "MIME type (e.g., text/markdown)"
+        },
+        "sizeBytes": {
           "type": "integer",
           "minimum": 0,
-          "description": "Size in bytes"
+          "description": "File size in bytes"
         },
         "modified": {
           "type": "string",
           "format": "date-time",
           "description": "RFC 3339 timestamp"
         },
-        "lang": {
+        "sha256": {
           "type": "string",
-          "description": "BCP 47 language tag"
+          "description": "Hex digest for cache validation",
+          "pattern": "^[a-f0-9]{64}$"
         },
-        "links": {
+        "tags": {
           "type": "array",
-          "description": "Related entry references",
+          "description": "Categorization tags",
           "items": {
             "type": "string"
           }
         },
-        "children": {
-          "type": "object",
-          "description": "Pagination descriptor",
-          "required": ["href", "offset", "limit"],
-          "properties": {
-            "href": {
-              "type": "string",
-              "description": "URI to next page of entries"
-            },
-            "offset": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Starting index of next page"
-            },
-            "limit": {
-              "type": "integer",
-              "minimum": 1,
-              "description": "Maximum entries per page"
-            },
-            "total": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Total number of children"
-            }
-          }
+        "priority": {
+          "type": "number",
+          "description": "Higher values = more prominent in menus"
+        }
+      }
+    },
+    "repoMetadata": {
+      "type": "object",
+      "description": "Standard repository file locations",
+      "additionalProperties": false,
+      "properties": {
+        "readme": {
+          "type": "string",
+          "description": "Path to README file"
+        },
+        "license": {
+          "type": "string",
+          "description": "Path to LICENSE file"
+        },
+        "contributing": {
+          "type": "string",
+          "description": "Path to CONTRIBUTING file"
+        },
+        "changelog": {
+          "type": "string",
+          "description": "Path to CHANGELOG file"
         }
       }
     },
     "agentInstructions": {
       "type": "object",
       "description": "Agent instructions for LLM-based clients",
+      "additionalProperties": false,
       "properties": {
         "context": {
           "type": "string",
@@ -386,7 +158,7 @@
         },
         "entryPoint": {
           "type": "string",
-          "description": "Suggested starting entry id or href"
+          "description": "Suggested starting entry id"
         },
         "hints": {
           "type": "array",
@@ -394,39 +166,6 @@
           "items": {
             "type": "string"
           }
-        },
-        "ignore": {
-          "type": "array",
-          "description": "Glob patterns for entries agents may skip",
-          "items": {
-            "type": "string"
-          }
-        },
-        "permissions": {
-          "type": "object",
-          "description": "Usage guidance (advisory hints)",
-          "properties": {
-            "summarize": {
-              "type": "boolean",
-              "description": "May agents summarize content?"
-            },
-            "quote": {
-              "oneOf": [
-                { "type": "boolean" },
-                { "type": "string" }
-              ],
-              "description": "May agents quote content? (true, false, or 'with-attribution')"
-            },
-            "index": {
-              "type": "boolean",
-              "description": "May agents index for search?"
-            },
-            "train": {
-              "type": "boolean",
-              "description": "May content be used for model training?"
-            }
-          },
-          "additionalProperties": true
         }
       }
     }

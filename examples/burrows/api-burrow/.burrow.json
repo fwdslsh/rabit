@@ -1,0 +1,62 @@
+{
+  "$schema": "../../../schemas/burrow.schema.json",
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "kind": "burrow",
+  "title": "Acme API Reference",
+  "description": "Example API reference burrow demonstrating the Rabit specification.",
+  "updated": "2026-01-13T00:00:00Z",
+  "repo": {
+    "readme": "README.md"
+  },
+  "agents": {
+    "context": "API reference documentation for the fictional Acme Platform. Includes authentication guide, endpoint reference, and OpenAPI specification.",
+    "entryPoint": "readme",
+    "hints": [
+      "Start with auth.md to understand authentication",
+      "OpenAPI spec (openapi.yaml) is machine-readable"
+    ]
+  },
+  "entries": [
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "README.md",
+      "title": "API Reference Overview",
+      "summary": "Overview of the Acme API.",
+      "mediaType": "text/markdown",
+      "priority": 100,
+      "tags": ["start-here", "api"]
+    },
+    {
+      "id": "auth",
+      "kind": "file",
+      "uri": "auth.md",
+      "title": "Authentication",
+      "summary": "How to authenticate with the Acme API.",
+      "mediaType": "text/markdown",
+      "priority": 90,
+      "tags": ["api", "auth"]
+    },
+    {
+      "id": "endpoints",
+      "kind": "file",
+      "uri": "endpoints.md",
+      "title": "API Endpoints",
+      "summary": "Complete list of API endpoints and their usage.",
+      "mediaType": "text/markdown",
+      "priority": 80,
+      "tags": ["api", "reference"]
+    },
+    {
+      "id": "openapi",
+      "kind": "file",
+      "uri": "openapi.yaml",
+      "title": "OpenAPI Specification",
+      "summary": "Machine-readable OpenAPI 3.0 specification.",
+      "mediaType": "application/x-yaml",
+      "priority": 70,
+      "tags": ["api", "openapi", "spec"]
+    }
+  ],
+  "extensions": {}
+}

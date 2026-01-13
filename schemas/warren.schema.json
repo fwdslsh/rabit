@@ -1,212 +1,91 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rabit.dev/schemas/warren-0.2.json",
-  "title": "Rabit Warren Registry",
-  "description": "JSON Schema for .warren.json registry files per RBT v0.2 specification",
+  "$id": "fwdslsh.dev/rabit/schemas/0.3.0/warren",
+  "title": "Rabit Warren",
+  "description": "JSON Schema for .warren.json registry files per Rabit v0.3.0 specification",
   "type": "object",
-  "required": ["rbt", "registry", "entries"],
+  "required": ["specVersion", "kind"],
   "additionalProperties": true,
   "properties": {
-    "rbt": {
-      "type": "string",
-      "description": "RBT specification version",
-      "pattern": "^[0-9]+\\.[0-9]+$",
-      "examples": ["0.2"]
-    },
     "$schema": {
       "type": "string",
-      "format": "uri-reference",
       "description": "JSON Schema URI for validation"
     },
-    "registry": {
+    "specVersion": {
+      "type": "string",
+      "description": "Specification version identifier",
+      "const": "fwdslsh.dev/rabit/schemas/0.3.0/warren"
+    },
+    "kind": {
+      "type": "string",
+      "description": "Document type",
+      "const": "warren"
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of the warren"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp of last update"
+    },
+    "baseUri": {
+      "type": "string",
+      "format": "uri-reference",
+      "description": "Base URI for resolving relative paths"
+    },
+    "burrows": {
+      "type": "array",
+      "description": "Array of burrow references",
+      "items": {
+        "$ref": "#/$defs/burrowReference"
+      }
+    },
+    "warrens": {
+      "type": "array",
+      "description": "Array of warren references (federation)",
+      "items": {
+        "$ref": "#/$defs/warrenReference"
+      }
+    },
+    "extensions": {
       "type": "object",
-      "description": "Registry metadata",
-      "required": ["title", "updated"],
+      "description": "Vendor/plugin-specific data",
+      "additionalProperties": true
+    }
+  },
+  "anyOf": [
+    { "required": ["burrows"] },
+    { "required": ["warrens"] }
+  ],
+  "$defs": {
+    "burrowReference": {
+      "type": "object",
+      "description": "Reference to a burrow",
+      "required": ["id", "uri"],
       "additionalProperties": true,
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable identifier",
+          "minLength": 1
+        },
+        "uri": {
+          "type": "string",
+          "description": "Location of the burrow root"
+        },
         "title": {
           "type": "string",
-          "description": "Human-readable title",
-          "minLength": 1
+          "description": "Human-readable title"
         },
         "description": {
           "type": "string",
           "description": "Brief description"
-        },
-        "updated": {
-          "type": "string",
-          "format": "date-time",
-          "description": "RFC 3339 timestamp"
-        },
-        "rid": {
-          "type": "string",
-          "description": "RID of this registry",
-          "pattern": "^urn:rabit:.+"
-        }
-      }
-    },
-    "entries": {
-      "type": "array",
-      "description": "Array of burrow entries",
-      "items": {
-        "$ref": "#/$defs/warrenEntry"
-      }
-    }
-  },
-  "$defs": {
-    "root": {
-      "type": "object",
-      "description": "Root descriptor (Git, HTTPS, HTTP, FTP, or File)",
-      "oneOf": [
-        {
-          "type": "object",
-          "required": ["git"],
-          "properties": {
-            "git": {
-              "type": "object",
-              "required": ["remote", "ref"],
-              "properties": {
-                "remote": {
-                  "type": "string",
-                  "description": "Git remote URL (HTTPS or SSH)"
-                },
-                "ref": {
-                  "type": "string",
-                  "description": "Fully-qualified ref (refs/heads/main) or 40-char commit SHA",
-                  "pattern": "^(refs/.+|[a-f0-9]{40})$"
-                },
-                "path": {
-                  "type": "string",
-                  "description": "Path within repository",
-                  "default": "/"
-                }
-              }
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["https"],
-          "properties": {
-            "https": {
-              "type": "object",
-              "required": ["base"],
-              "properties": {
-                "base": {
-                  "type": "string",
-                  "format": "uri",
-                  "description": "HTTPS URL to the burrow root (must end with /)",
-                  "pattern": "^https://.+/$"
-                }
-              }
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["http"],
-          "properties": {
-            "http": {
-              "type": "object",
-              "required": ["base"],
-              "description": "HTTP/HTTPS root for dev environments, homelabs, and internal networks",
-              "properties": {
-                "base": {
-                  "type": "string",
-                  "format": "uri",
-                  "description": "HTTP or HTTPS URL to the burrow root (must end with /)",
-                  "pattern": "^https?://.+/$"
-                },
-                "insecure": {
-                  "type": "boolean",
-                  "description": "If true, accept invalid/self-signed TLS certificates (default: false)",
-                  "default": false
-                }
-              }
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["ftp"],
-          "properties": {
-            "ftp": {
-              "type": "object",
-              "required": ["url"],
-              "description": "FTP/FTPS/SFTP root for file transfer protocol access",
-              "properties": {
-                "url": {
-                  "type": "string",
-                  "description": "FTP/FTPS/SFTP URL to the burrow root (must end with /)",
-                  "pattern": "^(ftp|ftps|sftp)://.+/$"
-                },
-                "protocol": {
-                  "type": "string",
-                  "enum": ["ftp", "ftps", "sftp"],
-                  "description": "Force protocol (auto-detected from URL scheme if omitted)"
-                },
-                "insecure": {
-                  "type": "boolean",
-                  "description": "If true, accept invalid TLS certificates for FTPS (default: false)",
-                  "default": false
-                }
-              }
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["file"],
-          "properties": {
-            "file": {
-              "type": "object",
-              "required": ["path"],
-              "description": "File-based root for local or network file system access (SMB, NFS, local paths)",
-              "properties": {
-                "path": {
-                  "type": "string",
-                  "description": "Absolute path to the burrow root (local path, SMB share, or NFS mount). Must end with path separator."
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    "warrenEntry": {
-      "type": "object",
-      "description": "Entry in the warren registry (a burrow reference)",
-      "required": ["name", "title", "summary", "roots"],
-      "additionalProperties": true,
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Short identifier (slug)",
-          "minLength": 1,
-          "pattern": "^[a-z0-9-]+$"
-        },
-        "title": {
-          "type": "string",
-          "description": "Human-readable title",
-          "minLength": 1
-        },
-        "summary": {
-          "type": "string",
-          "description": "1-3 sentence description",
-          "minLength": 1
-        },
-        "roots": {
-          "type": "array",
-          "description": "Array of root descriptors",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/$defs/root"
-          }
-        },
-        "rid": {
-          "type": "string",
-          "description": "RID of the burrow's manifest",
-          "pattern": "^urn:rabit:.+"
         },
         "tags": {
           "type": "array",
@@ -215,10 +94,34 @@
             "type": "string"
           }
         },
-        "updated": {
+        "priority": {
+          "type": "number",
+          "description": "Higher values = more prominent in menus"
+        }
+      }
+    },
+    "warrenReference": {
+      "type": "object",
+      "description": "Reference to another warren (federation)",
+      "required": ["id", "uri"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
           "type": "string",
-          "format": "date-time",
-          "description": "Last update timestamp"
+          "description": "Stable identifier",
+          "minLength": 1
+        },
+        "uri": {
+          "type": "string",
+          "description": "Location of the warren"
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable title"
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief description"
         }
       }
     }
