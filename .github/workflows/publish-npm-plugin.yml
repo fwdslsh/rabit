@@ -1,0 +1,91 @@
+name: Publish OpenCode Plugin to NPM
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+    paths:
+      - 'packages/opencode-rabit/**'
+      - 'packages/rabit-client/**'
+      - '.github/workflows/publish-npm-plugin.yml'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Set version from tag or package.json
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Extract version from tag (v0.3.0 -> 0.3.0)
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Publishing version: $VERSION (from git tag)"
+
+            # Update package.json version
+            cd packages/opencode-rabit
+            bun x json -I -f package.json -e "this.version='$VERSION'"
+          else
+            # Use version from package.json
+            VERSION=$(cat packages/opencode-rabit/package.json | bun x json version)
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Publishing version: $VERSION (from package.json)"
+          fi
+
+      - name: Install workspace dependencies
+        run: bun install
+
+      - name: Build rabit-client (dependency)
+        run: |
+          cd packages/rabit-client
+          bun run build
+
+      - name: Replace workspace dependency
+        run: |
+          cd packages/opencode-rabit
+          # Replace workspace:* with actual version
+          VERSION=$(cat ../rabit-client/package.json | bun x json version)
+          bun x json -I -f package.json -e "this.dependencies['@fwdslsh/rabit-client']='$VERSION'"
+
+      - name: Verify dependencies
+        run: |
+          cd packages/opencode-rabit
+          bun install --no-save
+          echo "Dependencies verified"
+
+      - name: Setup .npmrc
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Publish to NPM
+        run: |
+          cd packages/opencode-rabit
+          npm publish --access public
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          echo "## ✅ Published to NPM" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### opencode-rabit" >> $GITHUB_STEP_SUMMARY
+          echo "- Version: \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Package: [opencode-rabit](https://www.npmjs.com/package/opencode-rabit)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Install with OpenCode" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "npm install opencode-rabit@$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "# or" >> $GITHUB_STEP_SUMMARY
+          echo "bun add opencode-rabit@$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

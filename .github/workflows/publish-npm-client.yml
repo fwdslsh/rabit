@@ -1,0 +1,89 @@
+name: Publish Rabit Client to NPM
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+    paths:
+      - 'packages/rabit-client/**'
+      - '.github/workflows/publish-npm-client.yml'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Set version from tag or package.json
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Extract version from tag (v0.3.0 -> 0.3.0)
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Publishing version: $VERSION (from git tag)"
+
+            # Update package.json version
+            cd packages/rabit-client
+            bun x json -I -f package.json -e "this.version='$VERSION'"
+          else
+            # Use version from package.json
+            VERSION=$(cat packages/rabit-client/package.json | bun x json version)
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Publishing version: $VERSION (from package.json)"
+          fi
+
+      - name: Install dependencies
+        run: |
+          cd packages/rabit-client
+          bun install
+
+      - name: Build
+        run: |
+          cd packages/rabit-client
+          bun run build
+
+      - name: Run tests
+        run: |
+          cd packages/rabit-client
+          bun test
+
+      - name: Type check
+        run: |
+          cd packages/rabit-client
+          bun run typecheck
+
+      - name: Setup .npmrc
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Publish to NPM
+        run: |
+          cd packages/rabit-client
+          npm publish --access public
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          echo "## ✅ Published to NPM" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### @fwdslsh/rabit-client" >> $GITHUB_STEP_SUMMARY
+          echo "- Version: \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Package: [@fwdslsh/rabit-client](https://www.npmjs.com/package/@fwdslsh/rabit-client)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Install" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "npm install @fwdslsh/rabit-client@$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "# or" >> $GITHUB_STEP_SUMMARY
+          echo "bun add @fwdslsh/rabit-client@$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
