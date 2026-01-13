@@ -1,0 +1,156 @@
+# fwdslsh.dev
+
+> fwdslsh provides developer tools for agent-friendly content distribution using the Rabit specification.
+
+## Discovery
+
+The fwdslsh tool ecosystem is discoverable via the burrow.json manifest at:
+
+```
+https://fwdslsh.dev/.well-known/burrow.json
+```
+
+## Quick Start with curl and jq
+
+### Fetch the burrow manifest
+
+```bash
+curl -s https://fwdslsh.dev/.well-known/burrow.json | jq .
+```
+
+### List all available tools and resources
+
+```bash
+curl -s https://fwdslsh.dev/.well-known/burrow.json | jq -r '.entries[] | "\(.id)\t\(.kind)\t\(.title // .uri)"'
+```
+
+### Get metadata about a specific entry
+
+```bash
+curl -s https://fwdslsh.dev/.well-known/burrow.json | jq '.entries[] | select(.id == "ENTRY_ID")'
+```
+
+### Fetch an entry's content
+
+```bash
+# First get the entry URI
+URI=$(curl -s https://fwdslsh.dev/.well-known/burrow.json | jq -r '.entries[] | select(.id == "ENTRY_ID") | .uri')
+
+# Then fetch the content
+curl -s "https://fwdslsh.dev/$URI"
+```
+
+### Search entries by keyword
+
+```bash
+curl -s https://fwdslsh.dev/.well-known/burrow.json | jq -r '.entries[] | select(.title // "" | ascii_downcase | contains("KEYWORD")) | "\(.id)\t\(.title)"'
+```
+
+### List entries by kind (file, dir, burrow, link)
+
+```bash
+curl -s https://fwdslsh.dev/.well-known/burrow.json | jq -r '.entries[] | select(.kind == "file") | .id'
+```
+
+### Get burrow title and description
+
+```bash
+curl -s https://fwdslsh.dev/.well-known/burrow.json | jq '{title, description, updated}'
+```
+
+### Count entries
+
+```bash
+curl -s https://fwdslsh.dev/.well-known/burrow.json | jq '.entries | length'
+```
+
+## Burrow Schema
+
+A burrow.json manifest contains:
+
+- **specVersion**: Schema version (e.g., "fwdslsh.dev/rabit/schemas/0.4.0/burrow")
+- **kind**: Always "burrow"
+- **title**: Human-readable name
+- **description**: Brief description
+- **updated**: RFC 3339 timestamp
+- **entries**: Array of entry objects
+- **repo**: Repository links (readme, license, contributing)
+- **agents**: Context and hints for LLM agents
+
+Each entry has:
+
+- **id**: Unique identifier
+- **kind**: Entry type (file, dir, burrow, map, link)
+- **uri**: Location relative to burrow base
+- **title**: Human-readable name
+- **summary**: Brief description for agents
+- **mediaType**: MIME type
+- **tags**: Categorization array
+- **priority**: Higher values indicate importance
+
+## fwdslsh Tools
+
+### rabit-client
+
+TypeScript reference implementation for traversing burrows and warrens.
+
+- Repository: https://github.com/fwdslsh/rabit/tree/main/packages/rabit-client
+- Transport: HTTPS, HTTP, file://, Git, SMB, NFS
+- Features: SHA256 verification, caching, rate limiting
+
+### rabit-mcp
+
+Model Context Protocol plugin for Claude and AI assistants.
+
+- Repository: https://github.com/fwdslsh/rabit/tree/main/packages/rabit-mcp
+- Tools: discover, fetch, list, search, traverse burrows and warrens
+
+### rabit-server
+
+Docker-based servers for hosting burrows.
+
+- Repository: https://github.com/fwdslsh/rabit/tree/main/packages/rabit-server
+- Variants: HTTP server with auto-generation, Git server with SSH auth
+
+### opencode-rabit
+
+OpenCode IDE plugin for Rabit integration.
+
+- Repository: https://github.com/fwdslsh/rabit/tree/main/packages/opencode-rabit
+- Features: Browse, search, and traverse burrows from your IDE
+
+## Traversing Nested Burrows
+
+Burrows can contain nested burrows (kind: "burrow"). To traverse:
+
+```bash
+# Get nested burrow entries
+NESTED_URI=$(curl -s https://fwdslsh.dev/.well-known/burrow.json | jq -r '.entries[] | select(.kind == "burrow") | .uri' | head -1)
+
+# Fetch the nested burrow manifest
+curl -s "https://fwdslsh.dev/${NESTED_URI}.burrow.json" | jq .
+```
+
+## Warren Discovery
+
+A warren is a registry of multiple burrows. Check for a warren at:
+
+```bash
+curl -s https://fwdslsh.dev/.well-known/warren.json | jq .
+```
+
+List all burrows in a warren:
+
+```bash
+curl -s https://fwdslsh.dev/.well-known/warren.json | jq -r '.burrows[] | "\(.id)\t\(.title)\t\(.uri)"'
+```
+
+## Specification
+
+Full Rabit v0.4.0 specification: https://github.com/fwdslsh/rabit/blob/main/docs/rabit-spec.md
+
+## Optional
+
+- Documentation: https://fwdslsh.dev/docs/
+- Source: https://github.com/fwdslsh/rabit
+- Bash client example: https://github.com/fwdslsh/rabit/blob/main/examples/client/bash/rabit.sh
