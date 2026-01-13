@@ -1,8 +1,10 @@
 {
-  "name": "@rabit/client",
-  "version": "0.2.0",
-  "description": "Reference implementation of Rabit Burrow Traversal (RBT) client - Git-first, agent-friendly content distribution",
+  "name": "opencode-rabit",
+  "version": "0.1.0",
+  "description": "OpenCode MCP plugin providing Rabit Burrow Traversal (RBT) tools for AI agents",
   "keywords": [
+    "opencode",
+    "mcp",
     "rabit",
     "burrow",
     "warren",
@@ -10,15 +12,13 @@
     "rbt",
     "agent",
     "ai",
-    "content",
-    "git",
-    "manifest"
+    "plugin"
   ],
   "homepage": "https://github.com/itlackey/rabit#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/itlackey/rabit.git",
-    "directory": "rabit-client"
+    "directory": "packages/opencode-rabit"
   },
   "bugs": {
     "url": "https://github.com/itlackey/rabit/issues"
@@ -33,14 +33,10 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./types": {
-      "import": "./dist/types.js",
-      "types": "./dist/types.d.ts"
     }
   },
   "bin": {
-    "rabit": "./dist/cli.js"
+    "opencode-rabit": "./dist/index.js"
   },
   "files": [
     "dist",
@@ -48,16 +44,20 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "bun run clean && bun build ./src/index.ts --outdir=dist --target=bun && bun build ./src/cli.ts --outdir=dist --target=bun && bun run build:types",
+    "build": "bun run clean && bun build ./src/index.ts --outdir=dist --target=bun && bun run build:types",
     "build:types": "bun x tsc --emitDeclarationOnly --declaration --outDir dist",
-    "dev": "bun --watch src/cli.ts",
+    "dev": "bun --watch src/index.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "typecheck": "bun x tsc --noEmit",
     "prepublishOnly": "bun run build && bun test",
     "clean": "rm -rf dist"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@rabit/client": "workspace:*",
+    "zod": "^3.25.0"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^5.3.3"
