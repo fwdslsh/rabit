@@ -139,7 +139,7 @@ Not everything should change. Some of our additions have value:
 1. **`agents` section** - The concept of providing agent instructions is valuable, but:
    - Should be optional
    - Could be simplified to just `context`, `entryPoint`, and `hints`
-   - `permissions` object is probably overengineered
+   - `permissions` should be removed
 
 2. **`repo` section** - Pointing to README, LICENSE is useful for standard files
    - v0.3.0 doesn't have this but it adds practical value
@@ -189,6 +189,7 @@ We've built working implementations (client, server, MCP plugin) that have:
 3. **Normative traversal algorithm**
    - Move to "Implementation Notes" appendix if desired
    - Let implementers decide their traversal strategy
+   - May consider adding in the future
 
 4. **Error categories and structured error reporting**
    - This is client implementation detail, not spec material
@@ -197,6 +198,7 @@ We've built working implementations (client, server, MCP plugin) that have:
 5. **Transport protocol detection table**
    - Clients know how to handle URLs
    - Remove formal detection rules
+   - Move guidance to the client implementation spec for rabit-client
 
 6. **IANA considerations**
    - We're not submitting an RFC
@@ -205,18 +207,20 @@ We've built working implementations (client, server, MCP plugin) that have:
 7. **FTP/FTPS/SFTP root descriptors**
    - Overengineered for a dotfile convention
    - Remove (clients can support them without spec blessing)
+   - Move guidance to the client implementation spec for rabit-client
 
 8. **HTTP with insecure option**
    - Client configuration detail, not spec material
-   - Remove
+   - Move guidance to the client implementation spec for rabit-client
 
 9. **Pagination (children object)**
    - Complex for a "menu system"
-   - Remove or move to "future considerations"
+   - Move to "future considerations"
 
 10. **Git provenance object**
     - Nice-to-have but adds weight
     - Remove from spec (tools can add it)
+    - Move guidance to the client implementation spec for rabit-client
 
 11. **Auth hints**
     - Out of scope per v0.3.0 non-goals
@@ -249,7 +253,7 @@ We've built working implementations (client, server, MCP plugin) that have:
 #### Keep/Adopt
 
 1. **`specVersion` format** from v0.3.0
-   - `"rabit.dev/burrow-warren/v0.2"` style
+   - `"fwdslsh.dev/rabit/0.3.0/burrow-warren"` style
 
 2. **Entry `kind` values** from v0.3.0
    - `file`, `dir`, `burrow`, `link`
@@ -369,6 +373,7 @@ Based on the above analysis, here's a proposed outline for the revised spec:
 - MCP plugin integration model
 - Docker-based server approach
 - Example content (just update manifests)
+- Universal client concept with plugins for transport types not natively available in bunjs
 
 ### 6.3 Migration Path
 
@@ -388,26 +393,34 @@ Based on the above analysis, here's a proposed outline for the revised spec:
 
 1. **Version numbering:** Should we adopt the `rabit.dev/burrow-warren/v0.3` format or keep short `"0.3"`?
    - Recommendation: Adopt the longer format—more self-documenting
+   - Answer: use fwdslsh.dev/rabit/schemas/0.3.0/{burrow,warren}
 
 2. **`kind` vs `rel`:** The v0.3.0 `kind` field (file/dir/burrow/link) is simpler than our `rel` array. Switch?
    - Recommendation: Yes, switch to `kind`
+   - Answer: Yes, switch
 
 3. **`agents` section:** Keep our enhanced version or remove entirely?
    - Recommendation: Keep a simplified version (context, entryPoint, hints only)
+   - Answer: Keep as optional and simplified
 
 4. **`repo` section:** Keep or remove?
    - Recommendation: Keep—it's useful and lightweight
+   - Answer: Keep as optional
 
 5. **Git-first philosophy:** v0.3.0 is transport-agnostic. Pivot?
    - Recommendation: Yes, become transport-agnostic. Git is just another URI scheme.
+   - Answer: Yes, but we should include examples of using git for certain use cases.
 
 6. **Root descriptors:** Keep structured objects or just use URI strings?
    - Recommendation: URI strings by default, optional object form for metadata
+   - Answer: URI strings with optional metadata object
 
 ### 7.2 Community Considerations
 
 - Existing implementations (if any outside this repo) would need migration
+   - There are none
 - Should we maintain backwards compatibility or clean break?
+   - Clean break
 - Recommendation: **Clean break** at v0.3—we're pre-1.0 and this is the time to get it right
 
 ---
@@ -434,9 +447,11 @@ The goal is a spec that someone can read in 10 minutes and implement in an after
 
 ## 9. Next Steps
 
-1. [ ] Review this analysis document
-2. [ ] Make decisions on open questions
+1. [X] Review this analysis document
+2. [X] Make decisions on open questions
 3. [ ] Draft new v0.3.0 spec based on decisions
+4. [ ] Create a client spec from the details in the 0.2 spec that target client implementation.
+   - We should keep the details that are helpful for the client implementation and keep a client implementation spec for our rabit-client implementation that works like a universal burrow browser regardless of transport protocol
 4. [ ] Update JSON schemas
 5. [ ] Update TypeScript types
 6. [ ] Update client implementation
@@ -526,7 +541,7 @@ The goal is a spec that someone can read in 10 minutes and implement in an after
 | Traversal algorithm | REMOVE | Implementation detail |
 | Error categories | REMOVE | Implementation detail |
 | Cache directives | SIMPLIFY | Guidance section |
-| Pagination | REMOVE | Out of scope for v1 |
+| Pagination | REMOVE | Out of scope for v1, Future consideration |
 | Git provenance | REMOVE | Tool-generated if needed |
 | Auth hints | REMOVE | Non-goal |
 | Transport detection | REMOVE | Obvious from URI |
