@@ -388,6 +388,119 @@ function validateUri(uri: string, options?: SecurityOptions): void {
 - Use OS credential helpers when available
 - Support environment variables for tokens
 
+### 8.4 Logging and Redaction
+
+Clients should implement logging with proper redaction to prevent credential leakage:
+
+```typescript
+interface LogRedactionRules {
+  // Patterns to redact from logged URLs and messages
+  patterns: RegExp[];
+  replacement: string;
+}
+
+const defaultRedactionRules: LogRedactionRules = {
+  patterns: [
+    // Bearer tokens in URLs
+    /([?&]token=)[^&]+/gi,
+    /([?&]api_key=)[^&]+/gi,
+    /([?&]access_token=)[^&]+/gi,
+    // Basic auth in URLs
+    /:\/\/[^:]+:[^@]+@/gi,
+    // Authorization headers
+    /(Authorization:\s*)(Bearer\s+)?\S+/gi,
+    // Common secret patterns
+    /([?&]secret=)[^&]+/gi,
+    /([?&]password=)[^&]+/gi,
+  ],
+  replacement: '[REDACTED]'
+};
+
+function redactSensitive(message: string, rules: LogRedactionRules): string {
+  let result = message;
+  for (const pattern of rules.patterns) {
+    result = result.replace(pattern, '$1[REDACTED]');
+  }
+  return result;
+}
+```
+
+**Logging Guidelines:**
+
+1. **Always redact credentials** before logging URLs or error messages
+2. **Never log response bodies** that might contain secrets
+3. **Log at appropriate levels:**
+   - ERROR: Failed operations, security violations
+   - WARN: Insecure connections, rate limiting
+   - INFO: Discovery results, traversal progress
+   - DEBUG: Individual fetch operations, cache hits/misses
+4. **Include correlation IDs** for tracing requests across operations
+
+### 8.5 TLS and Certificate Handling
+
+```typescript
+interface TlsOptions {
+  // Require valid TLS certificates (default: true)
+  rejectUnauthorized: boolean;
+  // Allow self-signed certificates (requires explicit opt-in)
+  allowSelfSigned: boolean;
+  // Minimum TLS version (default: TLSv1.2)
+  minVersion: 'TLSv1.2' | 'TLSv1.3';
+}
+
+const defaultTlsOptions: TlsOptions = {
+  rejectUnauthorized: true,
+  allowSelfSigned: false,
+  minVersion: 'TLSv1.2'
+};
+```
+
+**TLS Guidelines:**
+
+1. **Require valid certificates by default** - Never skip validation silently
+2. **Explicit opt-in for insecure** - Require `insecure: true` flag, log a warning
+3. **Warn on HTTP** - Log when falling back to plaintext HTTP
+4. **Document exceptions** - If insecure mode is used, explain why in configuration
+
+### 8.6 SSRF Prevention
+
+Prevent Server-Side Request Forgery attacks:
+
+```typescript
+function isBlockedHost(hostname: string): boolean {
+  // Block metadata endpoints
+  if (hostname === '169.254.169.254') return true;  // AWS/GCP metadata
+  if (hostname === 'metadata.google.internal') return true;
+
+  // Block private ranges
+  const privateRanges = [
+    /^10\./,
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+    /^192\.168\./,
+    /^127\./,
+    /^0\./,
+    /^localhost$/i,
+  ];
+
+  return privateRanges.some(range => range.test(hostname));
+}
+```
+
+### 8.7 Resource Limits
+
+Protect against resource exhaustion:
+
+```typescript
+const securityLimits = {
+  maxManifestSize: 10 * 1024 * 1024,  // 10 MB
+  maxEntryCount: 10000,
+  maxTraversalDepth: 100,
+  maxTotalEntries: 100000,
+  maxRequestTimeout: 30000,  // 30 seconds
+  maxRedirects: 5,
+};
+```
+
 ---
 
 ## 9. CLI Interface
