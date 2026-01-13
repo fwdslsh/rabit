@@ -249,7 +249,7 @@ Features:
 - No symlinks required — mount repos directly
 - No root access needed on host
 
-See [examples/git-readonly/README.md](examples/git-readonly/README.md) for full documentation.
+See [examples/git-readonly/README.md](../../examples/server/git-readonly/README.md) for full documentation.
 
 ### Using with File Paths
 
