@@ -42,54 +42,97 @@ This specification **does not** define:
 
 ## 4. Well-known Files
 
-A location MAY contain any of these files:
+### 4.0 Discovery Convention
 
-| File | Purpose |
-|------|---------|
-| `.warren.json` | Machine-readable registry of burrows |
-| `.warren.md` | Narrative "agent README" for the warren |
-| `.burrow.json` | Machine-readable menu for a burrow |
-| `.burrow.md` | Narrative "agent README" for the burrow |
+Rabit supports multiple file naming conventions to accommodate different hosting environments and use cases. Clients SHOULD attempt discovery in this order:
+
+**For burrows:**
+1. `.burrow.json` (dotfile - git/filesystem friendly)
+2. `burrow.json` (non-dotfile - web server friendly)
+3. `.well-known/burrow.json` (RFC 8615 standard location)
+
+**For warrens:**
+1. `.warren.json` (dotfile - git/filesystem friendly)
+2. `warren.json` (non-dotfile - web server friendly)
+3. `.well-known/warren.json` (RFC 8615 standard location)
+
+**For human-readable companions:**
+- Same pattern applies: `.burrow.md`, `burrow.md`, `.well-known/burrow.md`
+- Same pattern applies: `.warren.md`, `warren.md`, `.well-known/warren.md`
+
+Clients MUST stop at the first successful response and treat all conventions as equivalent. Publishers MAY use any convention or provide multiple for redundancy.
 
 ### 4.1 Placement Rules
 
 **Git repositories:**
 
-- Place `.warren.*` and/or `.burrow.*` at the repository root
-- Optionally place `.burrow.*` in key subdirectories to define sub-burrows (e.g., `docs/.burrow.json`)
+- Place burrow/warren files at the repository root
+- Optionally place in key subdirectories to define sub-burrows (e.g., `docs/.burrow.json` or `docs/burrow.json`)
+- Dotfile convention (`.burrow.json`) is RECOMMENDED for git repositories
 
 **Filesystem directories:**
 
 - Same as Git: place files in the directory being described
+- Use dotfile convention to keep files unobtrusive
 
 **HTTP(S):**
 
-- Serve the files from the corresponding path location
-- Example: if a directory is browsed at `https://example.com/docs/`, the burrow menu should be at `https://example.com/docs/.burrow.json`
-- Note: some web servers block dotfiles by default; operators may need an explicit allowlist
+- Serve the files from the corresponding path location following the discovery convention
+- Example: `https://example.com/docs/.burrow.json`, `https://example.com/docs/burrow.json`, or `https://example.com/docs/.well-known/burrow.json`
+- **Web server considerations:**
+  - If web server blocks dotfiles, use `burrow.json` (no dot prefix)
+  - For enterprise environments with strict policies, use `.well-known/burrow.json` (RFC 8615)
+  - Dotfile convention requires explicit allowlist in nginx/Apache but provides clean directory structure
 
-### 4.2 Precedence
+### 4.2 Precedence Rules
 
-If both `.warren.json` and `.burrow.json` exist at the same location:
+**When both warren and burrow files exist:**
 
 - Clients should treat the location as both a warren (registry) and a burrow (browsable collection)
-- If a client must choose a single "landing" view, it should prefer `.warren.md` / `.warren.json` as the top-level entry
+- If a client must choose a single "landing" view, prefer warren over burrow
+- Discovery order applies independently: try all warren conventions before trying burrow conventions
+
+**When multiple conventions are present:**
+
+- Use the first successful response according to discovery order (§4.0)
+- If different conventions return conflicting content, prefer dotfile convention
+- Publishers SHOULD ensure all provided conventions return identical content
 
 ---
 
 ## 5. Discovery Algorithm
 
-Given a starting URI `U` that refers to a directory-like location (or a repo root):
+Given a starting URI `U` that refers to a directory-like location (or a repo root), clients SHOULD attempt discovery in this order:
 
-1. Attempt to fetch/read `U + "/.warren.json"`
-   - If present and valid, the client has discovered a **Warren**
-2. Attempt to fetch/read `U + "/.burrow.json"`
-   - If present and valid, the client has discovered a **Burrow**
-3. If neither exists, clients MAY:
-   - Walk up parent paths (at most *N* levels; default 2) and repeat steps 1–2, OR
-   - Fall back to transport-native listing (out of scope)
+### 5.1 Warren Discovery
 
-If both exist, clients should display a warren "registry view" and allow entering burrows.
+Try each convention until successful:
+
+1. `U + "/.warren.json"` (dotfile)
+2. `U + "/warren.json"` (non-dotfile)
+3. `U + "/.well-known/warren.json"` (RFC 8615)
+
+If any succeeds with valid content, the client has discovered a **Warren**.
+
+### 5.2 Burrow Discovery
+
+Try each convention until successful:
+
+1. `U + "/.burrow.json"` (dotfile)
+2. `U + "/burrow.json"` (non-dotfile)
+3. `U + "/.well-known/burrow.json"` (RFC 8615)
+
+If any succeeds with valid content, the client has discovered a **Burrow**.
+
+### 5.3 Fallback
+
+If neither warren nor burrow is found, clients MAY:
+- Walk up parent paths (at most *N* levels; default 2) and repeat §5.1–5.2, OR
+- Fall back to transport-native listing (out of scope)
+
+### 5.4 Both Present
+
+If both warren and burrow exist, clients should display a warren "registry view" and allow entering individual burrows.
 
 ---
 

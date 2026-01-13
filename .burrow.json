@@ -112,6 +112,16 @@
       "tags": ["docs", "examples"]
     },
     {
+      "id": "conventions-demo",
+      "kind": "dir",
+      "uri": "examples/conventions-demo/",
+      "title": "File Naming Conventions Demo",
+      "summary": "Examples demonstrating the three supported file naming conventions: dotfile, non-dotfile, and RFC 8615 .well-known.",
+      "mediaType": "text/markdown",
+      "priority": 75,
+      "tags": ["examples", "conventions"]
+    },
+    {
       "id": "schemas",
       "kind": "dir",
       "uri": "schemas/",

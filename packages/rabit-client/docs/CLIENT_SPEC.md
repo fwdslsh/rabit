@@ -81,19 +81,19 @@ interface FetchOptions {
 
 ### 3.1 Discovery Algorithm
 
+The client implements the multi-convention discovery order defined in Rabit v0.3.0 §5:
+
 ```typescript
 async function discover(uri: string, options?: DiscoverOptions): Promise<DiscoveryResult> {
   const maxDepth = options?.maxParentWalk ?? 2;
   let currentUri = normalizeUri(uri);
 
   for (let depth = 0; depth <= maxDepth; depth++) {
-    // Try warren first
-    const warrenUri = joinUri(currentUri, '.warren.json');
-    const warren = await tryFetch(warrenUri);
+    // Try warren discovery (all conventions)
+    const warren = await discoverWarren(currentUri);
 
-    // Try burrow
-    const burrowUri = joinUri(currentUri, '.burrow.json');
-    const burrow = await tryFetch(burrowUri);
+    // Try burrow discovery (all conventions)
+    const burrow = await discoverBurrow(currentUri);
 
     if (warren || burrow) {
       return {
@@ -109,6 +109,40 @@ async function discover(uri: string, options?: DiscoverOptions): Promise<Discove
   }
 
   return { warren: null, burrow: null, baseUri: uri, depth: -1 };
+}
+
+async function discoverWarren(baseUri: string): Promise<string | null> {
+  // Try conventions in order (§4.0)
+  const conventions = [
+    '.warren.json',           // 1. Dotfile (git/filesystem friendly)
+    'warren.json',            // 2. Non-dotfile (web server friendly)
+    '.well-known/warren.json' // 3. RFC 8615 standard location
+  ];
+
+  for (const convention of conventions) {
+    const uri = joinUri(baseUri, convention);
+    const content = await tryFetch(uri);
+    if (content) return content;
+  }
+
+  return null;
+}
+
+async function discoverBurrow(baseUri: string): Promise<string | null> {
+  // Try conventions in order (§4.0)
+  const conventions = [
+    '.burrow.json',           // 1. Dotfile (git/filesystem friendly)
+    'burrow.json',            // 2. Non-dotfile (web server friendly)
+    '.well-known/burrow.json' // 3. RFC 8615 standard location
+  ];
+
+  for (const convention of conventions) {
+    const uri = joinUri(baseUri, convention);
+    const content = await tryFetch(uri);
+    if (content) return content;
+  }
+
+  return null;
 }
 ```
 

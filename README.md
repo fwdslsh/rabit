@@ -74,11 +74,25 @@ Rabit is "one file in one place." No servers to run, no databases to maintain, n
 | **Entry** | A menu item (file, directory, sub-burrow, or link) |
 | **Kind** | Entry type: `file`, `dir`, `burrow`, or `link` |
 
+## File Naming Conventions
+
+Rabit supports three file naming conventions to accommodate different hosting environments:
+
+1. **`.burrow.json`** (dotfile) - Recommended for git repositories and filesystems. Keeps files unobtrusive.
+2. **`burrow.json`** (no dot) - Use when web servers block dotfiles or for better visibility.
+3. **`.well-known/burrow.json`** - Use for enterprise environments following RFC 8615.
+
+The same applies to warrens (`.warren.json`, `warren.json`, `.well-known/warren.json`) and companion markdown files.
+
+**Discovery order:** Clients try dotfile → no-dot → .well-known, stopping at the first successful response.
+
 ## Quick Start
 
 Publishing a burrow takes three steps:
 
-### 1. Create `.burrow.json`
+### 1. Create a burrow manifest
+
+Choose your preferred naming convention (`.burrow.json` recommended for git repos):
 
 ```json
 {
@@ -109,7 +123,7 @@ Publishing a burrow takes three steps:
 }
 ```
 
-### 2. Optionally create `.burrow.md`
+### 2. Optionally create a companion markdown file
 
 ```markdown
 # My Documentation

@@ -2,6 +2,15 @@
 
 This directory contains example burrows, a warren, and a proof-of-concept CLI client demonstrating the Rabit Burrow Traversal (RBT) specification.
 
+## File Naming Conventions
+
+Rabit v0.3.0 supports three file naming conventions:
+1. **Dotfile** (`.burrow.json`) - Recommended for git/filesystem
+2. **Non-dotfile** (`burrow.json`) - Web server friendly
+3. **RFC 8615** (`.well-known/burrow.json`) - Enterprise standard
+
+See the [conventions-demo](conventions-demo/) directory for examples and detailed explanations.
+
 ## Structure
 
 ```
@@ -10,6 +19,11 @@ examples/
 │   ├── docker-compose.yml  # Hosts all burrows and warren
 │   └── nginx-cors.conf     # CORS configuration for nginx
 ├── .warren.json             # Warren (registry) manifest
+├── conventions-demo/        # File naming conventions examples
+│   ├── burrow.json          # Non-dotfile convention
+│   ├── .well-known/
+│   │   └── burrow.json      # RFC 8615 convention
+│   └── README.md            # Conventions documentation
 ├── burrows/
 │   ├── docs-burrow/        # Documentation example
 │   │   ├── .burrow.json    # Burrow manifest
