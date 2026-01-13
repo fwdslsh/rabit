@@ -227,7 +227,7 @@ docker build -t rabit/server .
 Share burrows via Git with SSH key authentication and read-only access:
 
 ```bash
-cd examples/git-readonly
+cd ../../examples/server/git-readonly
 ./setup.sh
 
 # Add your SSH key

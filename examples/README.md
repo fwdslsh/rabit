@@ -16,8 +16,13 @@ See the [conventions-demo](conventions-demo/) directory for examples and detaile
 ```
 examples/
 ├── server/
-│   ├── docker-compose.yml  # Hosts all burrows and warren
-│   └── nginx-cors.conf     # CORS configuration for nginx
+│   ├── ngnix-dotfiles/      # Docker setup for hosting burrows
+│   │   ├── docker-compose.yml  # Hosts all burrows and warren
+│   │   └── nginx-cors.conf     # CORS configuration for nginx
+│   └── git-readonly/        # Git server example for burrows
+│       ├── docker-compose.yml
+│       ├── setup.sh
+│       └── config/
 ├── .warren.json             # Warren (registry) manifest
 ├── conventions-demo/        # File naming conventions examples
 │   ├── burrow.json          # Non-dotfile convention
@@ -73,7 +78,7 @@ These companion files make burrows browsable via GitHub, file managers, or any M
 ### 1. Start the Burrows and Warren
 
 ```bash
-cd server
+cd server/ngnix-dotfiles
 docker compose up -d
 ```
 
@@ -205,7 +210,7 @@ Traversed 4 entries
 ## Stopping the Services
 
 ```bash
-cd server
+cd server/ngnix-dotfiles
 docker compose down
 ```
 
