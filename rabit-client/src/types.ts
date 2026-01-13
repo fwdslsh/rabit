@@ -1,6 +1,6 @@
 /**
  * Rabit Burrow Traversal (RBT) Types
- * Based on draft-rabit-rbt-02
+ * Based on draft-rabit-rbt-04
  *
  * This file contains all type definitions for the RBT specification.
  */
@@ -36,9 +36,64 @@ export interface HttpsRoot {
 }
 
 /**
+ * HTTP root descriptor for dev environments, homelabs, and internal networks
+ * Supports both HTTP and HTTPS with optional certificate validation bypass
+ * @see Specification §5.2.3
+ */
+export interface HttpRoot {
+  http: {
+    /** HTTP or HTTPS URL to the burrow root (MUST end with /) */
+    base: string;
+    /** If true, accept invalid/self-signed TLS certificates (default: false) */
+    insecure?: boolean;
+  };
+}
+
+/**
+ * FTP root descriptor for FTP, FTPS, and SFTP access
+ * @see Specification §5.2.4
+ */
+export interface FtpRoot {
+  ftp: {
+    /** FTP/FTPS/SFTP URL to the burrow root (MUST end with /) */
+    url: string;
+    /** Force protocol: 'ftp', 'ftps', or 'sftp' (auto-detected from URL scheme if omitted) */
+    protocol?: 'ftp' | 'ftps' | 'sftp';
+    /** If true, accept invalid TLS certificates for FTPS (default: false) */
+    insecure?: boolean;
+  };
+}
+
+/**
+ * File root descriptor for accessing burrows via local or network file systems
+ * Supports local paths, SMB/CIFS shares, NFS mounts, and any OS-accessible paths
+ * @see Specification §5.2.5
+ */
+export interface FileRoot {
+  file: {
+    /** Absolute path to the burrow root (local, SMB, NFS). MUST end with path separator. */
+    path: string;
+  };
+}
+
+/**
  * Union type for all root descriptors
  */
-export type Root = GitRoot | HttpsRoot;
+export type Root = GitRoot | HttpsRoot | HttpRoot | FtpRoot | FileRoot;
+
+/**
+ * Supported transport protocols
+ * @see Specification §5.4
+ */
+export type TransportProtocol =
+  | 'git'
+  | 'git-ssh'
+  | 'https'
+  | 'http'
+  | 'ftp'
+  | 'ftps'
+  | 'sftp'
+  | 'file';
 
 // ============================================================================
 // Entry Objects (§6.4)
@@ -421,14 +476,92 @@ export function isHttpsRoot(root: Root): root is HttpsRoot {
 }
 
 /**
+ * Type guard for HttpRoot
+ */
+export function isHttpRoot(root: Root): root is HttpRoot {
+  return 'http' in root;
+}
+
+/**
+ * Type guard for FtpRoot
+ */
+export function isFtpRoot(root: Root): root is FtpRoot {
+  return 'ftp' in root;
+}
+
+/**
+ * Type guard for FileRoot
+ */
+export function isFileRoot(root: Root): root is FileRoot {
+  return 'file' in root;
+}
+
+/**
  * Get base URL from a root descriptor
  * Returns null for Git roots (requires cloning)
+ * Returns file:// URL for file roots
+ * @see Specification §5.4
  */
 export function getBaseUrl(root: Root): string | null {
   if (isHttpsRoot(root)) {
     return root.https.base;
   }
+  if (isHttpRoot(root)) {
+    return root.http.base;
+  }
+  if (isFtpRoot(root)) {
+    return root.ftp.url;
+  }
+  if (isFileRoot(root)) {
+    // Convert file path to file:// URL format
+    const path = root.file.path;
+    // Handle Windows paths (C:\...) and Unix paths (/...)
+    if (path.startsWith('/')) {
+      return `file://${path}`;
+    } else if (/^[a-zA-Z]:/.test(path)) {
+      // Windows path - convert backslashes to forward slashes
+      return `file:///${path.replace(/\\/g, '/')}`;
+    } else if (path.startsWith('\\\\')) {
+      // UNC path (\\server\share)
+      return `file:${path.replace(/\\/g, '/')}`;
+    }
+    return `file://${path}`;
+  }
   return null;
+}
+
+/**
+ * Get file system path from a FileRoot
+ * Returns the native OS path for file system access
+ */
+export function getFilePath(root: FileRoot): string {
+  return root.file.path;
+}
+
+/**
+ * Detect transport protocol from URL string
+ * @see Specification §5.4
+ */
+export function detectTransportProtocol(url: string): TransportProtocol {
+  if (url.startsWith('https://')) return 'https';
+  if (url.startsWith('http://')) return 'http';
+  if (url.startsWith('git://')) return 'git';
+  if (url.startsWith('git@') || url.includes('@') && url.includes(':') && !url.includes('://')) return 'git-ssh';
+  if (url.startsWith('ssh://')) return 'git-ssh'; // Default to git-ssh for ssh:// URLs
+  if (url.startsWith('sftp://')) return 'sftp';
+  if (url.startsWith('ftps://')) return 'ftps';
+  if (url.startsWith('ftp://')) return 'ftp';
+  if (url.startsWith('file://') || url.startsWith('/') || /^[a-zA-Z]:/.test(url) || url.startsWith('\\\\')) return 'file';
+  return 'https'; // Default to https
+}
+
+/**
+ * Check if a root requires insecure TLS handling
+ */
+export function isInsecureRoot(root: Root): boolean {
+  if (isHttpRoot(root)) return root.http.insecure === true;
+  if (isFtpRoot(root)) return root.ftp.insecure === true;
+  return false;
 }
 
 // ============================================================================

@@ -4,7 +4,7 @@
   "manifest": {
     "title": "Rabit: Burrows for the Agentic Web",
     "description": "Specification and reference implementation for Rabit Burrow Traversal (RBT), a convention for publishing agent-friendly content spaces.",
-    "updated": "2026-01-12T00:00:00Z",
+    "updated": "2026-01-13T00:00:00Z",
     "rid": "urn:rabit:sha256:rabit-project-manifest",
     "roots": [
       {
@@ -20,12 +20,14 @@
       "license": "LICENSE"
     },
     "agents": {
-      "context": "This is the official Rabit project repository containing the RBT specification, a reference server implementation, a proof-of-concept client, and example burrows.",
+      "context": "This is the official Rabit project repository containing the RBT specification (draft-rabit-rbt-04), a reference client implementation, a Docker-based server with read-only Git server example, and example burrows. The spec supports multiple transport protocols: Git, HTTPS, HTTP (with insecure option for dev/homelab), FTP/FTPS/SFTP, and file paths (local, SMB, NFS). It also supports .burrow.md companion files.",
       "entryPoint": "readme",
       "hints": [
         "The specification document (rabit-spec-draft-2026-01-12.md) contains normative requirements marked with RFC 2119 keywords",
-        "The rabit-server directory contains a Docker-based server implementation",
-        "The rabit-examples directory contains example burrows, a warren setup, and a TypeScript/Bun reference client"
+        "The rabit-client directory contains a full TypeScript/Bun client implementation with Git, HTTPS, HTTP, and file path support",
+        "The rabit-server directory contains a Docker-based server implementation with a read-only Git server example",
+        "The rabit-examples directory contains example burrows with .burrow.md companion files",
+        "Transport protocol auto-detection from URL schemes with override capability"
       ],
       "ignore": ["*.git*"]
     }
@@ -47,6 +49,15 @@
       "type": "text/plain",
       "rel": ["license"],
       "title": "CC-BY-4.0 License"
+    },
+    {
+      "id": "burrow-md",
+      "rid": "urn:rabit:sha256:burrow-md-companion",
+      "href": ".burrow.md",
+      "type": "text/markdown",
+      "rel": ["about", "index"],
+      "title": "Rabit Project Burrow (Human-Readable)",
+      "summary": "Human-readable companion file for the project burrow, providing navigation and context for humans browsing the repository."
     },
     {
       "id": "specification",
@@ -189,6 +200,33 @@
       "type": "text/plain",
       "rel": ["license"],
       "title": "Docs Burrow License (CC-BY-4.0)"
+    },
+    {
+      "id": "docs-burrow-md",
+      "rid": "urn:rabit:sha256:docs-burrow-md-companion",
+      "href": "rabit-examples/burrows/docs-burrow/.burrow.md",
+      "type": "text/markdown",
+      "rel": ["about"],
+      "title": "Docs Burrow Companion (Human-Readable)",
+      "summary": "Human-readable companion file for the documentation example burrow."
+    },
+    {
+      "id": "api-burrow-md",
+      "rid": "urn:rabit:sha256:api-burrow-md-companion",
+      "href": "rabit-examples/burrows/api-burrow/.burrow.md",
+      "type": "text/markdown",
+      "rel": ["about"],
+      "title": "API Burrow Companion (Human-Readable)",
+      "summary": "Human-readable companion file for the API reference example burrow."
+    },
+    {
+      "id": "blog-burrow-md",
+      "rid": "urn:rabit:sha256:blog-burrow-md-companion",
+      "href": "rabit-examples/burrows/blog-burrow/.burrow.md",
+      "type": "text/markdown",
+      "rel": ["about"],
+      "title": "Blog Burrow Companion (Human-Readable)",
+      "summary": "Human-readable companion file for the blog example burrow."
     },
     {
       "id": "docs-burrow-readme",

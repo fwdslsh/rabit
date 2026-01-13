@@ -2,6 +2,7 @@
  * @rabit/client - Reference Implementation of Rabit Burrow Traversal (RBT)
  *
  * Full RBT Client conformance per Specification §3.2.2
+ * Based on draft-rabit-rbt-04
  *
  * @see https://github.com/itlackey/rabit
  * @see rabit-spec-draft-2026-01-12.md
@@ -12,7 +13,12 @@ export type {
   // Root descriptors
   GitRoot,
   HttpsRoot,
+  HttpRoot,
+  FtpRoot,
+  FileRoot,
   Root,
+  // Transport protocol
+  TransportProtocol,
   // Entries and pagination
   Entry,
   PaginationDescriptor,
@@ -49,7 +55,13 @@ export type {
 export {
   isGitRoot,
   isHttpsRoot,
+  isHttpRoot,
+  isFtpRoot,
+  isFileRoot,
+  isInsecureRoot,
+  detectTransportProtocol,
   getBaseUrl,
+  getFilePath,
 } from './types';
 
 // Export main client class

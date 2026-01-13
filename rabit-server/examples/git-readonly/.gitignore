@@ -1,0 +1,8 @@
+# Generated files
+.env
+ssh-keys/authorized_keys
+ssh-keys/host-keys/
+
+# Keep repos directory structure but ignore contents
+repos/*
+!repos/.gitkeep

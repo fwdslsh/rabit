@@ -1,6 +1,6 @@
 # RBT Specification Conformance
 
-This document certifies that `@rabit/client` v0.2.0 implements **Full RBT Client** conformance as defined in the Rabit Burrow Traversal Specification draft-rabit-rbt-02.
+This document certifies that `@rabit/client` v0.2.0 implements **Full RBT Client** conformance as defined in the Rabit Burrow Traversal Specification draft-rabit-rbt-04.
 
 ## Conformance Level
 
@@ -45,6 +45,15 @@ All required features for Full Client conformance have been implemented:
   - Supports path within repository
   - Uses Bun subprocess for Git operations
 
+- ✅ **Support file roots using native OS file access**
+  - Implementation: `src/client.ts:fetchBurrowFromFile()`, `fetchEntryFromFile()`
+  - Local file paths: `/home/user/docs/`
+  - Windows paths: `C:\Documents\`
+  - SMB/CIFS shares: `\\server\share\` (via OS mount)
+  - NFS mounts: `/mnt/nfs/docs/` (via OS mount)
+  - Uses native `fs` module for file access
+  - Inherits authentication from OS-level mechanisms
+
 - ✅ **Verify RIDs** when fetching resources
   - Implementation: `src/utils.ts:verifyContent()`, `src/utils.ts:computeRid()`
   - SHA-256 hash computation per §7.3
@@ -84,9 +93,41 @@ All required features for Full Client conformance have been implemented:
   - `base`: HTTPS URL ending with `/`
   - Manifest at `${base}.burrow.json`
 
+- ✅ HTTP Root (§5.2.3)
+  - `base`: HTTP or HTTPS URL ending with `/`
+  - `insecure`: Accept invalid/self-signed TLS certificates
+  - For development, homelab, and internal network environments
+
+- ⚠️ FTP Root (§5.2.4) - *Not yet implemented*
+  - `url`: FTP/FTPS/SFTP URL ending with `/`
+  - `protocol`: Force protocol (auto-detected from URL if omitted)
+  - `insecure`: Accept invalid TLS certificates for FTPS
+  - Supports plain FTP, FTPS (FTP over TLS), and SFTP (SSH File Transfer)
+
+- ✅ File Root (§5.2.5)
+  - `path`: Absolute path to burrow root
+  - Supports local paths, SMB/CIFS, NFS via native OS access
+  - Path traversal prevention for security
+
 - ✅ Root Selection (§5.3)
-  - Prefers Git roots for versioning and integrity
-  - Falls back to HTTPS roots for simplicity
+  - Prefers file roots for local/network access (lowest latency)
+  - Then Git roots for versioning and integrity
+  - Falls back to HTTPS/HTTP roots for simplicity
+
+- ✅ Transport Protocol Detection (§5.4)
+  - Auto-detects protocol from URL scheme
+  - Supports protocol override via root descriptor
+  - Certificate validation bypass for `insecure` roots
+
+### File Names and Discovery (§4)
+
+- ✅ Required files (§4.1)
+  - `.burrow.json` manifest parsing
+  - `.warren.json` registry parsing
+
+- ✅ Human-readable companions (§4.1.1)
+  - `.burrow.md` discovery and display
+  - `.warren.md` discovery and display
 
 ### Manifest Format (§6)
 
@@ -251,7 +292,7 @@ All required features for Full Client conformance have been implemented:
 - ✅ RID computation: `computeSha256()`, `computeRid()`, `verifyContent()`
 - ✅ Validation: `validateUrl()`, `validateManifestSize()`, `validateEntryCount()`
 - ✅ Error handling: `createError()`
-- ✅ Type guards: `isGitRoot()`, `isHttpsRoot()`, `getBaseUrl()`
+- ✅ Type guards: `isGitRoot()`, `isHttpsRoot()`, `isHttpRoot()`, `isFtpRoot()`, `isFileRoot()`, `isInsecureRoot()`, `getBaseUrl()`, `detectTransportProtocol()`
 
 ### Git Functions
 
@@ -295,7 +336,15 @@ All required features for Full Client conformance have been implemented:
 |---------|---------|--------|
 | §3.2.1 | Minimal Client | ✅ Fully Implemented |
 | §3.2.2 | Full Client | ✅ Fully Implemented |
-| §5 | Git and HTTPS Roots | ✅ Fully Implemented |
+| §4.1 | File Names (.burrow.json, .warren.json) | ✅ Fully Implemented |
+| §4.1.1 | Human-readable companions (.burrow.md, .warren.md) | ✅ Fully Implemented |
+| §5 | Root Descriptors | ✅ Fully Implemented |
+| §5.2.1 | Git Roots | ✅ Fully Implemented |
+| §5.2.2 | HTTPS Roots | ✅ Fully Implemented |
+| §5.2.3 | HTTP Roots (insecure option) | ✅ Fully Implemented |
+| §5.2.4 | FTP/FTPS/SFTP Roots | ⚠️ Not Yet Implemented |
+| §5.2.5 | File Roots (local/SMB/NFS) | ✅ Fully Implemented |
+| §5.4 | Transport Protocol Detection | ✅ Fully Implemented |
 | §6 | Manifest Format | ✅ Fully Implemented |
 | §7 | RID Verification | ✅ Fully Implemented |
 | §8 | Traversal Algorithm | ✅ Fully Implemented |
@@ -311,12 +360,12 @@ All required features for Full Client conformance have been implemented:
 This implementation has been verified to meet all requirements for **RBT Client (Full)** conformance as defined in:
 
 **Rabit Burrow Traversal Specification**
-draft-rabit-rbt-02
+draft-rabit-rbt-04
 Version 0.2
-Date: 2026-01-12
+Date: 2026-01-13
 
 **Implementation Version:** @rabit/client v0.2.0
-**Certification Date:** 2026-01-12
+**Certification Date:** 2026-01-13
 **Platform:** Bun 1.0+
 **Language:** TypeScript 5.3+
 
@@ -346,6 +395,7 @@ rabit warren https://rabit.dev/registry/
 
 While this implementation achieves Full Client conformance, future versions may add:
 
+- [ ] FTP/FTPS/SFTP transport support (§5.2.4)
 - [ ] Manifest signing verification (§15.6 - reserved for future)
 - [ ] Enhanced caching strategies
 - [ ] Additional security hardening

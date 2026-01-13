@@ -1,9 +1,10 @@
 /**
  * Utility functions for RBT client
+ * Based on draft-rabit-rbt-04
  */
 
-import type { Root, GitRoot, HttpsRoot, RbtError } from './types';
-import { isGitRoot, isHttpsRoot } from './types';
+import type { Root, GitRoot, HttpsRoot, HttpRoot, FtpRoot, FileRoot, RbtError } from './types';
+import { isGitRoot, isHttpsRoot, isHttpRoot, isFtpRoot, isFileRoot } from './types';
 
 // ============================================================================
 // RID Computation (§7)
@@ -122,24 +123,58 @@ export function validateUrl(urlString: string, allowGit = false): URL {
 // ============================================================================
 
 /**
- * Get the base URL for HTTPS access from a root
+ * Get the base URL/path for resource access from a root
+ * Returns file:// URL for file roots, HTTP/HTTPS URL for http/https roots, null for git roots
+ * @see Specification §5.2
  */
 export function getRootBaseUrl(root: Root): string | null {
+  if (isFileRoot(root)) {
+    // Return as file:// URL for consistency
+    const path = root.file.path;
+    if (path.startsWith('/')) {
+      return `file://${path}`;
+    } else if (/^[a-zA-Z]:/.test(path)) {
+      return `file:///${path.replace(/\\/g, '/')}`;
+    } else if (path.startsWith('\\\\')) {
+      return `file:${path.replace(/\\/g, '/')}`;
+    }
+    return `file://${path}`;
+  }
   if (isHttpsRoot(root)) {
     return root.https.base;
+  }
+  if (isHttpRoot(root)) {
+    return root.http.base;
+  }
+  if (isFtpRoot(root)) {
+    return root.ftp.url;
   }
   return null;
 }
 
 /**
  * Get display name for a root (for logging)
+ * @see Specification §5.2
  */
 export function getRootDisplayName(root: Root): string {
+  if (isFileRoot(root)) {
+    return `file:${root.file.path}`;
+  }
   if (isGitRoot(root)) {
     return `git:${root.git.remote}@${root.git.ref}`;
   }
   if (isHttpsRoot(root)) {
     return `https:${root.https.base}`;
+  }
+  if (isHttpRoot(root)) {
+    const protocol = root.http.base.startsWith('https') ? 'https' : 'http';
+    const suffix = root.http.insecure ? ' (insecure)' : '';
+    return `${protocol}:${root.http.base}${suffix}`;
+  }
+  if (isFtpRoot(root)) {
+    const protocol = root.ftp.protocol || 'ftp';
+    const suffix = root.ftp.insecure ? ' (insecure)' : '';
+    return `${protocol}:${root.ftp.url}${suffix}`;
   }
   return 'unknown';
 }
