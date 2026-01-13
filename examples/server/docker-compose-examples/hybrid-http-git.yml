@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  http:
+    image: fwdslsh/rabit-server:latest
+    container_name: rabit-http
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./content:/data/burrow:ro
+    environment:
+      RABIT_TITLE: "Documentation"
+      RABIT_DESCRIPTION: "Accessible via HTTP and Git"
+      RABIT_BASE_URL: "http://localhost:8080/"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  git:
+    image: fwdslsh/rabit-server-git:latest
+    container_name: rabit-git
+    restart: unless-stopped
+    ports:
+      - "2222:22"
+    environment:
+      SSH_USER_UID: 1000
+      SSH_USER_GID: 1000
+    volumes:
+      - ./content.git:/repos/content.git:ro
+      - ./ssh-keys/authorized_keys:/home/git/.ssh/authorized_keys:ro
+      - git-host-keys:/etc/ssh/host-keys
+    healthcheck:
+      test: ["CMD", "pgrep", "sshd"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  git-host-keys:
+
+networks:
+  default:
+    name: rabit-hybrid-network

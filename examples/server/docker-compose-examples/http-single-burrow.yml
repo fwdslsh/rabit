@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  rabit:
+    image: fwdslsh/rabit-server:latest
+    container_name: rabit-http
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docs:/data/burrow:ro
+    environment:
+      RABIT_TITLE: "My Documentation"
+      RABIT_DESCRIPTION: "Project documentation and guides"
+      RABIT_BASE_URL: "http://localhost:8080/"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

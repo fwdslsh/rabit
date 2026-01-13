@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  git:
+    image: fwdslsh/rabit-server-git:latest
+    container_name: rabit-git
+    restart: unless-stopped
+    ports:
+      - "22:22"
+    environment:
+      SSH_USER_UID: 1000
+      SSH_USER_GID: 1000
+    volumes:
+      - ./repos:/repos:ro
+      - ./ssh-keys/authorized_keys:/home/git/.ssh/authorized_keys:ro
+      - git-host-keys:/etc/ssh/host-keys
+    healthcheck:
+      test: ["CMD", "pgrep", "sshd"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  git-host-keys:

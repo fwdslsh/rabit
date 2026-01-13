@@ -1,278 +1,400 @@
 # Rabit Server
 
-Official Docker image for serving Rabit burrows and warrens with zero configuration.
+**Official Docker images for serving Rabit burrows** - Zero-configuration servers for documentation, content, and knowledge repositories.
 
-## Quick Start
+## Available Images
 
-### Serve a Burrow
+Rabit provides two official Docker images, each optimized for different use cases:
+
+### 1. HTTP Server (`fwdslsh/rabit-server`)
+
+Serve burrows and warrens via HTTP with auto-generated manifests.
+
+[![Docker Hub](https://img.shields.io/docker/pulls/fwdslsh/rabit-server.svg)](https://hub.docker.com/r/fwdslsh/rabit-server)
 
 ```bash
-# Serve a directory as a burrow
 docker run -d \
   -p 8080:80 \
-  -v ./my-docs:/data/burrow \
+  -v ./docs:/data/burrow:ro \
   -e RABIT_TITLE="My Documentation" \
-  rabit/server
+  fwdslsh/rabit-server
 ```
 
-Your content is now available at:
-- Manifest: http://localhost:8080/.burrow.json
-- Content: http://localhost:8080/
+**Perfect for:**
+- Public documentation websites
+- Internal knowledge bases
+- API documentation servers
+- Content delivery for browsers and agents
+- Warren registries (multiple burrows)
 
-### Serve a Warren (Registry)
+**[Read full documentation →](./http/README.md)**
+
+### 2. Git Server (`fwdslsh/rabit-server-git`)
+
+Read-only SSH-based Git server for secure burrow distribution.
+
+[![Docker Hub](https://img.shields.io/docker/pulls/fwdslsh/rabit-server-git.svg)](https://hub.docker.com/r/fwdslsh/rabit-server-git)
 
 ```bash
-# Serve a directory of burrows as a warren
 docker run -d \
-  -p 8080:80 \
-  -v ./my-burrows:/data/warren \
-  -e RABIT_MODE="warren" \
-  -e RABIT_TITLE="My Registry" \
-  rabit/server
+  -p 22:22 \
+  -v ./repos:/repos:ro \
+  -v ./authorized_keys:/home/git/.ssh/authorized_keys:ro \
+  fwdslsh/rabit-server-git
 ```
 
-Your registry is now available at:
-- Registry: http://localhost:8080/.warren.json
-- Markdown: http://localhost:8080/.warren.md
+**Perfect for:**
+- Team documentation sharing
+- Secure content distribution
+- SSH key-authenticated access
+- Home lab and internal networks
+- Git-based workflows
 
-## Features
+**[Read full documentation →](./git/README.md)**
 
-- **Zero configuration** - Just mount your content directory
-- **Auto-generated manifests** - Creates `.burrow.json` and `.warren.json` automatically
-- **CORS enabled** - Ready for browser and agent access
-- **Content-type detection** - Proper MIME types for all files
-- **Health checks** - Built-in `/health` endpoint
-- **SHA256 hashes** - Optional content verification
+## Quick Comparison
 
-## Environment Variables
+| Feature | HTTP Server | Git Server |
+|---------|-------------|------------|
+| **Protocol** | HTTP/HTTPS | SSH/Git |
+| **Authentication** | None / Reverse proxy | SSH keys |
+| **Access Control** | Via reverse proxy | Via authorized_keys |
+| **CORS** | Built-in | N/A |
+| **Auto-generation** | Yes | No (serves repos as-is) |
+| **Best for** | Public/browser access | Secure team access |
+| **Client** | Any HTTP client | Git client |
+| **Port** | 80/443 | 22 (or custom) |
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `RABIT_MODE` | `burrow` | Mode: `burrow`, `warren`, or `both` |
-| `RABIT_PORT` | `80` | Port to listen on |
-| `RABIT_TITLE` | `My Burrow` | Title for the manifest |
-| `RABIT_DESCRIPTION` | `` | Description for the manifest |
-| `RABIT_BASE_URL` | Auto-detected | Base URL for the burrow/warren |
-| `RABIT_CORS_ORIGINS` | `*` | Allowed CORS origins |
-| `RABIT_AUTO_GENERATE` | `true` | Auto-generate manifests if missing |
-| `RABIT_LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warn`, `error` |
+## Use Cases
 
-## Modes
+### Public Documentation
 
-### Burrow Mode (default)
-
-Serves a single burrow from `/data/burrow`:
-
-```bash
-docker run -v ./content:/data/burrow rabit/server
-```
-
-Directory structure:
-```
-/data/burrow/
-├── .burrow.json    # Auto-generated if missing
-├── README.md
-├── guides/
-│   └── getting-started.md
-└── api/
-    └── reference.md
-```
-
-### Warren Mode
-
-Serves a registry of burrows from `/data/warren`:
-
-```bash
-docker run -v ./burrows:/data/warren -e RABIT_MODE=warren rabit/server
-```
-
-Directory structure:
-```
-/data/warren/
-├── .warren.json    # Auto-generated if missing
-├── .warren.md      # Auto-generated if missing
-├── docs/           # Each subdirectory becomes a burrow entry
-│   ├── .burrow.json
-│   └── ...
-├── api/
-│   ├── .burrow.json
-│   └── ...
-└── blog/
-    ├── .burrow.json
-    └── ...
-```
-
-### Both Mode
-
-Serves both a warren at root and burrows at `/burrow/`:
-
-```bash
-docker run \
-  -v ./content:/data/burrow \
-  -v ./registry:/data/warren \
-  -e RABIT_MODE=both \
-  rabit/server
-```
-
-## Using Your Own Manifests
-
-If you provide your own `.burrow.json` or `.warren.json`, the server will use them instead of auto-generating:
-
-```bash
-# Your existing manifest will be used
-docker run -v ./my-docs:/data/burrow rabit/server
-```
-
-To disable auto-generation entirely:
-
-```bash
-docker run -v ./my-docs:/data/burrow -e RABIT_AUTO_GENERATE=false rabit/server
-```
-
-## Docker Compose
-
-### Single Burrow
+Use **HTTP Server** for public-facing documentation:
 
 ```yaml
 version: '3.8'
 services:
   docs:
-    image: rabit/server
+    image: fwdslsh/rabit-server:latest
     ports:
-      - "8080:80"
+      - "80:80"
     volumes:
       - ./docs:/data/burrow:ro
     environment:
-      RABIT_TITLE: "My Documentation"
-      RABIT_DESCRIPTION: "Project documentation and guides"
+      RABIT_TITLE: "Product Documentation"
+      RABIT_BASE_URL: "https://docs.example.com/"
 ```
 
-### Multiple Burrows with Warren
+### Team Knowledge Base
+
+Use **Git Server** for authenticated team access:
 
 ```yaml
 version: '3.8'
 services:
-  warren:
-    image: rabit/server
+  git:
+    image: fwdslsh/rabit-server-git:latest
     ports:
-      - "8080:80"
+      - "22:22"
     volumes:
-      - ./registry:/data/warren:ro
+      - ./repos:/repos:ro
+      - ./team-keys:/home/git/.ssh/authorized_keys:ro
+```
+
+### Hybrid Setup
+
+Use **both** for maximum flexibility:
+
+```yaml
+version: '3.8'
+services:
+  # Public HTTP access
+  http:
+    image: fwdslsh/rabit-server:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./docs:/data/burrow:ro
     environment:
-      RABIT_MODE: warren
-      RABIT_TITLE: "My Burrow Registry"
+      RABIT_TITLE: "Public Docs"
+
+  # Authenticated Git access
+  git:
+    image: fwdslsh/rabit-server-git:latest
+    ports:
+      - "22:22"
+    volumes:
+      - ./repos:/repos:ro
+      - ./authorized_keys:/home/git/.ssh/authorized_keys:ro
+```
+
+## Getting Started
+
+### 1. Choose Your Server
+
+- **Need browser access?** → [HTTP Server](./http/README.md)
+- **Need SSH authentication?** → [Git Server](./git/README.md)
+- **Need both?** → Use both images
+
+### 2. Pull the Image
+
+```bash
+# HTTP Server
+docker pull fwdslsh/rabit-server:latest
+
+# Git Server
+docker pull fwdslsh/rabit-server-git:latest
+```
+
+### 3. Mount Your Content
+
+**HTTP Server:**
+```bash
+docker run -d -p 8080:80 \
+  -v ./my-docs:/data/burrow:ro \
+  fwdslsh/rabit-server
+```
+
+**Git Server:**
+```bash
+docker run -d -p 22:22 \
+  -v ./repos:/repos:ro \
+  -v ./keys:/home/git/.ssh/authorized_keys:ro \
+  fwdslsh/rabit-server-git
+```
+
+### 4. Access Your Content
+
+**HTTP Server:**
+```bash
+curl http://localhost:8080/.burrow.json
+```
+
+**Git Server:**
+```bash
+git clone git@server:my-docs.git
+```
+
+## Environment Variables
+
+### HTTP Server
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RABIT_MODE` | `burrow` | `burrow`, `warren`, or `both` |
+| `RABIT_TITLE` | `My Burrow` | Manifest title |
+| `RABIT_DESCRIPTION` | `` | Manifest description |
+| `RABIT_BASE_URL` | Auto-detected | Base URL |
+| `RABIT_CORS_ORIGINS` | `*` | CORS allowed origins |
+| `RABIT_AUTO_GENERATE` | `true` | Auto-generate manifests |
+
+[See all HTTP variables →](./http/README.md#environment-variables)
+
+### Git Server
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SSH_USER_UID` | `1000` | Git user UID |
+| `SSH_USER_GID` | `1000` | Git user GID |
+| `GIT_BASE_PATH` | `/repos` | Repository base path |
+| `SSH_AUTH_METHODS` | `publickey` | SSH auth methods |
+
+[See all Git variables →](./git/README.md#environment-variables)
+
+## Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/fwdslsh/rabit.git
+cd rabit/packages/rabit-server
+
+# Build both images
+make build
+
+# Or build individually
+make build-http
+make build-git
+
+# Test the images
+make test
+
+# Publish to Docker Hub
+make publish
+```
+
+## Examples
+
+Comprehensive examples are available in the [`examples/server/`](../../examples/server/) directory:
+
+- **[Auto-generate](../../examples/server/auto-generate/)** - Auto-generated manifest server
+- **[Git readonly](../../examples/server/git-readonly/)** - Read-only Git server setup
+- **[Wellknown static](../../examples/server/wellknown-static/)** - Static .well-known files
+- **[Docker Compose examples](../../examples/server/docker-compose-examples/)** - Various deployment scenarios
+
+## Production Deployment
+
+### HTTP Server with Traefik
+
+```yaml
+version: '3.8'
+services:
+  traefik:
+    image: traefik:v2.10
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
   docs:
-    image: rabit/server
-    ports:
-      - "8081:80"
+    image: fwdslsh/rabit-server:latest
     volumes:
       - ./docs:/data/burrow:ro
     environment:
       RABIT_TITLE: "Documentation"
-      RABIT_BASE_URL: "http://localhost:8081/"
+      RABIT_BASE_URL: "https://docs.example.com/"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.docs.rule=Host(`docs.example.com`)"
+      - "traefik.http.routers.docs.tls.certresolver=letsencrypt"
+```
 
-  api:
-    image: rabit/server
+### Git Server with Custom Port
+
+```yaml
+version: '3.8'
+services:
+  git:
+    image: fwdslsh/rabit-server-git:latest
     ports:
-      - "8082:80"
+      - "2222:22"  # Custom port to avoid conflicts
     volumes:
-      - ./api-docs:/data/burrow:ro
-    environment:
-      RABIT_TITLE: "API Reference"
-      RABIT_BASE_URL: "http://localhost:8082/"
+      - /mnt/repos:/repos:ro
+      - ./team-keys:/home/git/.ssh/authorized_keys:ro
+      - git-host-keys:/etc/ssh/host-keys
+    restart: unless-stopped
+
+volumes:
+  git-host-keys:
 ```
 
-## Health Check
+## Security Best Practices
 
-The server exposes a health endpoint:
+### 1. Always Use Read-Only Mounts
+
+```yaml
+volumes:
+  - ./content:/data/burrow:ro  # Note the :ro
+```
+
+### 2. Restrict CORS (HTTP Server)
 
 ```bash
-curl http://localhost:8080/health
-# {"status":"healthy","mode":"burrow"}
+-e RABIT_CORS_ORIGINS="https://trusted-domain.com"
 ```
 
-## CORS Configuration
+### 3. Use SSH Keys (Git Server)
 
-By default, CORS allows all origins (`*`). To restrict:
+Never use password authentication. Always use SSH keys:
 
 ```bash
-docker run \
-  -v ./docs:/data/burrow \
-  -e RABIT_CORS_ORIGINS="https://myapp.example.com" \
-  rabit/server
+cat ~/.ssh/id_ed25519.pub >> authorized_keys
 ```
 
-## Building the Image
+### 4. Network Isolation
+
+```yaml
+networks:
+  internal:
+    driver: bridge
+    internal: true
+```
+
+### 5. Regular Updates
 
 ```bash
-docker build -t rabit/server .
+docker pull fwdslsh/rabit-server:latest
+docker pull fwdslsh/rabit-server-git:latest
 ```
 
-## API Endpoints
+## Health Checks
 
-| Endpoint | Mode | Description |
-|----------|------|-------------|
-| `/.burrow.json` | burrow, both | Burrow manifest |
-| `/.burrow.md` | burrow, both | Human-readable burrow companion |
-| `/.warren.json` | warren, both | Warren registry |
-| `/.warren.md` | warren, both | Human-readable registry |
-| `/health` | all | Health check |
-| `/*` | all | Static content |
+Both images include built-in health checks:
 
-## Examples
+### HTTP Server
 
-### Read-Only Git Server
-
-Share burrows via Git with SSH key authentication and read-only access:
-
-```bash
-cd ../../examples/server/git-readonly
-./setup.sh
-
-# Add your SSH key
-cat ~/.ssh/id_ed25519.pub >> ssh-keys/authorized_keys
-
-# Add a repository
-git clone --bare https://github.com/you/docs repos/docs.git
-
-# Start
-docker compose up -d
-
-# Clients clone with clean URLs:
-git clone git@your-server:docs.git
+```yaml
+healthcheck:
+  test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+  interval: 30s
+  timeout: 5s
+  retries: 3
 ```
 
-Features:
-- Clean URLs (`git@server:repo.git`) — no `/srv/git` prefix
-- Standard port 22 by default (configurable with `--port`)
-- No symlinks required — mount repos directly
-- No root access needed on host
+### Git Server
 
-See [examples/git-readonly/README.md](../../examples/server/git-readonly/README.md) for full documentation.
+```yaml
+healthcheck:
+  test: ["CMD", "pgrep", "sshd"]
+  interval: 30s
+  timeout: 5s
+  retries: 3
+```
 
-### Using with File Paths
+## Troubleshooting
 
-The Rabit v0.3.0 spec uses standard URIs for file paths:
+### HTTP Server Issues
 
+- **Manifest not generated:** Check `RABIT_AUTO_GENERATE=true` and logs
+- **CORS errors:** Verify `RABIT_CORS_ORIGINS` setting
+- **Wrong base URL:** Set `RABIT_BASE_URL` explicitly
+
+[Full HTTP troubleshooting →](./http/README.md#troubleshooting)
+
+### Git Server Issues
+
+- **Permission denied:** Verify SSH keys in `authorized_keys`
+- **Host key verification failed:** Add server to `known_hosts`
+- **Connection refused:** Check port mapping and firewall
+
+[Full Git troubleshooting →](./git/README.md#troubleshooting)
+
+## Integration with Rabit Clients
+
+Both servers work seamlessly with Rabit clients:
+
+**HTTP Server:**
 ```json
 {
   "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
   "kind": "burrow",
-  "title": "My Documentation",
-  "baseUri": "file:///mnt/shared/documentation/",
-  "entries": [
-    { "id": "readme", "kind": "file", "uri": "README.md" }
-  ]
+  "title": "Documentation",
+  "baseUri": "https://docs.example.com/"
 }
 ```
 
+**Git Server:**
+```json
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "kind": "burrow",
+  "title": "Documentation",
+  "baseUri": "git@git.example.com:docs.git"
+}
+```
+
+## Support
+
+- **Documentation:** [Rabit Specification](../../docs/rabit-spec-v0.3.0.md)
+- **Issues:** [GitHub Issues](https://github.com/fwdslsh/rabit/issues)
+- **Docker Hub:**
+  - [fwdslsh/rabit-server](https://hub.docker.com/r/fwdslsh/rabit-server)
+  - [fwdslsh/rabit-server-git](https://hub.docker.com/r/fwdslsh/rabit-server-git)
+
 ## License
 
-CC-BY-4.0 License - See LICENSE file for details.
+CC-BY-4.0 License - See [LICENSE](./LICENSE) file for details.
 
-## Links
+## Contributing
 
-- [Rabit Specification](../../docs/rabit-spec-v0.3.0.md)
-- [GitHub Repository](https://github.com/fwdslsh/rabit)
-- [Docker Hub](https://hub.docker.com/r/rabit/server)
+Contributions welcome! See [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines.

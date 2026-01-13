@@ -1,21 +1,21 @@
 #!/usr/bin/env bun
 /**
- * Rabit Manifest Generator
- * Auto-generates .burrow.json and .warren.json from directory contents
+ * Rabit .well-known Generator
+ * Auto-generates .well-known/burrow.json from directory contents
  */
 
 import { readdir, stat, readFile, writeFile } from 'fs/promises';
-import { join, extname, basename, relative } from 'path';
+import { join, extname, basename } from 'path';
 import { createHash } from 'crypto';
 
 // Environment configuration
 const config = {
   title: process.env.RABIT_TITLE || 'My Burrow',
   description: process.env.RABIT_DESCRIPTION || '',
-  updated: process.env.RABIT_UPDATED || new Date().toISOString(),
+  updated: new Date().toISOString(),
   baseUrl: process.env.RABIT_BASE_URL || 'http://localhost/',
-  burrowPath: '/data/burrow',
-  warrenPath: '/data/warren',
+  contentPath: '/data',
+  wellKnownPath: '/usr/share/nginx/html/.well-known',
 };
 
 // MIME type mapping
@@ -170,9 +170,9 @@ async function scanDirectory(dir: string, basePath: string = ''): Promise<Entry[
 }
 
 async function generateBurrowManifest(): Promise<void> {
-  console.log('Scanning burrow directory...');
-  
-  const entries = await scanDirectory(config.burrowPath);
+  console.log('Scanning content directory...');
+
+  const entries = await scanDirectory(config.contentPath);
   
   // Sort entries: index first, then alphabetically
   entries.sort((a, b) => {
@@ -218,10 +218,10 @@ async function generateBurrowManifest(): Promise<void> {
   const manifestRid = computeRid(Buffer.from(tempManifest, 'utf-8'));
   manifestContent.manifest.rid = manifestRid;
   
-  // Write manifest
-  const outputPath = join(config.burrowPath, '.burrow.json');
+  // Write manifest to .well-known directory
+  const outputPath = join(config.wellKnownPath, 'burrow.json');
   await writeFile(outputPath, JSON.stringify(manifestContent, null, 2));
-  
+
   console.log(`Generated ${outputPath}`);
   console.log(`  Title: ${config.title}`);
   console.log(`  Entries: ${entries.length}`);
@@ -338,17 +338,5 @@ async function generateWarrenManifest(): Promise<void> {
   console.log(`  Burrows: ${entries.length}`);
 }
 
-// Main
-const mode = process.argv[2] || 'burrow';
-
-switch (mode) {
-  case 'burrow':
-    await generateBurrowManifest();
-    break;
-  case 'warren':
-    await generateWarrenManifest();
-    break;
-  default:
-    console.error(`Unknown mode: ${mode}`);
-    process.exit(1);
-}
+// Main - always generate burrow manifest to .well-known
+await generateBurrowManifest();
