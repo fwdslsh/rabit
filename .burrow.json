@@ -1,8 +1,14 @@
 {
+  "$schema": "./schemas/burrow.json",
   "specVersion": "fwdslsh.dev/rabit/schemas/0.4.0/burrow",
   "kind": "burrow",
   "title": "rabit",
-  "description": "Auto-generated burrow from /home/founder3/code/github/itlackey/rabit",
+  "description": "Auto-generated burrow from fwdslsh/rabit",
+  "repo": {
+    "security": "docs/SECURITY.md",
+    "about": "docs/about.md",
+    "license": "./LICENSE"
+  },
   "updated": "2026-01-13T18:47:03.757Z",
   "entries": [
     {

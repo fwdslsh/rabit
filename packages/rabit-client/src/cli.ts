@@ -581,7 +581,8 @@ async function cmdTraverse(uri: string, options: {
       count++;
       const depth = event.depth || 0;
       const indent = '  '.repeat(depth);
-      log(`${indent}${colors.green}✓${colors.reset} ${event.entry.title || event.entry.id} (${event.entry.kind})`);
+      const fullPath = resolveUri(burrow.baseUri, event.entry.uri);
+      log(`${fullPath || event.entry.title || event.entry.id} (${event.entry.kind})`);
     } else if (event.type === 'cycle-detected') {
       cycleDetected++;
       log(`${colors.yellow}↻${colors.reset} Cycle detected: ${event.entry.id}`);
