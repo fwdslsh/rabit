@@ -454,10 +454,10 @@ The goal is a spec that someone can read in 10 minutes and implement in an after
    - See `packages/rabit-client/docs/CLIENT_SPEC.md`
 4. [X] Update JSON schemas (see `schemas/burrow.schema.json`, `schemas/warren.schema.json`)
 5. [X] Update TypeScript types (see `packages/rabit-client/src/types.ts`)
-6. [ ] Update client implementation
+6. [X] Update client implementation (client.ts, types.ts, helpers.ts, index.ts)
 7. [X] Update example manifests (root .burrow.json, examples/.warren.json, example burrows)
 8. [ ] Update server/generator
-9. [ ] Update README and documentation
+9. [X] Update README and documentation
 
 ---
 
