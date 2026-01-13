@@ -1,0 +1,48 @@
+{
+  "name": "rabit",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Rabit Burrow Traversal (RBT) - A specification for publishing agent-friendly content spaces",
+  "keywords": [
+    "rabit",
+    "burrow",
+    "warren",
+    "traversal",
+    "rbt",
+    "agent",
+    "ai",
+    "content",
+    "git",
+    "manifest",
+    "monorepo"
+  ],
+  "homepage": "https://github.com/itlackey/rabit#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itlackey/rabit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itlackey/rabit/issues"
+  },
+  "license": "CC-BY-4.0",
+  "author": "Rabit Contributors",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun run --filter '*' build",
+    "test": "bun run --filter '*' test",
+    "typecheck": "bun run --filter '*' typecheck",
+    "clean": "bun run --filter '*' clean",
+    "dev:client": "bun run --filter @rabit/client dev",
+    "dev:opencode": "bun run --filter opencode-rabit dev"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
