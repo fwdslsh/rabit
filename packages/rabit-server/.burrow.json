@@ -1,0 +1,152 @@
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "kind": "burrow",
+  "title": "rabit-server",
+  "description": "Auto-generated burrow from /home/founder3/code/github/itlackey/rabit/packages/rabit-server",
+  "updated": "2026-01-13T16:25:20.961Z",
+  "entries": [
+    {
+      "id": "license",
+      "kind": "file",
+      "uri": "LICENSE",
+      "title": "LICENSE",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 1468
+    },
+    {
+      "id": "makefile",
+      "kind": "file",
+      "uri": "Makefile",
+      "title": "Makefile",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 6536
+    },
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "README.md",
+      "title": "README.md",
+      "priority": 100,
+      "mediaType": "text/markdown",
+      "sizeBytes": 9042
+    },
+    {
+      "id": "git",
+      "kind": "dir",
+      "uri": "git/",
+      "title": "git",
+      "priority": 70
+    },
+    {
+      "id": "dockerfile",
+      "kind": "file",
+      "uri": "git/Dockerfile",
+      "title": "Dockerfile",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 2791
+    },
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "git/README.md",
+      "title": "README.md",
+      "priority": 100,
+      "mediaType": "text/markdown",
+      "sizeBytes": 7550
+    },
+    {
+      "id": "config",
+      "kind": "dir",
+      "uri": "git/config/",
+      "title": "config",
+      "priority": 70
+    },
+    {
+      "id": "sshd-config",
+      "kind": "file",
+      "uri": "git/config/sshd_config",
+      "title": "sshd_config",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 1003
+    },
+    {
+      "id": "git-shell-commands",
+      "kind": "dir",
+      "uri": "git/git-shell-commands/",
+      "title": "git-shell-commands",
+      "priority": 70
+    },
+    {
+      "id": "git-receive-pack",
+      "kind": "file",
+      "uri": "git/git-shell-commands/git-receive-pack",
+      "title": "git-receive-pack",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 269
+    },
+    {
+      "id": "no-interactive-login",
+      "kind": "file",
+      "uri": "git/git-shell-commands/no-interactive-login",
+      "title": "no-interactive-login",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 543
+    },
+    {
+      "id": "nginx",
+      "kind": "dir",
+      "uri": "nginx/",
+      "title": "nginx",
+      "priority": 70
+    },
+    {
+      "id": "dockerfile",
+      "kind": "file",
+      "uri": "nginx/Dockerfile",
+      "title": "Dockerfile",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 2744
+    },
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "nginx/README.md",
+      "title": "README.md",
+      "priority": 100,
+      "mediaType": "text/markdown",
+      "sizeBytes": 9982
+    },
+    {
+      "id": "scripts",
+      "kind": "dir",
+      "uri": "nginx/scripts/",
+      "title": "scripts",
+      "priority": 70
+    },
+    {
+      "id": "entrypoint",
+      "kind": "file",
+      "uri": "nginx/scripts/entrypoint.sh",
+      "title": "entrypoint.sh",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 2080
+    },
+    {
+      "id": "generate-wellknown",
+      "kind": "file",
+      "uri": "nginx/scripts/generate-wellknown.ts",
+      "title": "generate-wellknown.ts",
+      "priority": 80,
+      "mediaType": "application/typescript",
+      "sizeBytes": 9981
+    }
+  ]
+}

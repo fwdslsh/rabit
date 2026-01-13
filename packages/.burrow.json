@@ -1,0 +1,214 @@
+{
+  "specVersion": "fwdslsh.dev/rabit/schemas/0.3.0/burrow",
+  "kind": "burrow",
+  "title": "packages",
+  "description": "Auto-generated burrow from /home/founder3/code/github/itlackey/rabit/packages",
+  "updated": "2026-01-13T16:27:43.700Z",
+  "entries": [
+    {
+      "id": "opencode-rabit",
+      "kind": "dir",
+      "uri": "opencode-rabit/",
+      "title": "opencode-rabit",
+      "priority": 70
+    },
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "opencode-rabit/README.md",
+      "title": "README.md",
+      "priority": 100,
+      "mediaType": "text/markdown",
+      "sizeBytes": 4809
+    },
+    {
+      "id": "index",
+      "kind": "file",
+      "uri": "opencode-rabit/index.ts",
+      "title": "index.ts",
+      "priority": 95,
+      "mediaType": "application/typescript",
+      "sizeBytes": 17476
+    },
+    {
+      "id": "package",
+      "kind": "file",
+      "uri": "opencode-rabit/package.json",
+      "title": "package.json",
+      "priority": 80,
+      "mediaType": "application/json",
+      "sizeBytes": 596
+    },
+    {
+      "id": "rabit-client",
+      "kind": "dir",
+      "uri": "rabit-client/",
+      "title": "rabit-client",
+      "priority": 70
+    },
+    {
+      "id": "license",
+      "kind": "file",
+      "uri": "rabit-client/LICENSE",
+      "title": "LICENSE",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 782
+    },
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "rabit-client/README.md",
+      "title": "README.md",
+      "priority": 100,
+      "mediaType": "text/markdown",
+      "sizeBytes": 14232
+    },
+    {
+      "id": "bun",
+      "kind": "file",
+      "uri": "rabit-client/bun.lock",
+      "title": "bun.lock",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 4237
+    },
+    {
+      "id": "docs",
+      "kind": "dir",
+      "uri": "rabit-client/docs/",
+      "title": "docs",
+      "priority": 70
+    },
+    {
+      "id": "examples",
+      "kind": "dir",
+      "uri": "rabit-client/examples/",
+      "title": "examples",
+      "priority": 70
+    },
+    {
+      "id": "package",
+      "kind": "file",
+      "uri": "rabit-client/package.json",
+      "title": "package.json",
+      "priority": 80,
+      "mediaType": "application/json",
+      "sizeBytes": 1769
+    },
+    {
+      "id": "src",
+      "kind": "dir",
+      "uri": "rabit-client/src/",
+      "title": "src",
+      "priority": 70
+    },
+    {
+      "id": "tsconfig",
+      "kind": "file",
+      "uri": "rabit-client/tsconfig.json",
+      "title": "tsconfig.json",
+      "priority": 80,
+      "mediaType": "application/json",
+      "sizeBytes": 478
+    },
+    {
+      "id": "rabit-mcp",
+      "kind": "dir",
+      "uri": "rabit-mcp/",
+      "title": "rabit-mcp",
+      "priority": 70
+    },
+    {
+      "id": "license",
+      "kind": "file",
+      "uri": "rabit-mcp/LICENSE",
+      "title": "LICENSE",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 1468
+    },
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "rabit-mcp/README.md",
+      "title": "README.md",
+      "priority": 100,
+      "mediaType": "text/markdown",
+      "sizeBytes": 2306
+    },
+    {
+      "id": "package",
+      "kind": "file",
+      "uri": "rabit-mcp/package.json",
+      "title": "package.json",
+      "priority": 80,
+      "mediaType": "application/json",
+      "sizeBytes": 1709
+    },
+    {
+      "id": "src",
+      "kind": "dir",
+      "uri": "rabit-mcp/src/",
+      "title": "src",
+      "priority": 70
+    },
+    {
+      "id": "tsconfig",
+      "kind": "file",
+      "uri": "rabit-mcp/tsconfig.json",
+      "title": "tsconfig.json",
+      "priority": 80,
+      "mediaType": "application/json",
+      "sizeBytes": 506
+    },
+    {
+      "id": "rabit-server",
+      "kind": "dir",
+      "uri": "rabit-server/",
+      "title": "rabit-server",
+      "priority": 70
+    },
+    {
+      "id": "license",
+      "kind": "file",
+      "uri": "rabit-server/LICENSE",
+      "title": "LICENSE",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 1468
+    },
+    {
+      "id": "makefile",
+      "kind": "file",
+      "uri": "rabit-server/Makefile",
+      "title": "Makefile",
+      "priority": 80,
+      "mediaType": "application/octet-stream",
+      "sizeBytes": 6536
+    },
+    {
+      "id": "readme",
+      "kind": "file",
+      "uri": "rabit-server/README.md",
+      "title": "README.md",
+      "priority": 100,
+      "mediaType": "text/markdown",
+      "sizeBytes": 9042
+    },
+    {
+      "id": "git",
+      "kind": "dir",
+      "uri": "rabit-server/git/",
+      "title": "git",
+      "priority": 70
+    },
+    {
+      "id": "nginx",
+      "kind": "dir",
+      "uri": "rabit-server/nginx/",
+      "title": "nginx",
+      "priority": 70
+    }
+  ]
+}

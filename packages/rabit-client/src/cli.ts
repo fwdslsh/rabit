@@ -1,35 +1,22 @@
 #!/usr/bin/env bun
 /**
- * Rabit CLI - Full-Featured RBT Client
+ * Rabit CLI - Universal Burrow Browser
+ *
+ * Implementation of CLIENT_SPEC.md v0.3.0
  *
  * Commands:
- *   warren <url>              - List burrows in a warren
- *   burrow <url>              - Show burrow manifest info
- *   entries <url>             - List entries in a burrow
- *   fetch <url> <entry-id>    - Fetch a specific entry's content
- *   traverse <url>            - Traverse all entries in a burrow
- *   search <url> <query>      - Search entries by title/summary
- *   agent-info <url>          - Show agent instructions for a burrow
- *   discover-burrow <origin>  - Discover burrow via well-known endpoint
- *   discover-warren <origin>  - Discover warren via well-known endpoint
- *   report <url>              - Generate traversal report
- *   stats <url>               - Show burrow statistics
+ *   discover <uri>                            - Discover burrows at a location
+ *   list <uri> [options]                      - List entries in a burrow
+ *   fetch <uri> <entry-id> [options]          - Fetch a specific entry
+ *   traverse <uri> [options]                  - Traverse all entries
+ *   validate <file>                           - Validate a manifest file
  */
 
 import {
-  type Entry,
-  type BurrowManifest,
   createClient,
-  findEntry,
-  findEntriesByRel,
-  getEntryPoint,
-  getAgentHints,
-  getAgentContext,
-  getBurrowUrl,
-  getBurrowStats,
-  getRepoFiles,
-  requiresAuth,
-  getCacheDirectives,
+  type Entry,
+  type Burrow,
+  type Warren,
 } from './index';
 
 // ANSI colors
@@ -69,154 +56,136 @@ function label(name: string, value: string) {
   console.log(`  ${colors.dim}${name}:${colors.reset} ${value}`);
 }
 
-function formatEntry(entry: Entry, index?: number) {
-  const prefix = index !== undefined ? `${colors.dim}${index + 1}.${colors.reset} ` : '';
-  const rels = entry.rel.map((r) => `${colors.yellow}[${r}]${colors.reset}`).join(' ');
-  console.log(`${prefix}${colors.bold}${entry.title || entry.id}${colors.reset} ${rels}`);
-  console.log(`   ${colors.dim}href:${colors.reset} ${entry.href}`);
-  console.log(`   ${colors.dim}type:${colors.reset} ${entry.type}`);
-  if (entry.summary) {
-    console.log(`   ${colors.dim}${entry.summary}${colors.reset}`);
-  }
-  if (entry.size) {
-    console.log(`   ${colors.dim}size:${colors.reset} ${formatSize(entry.size)}`);
-  }
-}
-
-function formatSize(bytes: number): string {
+function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${(ms / 60000).toFixed(1)}m`;
-}
-
 // Create client instance
 const client = createClient();
 
+// ============================================================================
 // Commands
+// ============================================================================
 
-async function cmdWarren(url: string) {
-  header(`Fetching warren: ${url}`);
+async function cmdDiscover(uri: string) {
+  header(`Discovering burrows at: ${uri}`);
 
-  const result = await client.fetchWarren(url);
-  if (!result.ok || !result.data) {
-    error(result.error?.message || 'Unknown error');
+  const result = await client.discover(uri);
+
+  if (result.depth === -1) {
+    error('No burrow or warren found');
     process.exit(1);
   }
 
-  const warren = result.data;
+  success(`Found at depth ${result.depth}`);
+  label('Base URI', result.baseUri);
 
-  header(warren.registry.title);
-  if (warren.registry.description) {
-    log(`${colors.dim}${warren.registry.description}${colors.reset}`);
-  }
-  label('Version', warren.rbt);
-  label('Updated', warren.registry.updated);
-  label('Burrows', warren.entries.length.toString());
-
-  header('Registered Burrows:');
-  for (const entry of warren.entries) {
-    console.log(`\n  ${colors.bold}${colors.green}${entry.name}${colors.reset} - ${entry.title}`);
-    console.log(`  ${colors.dim}${entry.summary}${colors.reset}`);
-    if (entry.tags) {
-      console.log(`  Tags: ${entry.tags.map((t) => `${colors.yellow}${t}${colors.reset}`).join(', ')}`);
+  if (result.warren) {
+    header('Warren Found:');
+    label('Title', result.warren.title || '(untitled)');
+    if (result.warren.description) {
+      label('Description', result.warren.description);
     }
-    const burrowUrl = getBurrowUrl(entry);
-    if (burrowUrl) {
-      console.log(`  ${colors.dim}URL: ${burrowUrl}${colors.reset}`);
-    }
-  }
-  log('');
-}
+    label('Spec Version', result.warren.specVersion);
+    label('Burrows', (result.warren.burrows?.length || 0).toString());
 
-async function cmdBurrow(url: string) {
-  header(`Fetching burrow: ${url}`);
-
-  const result = await client.fetchBurrow(url);
-  if (!result.ok || !result.data) {
-    error(result.error?.message || 'Unknown error');
-    process.exit(1);
-  }
-
-  const burrow = result.data;
-
-  header(burrow.manifest.title);
-  if (burrow.manifest.description) {
-    log(`${colors.dim}${burrow.manifest.description}${colors.reset}`);
-  }
-  label('Version', burrow.rbt);
-  label('Updated', burrow.manifest.updated);
-  label('Entries', burrow.entries.length.toString());
-  label('RID', burrow.manifest.rid.substring(0, 60) + '...');
-
-  if (requiresAuth(burrow)) {
-    warning('Authentication required');
-  }
-
-  const cache = getCacheDirectives(burrow);
-  label('Cache Max Age', `${cache.maxAge}s`);
-  label('Cache Stale While Revalidate', `${cache.staleWhileRevalidate}s`);
-
-  const repo = getRepoFiles(burrow);
-  if (Object.keys(repo).length > 0) {
-    header('Repository Files:');
-    for (const [key, value] of Object.entries(repo)) {
-      if (value) {
-        label(key, value);
+    if (result.warren.burrows && result.warren.burrows.length > 0) {
+      log('\n  Burrows:');
+      for (const ref of result.warren.burrows) {
+        log(`    • ${colors.bold}${ref.id}${colors.reset}: ${ref.title || '(untitled)'}`);
+        log(`      ${colors.dim}${ref.uri}${colors.reset}`);
       }
     }
   }
 
-  if (burrow.manifest.agents) {
-    header('Agent Instructions:');
-    if (burrow.manifest.agents.context) {
-      label('Context', burrow.manifest.agents.context);
+  if (result.burrow) {
+    header('Burrow Found:');
+    label('Title', result.burrow.title || '(untitled)');
+    if (result.burrow.description) {
+      label('Description', result.burrow.description);
     }
-    if (burrow.manifest.agents.entryPoint) {
-      label('Entry Point', burrow.manifest.agents.entryPoint);
-    }
-    if (burrow.manifest.agents.hints?.length) {
-      log('  Hints:');
-      for (const hint of burrow.manifest.agents.hints) {
-        log(`    - ${hint}`);
-      }
-    }
+    label('Spec Version', result.burrow.specVersion);
+    label('Entries', result.burrow.entries.length.toString());
   }
   log('');
 }
 
-async function cmdEntries(url: string) {
-  const result = await client.fetchBurrow(url);
+async function cmdList(uri: string, options: {
+  depth?: number;
+  kind?: string;
+  format?: 'json' | 'table' | 'tree';
+}) {
+  const result = await client.fetchBurrow(uri);
+
   if (!result.ok || !result.data) {
-    error(result.error?.message || 'Unknown error');
+    error(result.error?.message || 'Failed to fetch burrow');
     process.exit(1);
   }
 
   const burrow = result.data;
+  let entries = burrow.entries;
 
-  header(`Entries in ${burrow.manifest.title}:`);
-  log('');
+  // Apply kind filter
+  if (options.kind) {
+    entries = entries.filter(e => e.kind === options.kind);
+  }
 
-  for (let i = 0; i < burrow.entries.length; i++) {
-    formatEntry(burrow.entries[i], i);
+  // Format output
+  const format = options.format || (process.stdout.isTTY ? 'table' : 'json');
+
+  if (format === 'json') {
+    console.log(JSON.stringify(entries, null, 2));
+  } else if (format === 'table') {
+    header(`Entries in ${burrow.title || uri}`);
     log('');
+
+    for (const entry of entries) {
+      const kindIcon = {
+        file: '📄',
+        dir: '📁',
+        burrow: '🐰',
+        link: '🔗',
+      }[entry.kind];
+
+      log(`${kindIcon} ${colors.bold}${entry.title || entry.id}${colors.reset}`);
+      log(`   ${colors.dim}ID:${colors.reset} ${entry.id}`);
+      log(`   ${colors.dim}URI:${colors.reset} ${entry.uri}`);
+      if (entry.mediaType) {
+        log(`   ${colors.dim}Type:${colors.reset} ${entry.mediaType}`);
+      }
+      if (entry.sizeBytes) {
+        log(`   ${colors.dim}Size:${colors.reset} ${formatBytes(entry.sizeBytes)}`);
+      }
+      if (entry.summary) {
+        log(`   ${colors.dim}${entry.summary}${colors.reset}`);
+      }
+      log('');
+    }
+  } else if (format === 'tree') {
+    log(burrow.title || uri);
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      const isLast = i === entries.length - 1;
+      const prefix = isLast ? '└── ' : '├── ';
+      log(`${prefix}${entry.title || entry.id} (${entry.kind})`);
+    }
   }
 }
 
-async function cmdFetch(url: string, entryId: string) {
-  const result = await client.fetchBurrow(url);
-  if (!result.ok || !result.data) {
-    error(result.error?.message || 'Unknown error');
+async function cmdFetch(uri: string, entryId: string, options: {
+  output?: string;
+}) {
+  const burrowResult = await client.fetchBurrow(uri);
+
+  if (!burrowResult.ok || !burrowResult.data) {
+    error(burrowResult.error?.message || 'Failed to fetch burrow');
     process.exit(1);
   }
 
-  const burrow = result.data;
-  const entry = findEntry(burrow, entryId);
+  const burrow = burrowResult.data;
+  const entry = burrow.entries.find(e => e.id === entryId);
 
   if (!entry) {
     error(`Entry not found: ${entryId}`);
@@ -228,298 +197,372 @@ async function cmdFetch(url: string, entryId: string) {
   }
 
   header(`Fetching: ${entry.title || entry.id}`);
-  label('Type', entry.type);
-  label('Href', entry.href);
-  label('RID', entry.rid);
+  label('ID', entry.id);
+  label('URI', entry.uri);
+  label('Kind', entry.kind);
+  if (entry.mediaType) {
+    label('Media Type', entry.mediaType);
+  }
   log('');
 
   const contentResult = await client.fetchEntry(burrow, entry);
+
   if (!contentResult.ok || !contentResult.data) {
-    error(contentResult.error?.message || 'Unknown error');
+    error(contentResult.error?.message || 'Failed to fetch entry');
     process.exit(1);
   }
 
-  success('Content fetched and RID verified');
-  log(colors.dim + '─'.repeat(60) + colors.reset);
-  log(new TextDecoder().decode(contentResult.data));
-  log(colors.dim + '─'.repeat(60) + colors.reset);
+  const content = contentResult.data;
+
+  if (options.output) {
+    await Bun.write(options.output, content);
+    success(`Saved to ${options.output}`);
+  } else {
+    success('Content fetched');
+    log(colors.dim + '─'.repeat(60) + colors.reset);
+    log(new TextDecoder().decode(content));
+    log(colors.dim + '─'.repeat(60) + colors.reset);
+  }
 }
 
-async function cmdTraverse(url: string) {
-  const result = await client.fetchBurrow(url);
-  if (!result.ok || !result.data) {
-    error(result.error?.message || 'Unknown error');
+async function cmdTraverse(uri: string, options: {
+  strategy?: 'breadth-first' | 'depth-first' | 'priority';
+  maxDepth?: number;
+  maxEntries?: number;
+}) {
+  const burrowResult = await client.fetchBurrow(uri);
+
+  if (!burrowResult.ok || !burrowResult.data) {
+    error(burrowResult.error?.message || 'Failed to fetch burrow');
     process.exit(1);
   }
 
-  const burrow = result.data;
+  const burrow = burrowResult.data;
 
-  header(`Traversing: ${burrow.manifest.title}`);
+  header(`Traversing: ${burrow.title || uri}`);
+  label('Strategy', options.strategy || 'breadth-first');
+  if (options.maxDepth) {
+    label('Max Depth', options.maxDepth.toString());
+  }
   log('');
 
   const startTime = Date.now();
   let count = 0;
-  let errors = 0;
+  let cycleDetected = 0;
+  let depthLimited = 0;
 
-  for await (const { entry, content, error: fetchError } of client.traverseBurrow(burrow)) {
-    count++;
-    const status = fetchError ? `${colors.red}✗${colors.reset}` : `${colors.green}✓${colors.reset}`;
-    const size = content ? formatSize(content.byteLength) : 'N/A';
-
-    log(`${status} ${colors.bold}${entry.id}${colors.reset} (${entry.type}) - ${size}`);
-
-    if (fetchError) {
-      log(`  ${colors.red}${fetchError.message}${colors.reset}`);
-      errors++;
+  for await (const event of client.traverse(burrow, {
+    strategy: options.strategy,
+    maxDepth: options.maxDepth,
+    maxEntries: options.maxEntries,
+  })) {
+    if (event.type === 'entry') {
+      count++;
+      const depth = event.depth || 0;
+      const indent = '  '.repeat(depth);
+      log(`${indent}${colors.green}✓${colors.reset} ${event.entry.title || event.entry.id} (${event.entry.kind})`);
+    } else if (event.type === 'cycle-detected') {
+      cycleDetected++;
+      log(`${colors.yellow}↻${colors.reset} Cycle detected: ${event.entry.id}`);
+    } else if (event.type === 'depth-limit') {
+      depthLimited++;
     }
   }
 
   const duration = Date.now() - startTime;
 
   log('');
-  success(`Traversed ${count} entries in ${formatDuration(duration)}`);
-  if (errors > 0) {
-    warning(`${errors} entries failed`);
+  success(`Traversed ${count} entries in ${duration}ms`);
+  if (cycleDetected > 0) {
+    warning(`${cycleDetected} cycles detected`);
+  }
+  if (depthLimited > 0) {
+    warning(`${depthLimited} entries skipped (depth limit)`);
   }
 }
 
-async function cmdSearch(url: string, query: string) {
-  const result = await client.fetchBurrow(url);
-  if (!result.ok || !result.data) {
-    error(result.error?.message || 'Unknown error');
-    process.exit(1);
-  }
+async function cmdMap(inputDir: string, options: {
+  output?: string;
+  title?: string;
+  description?: string;
+  baseUri?: string;
+  maxDepth?: number;
+  includeHidden?: boolean;
+  exclude?: string[];
+}) {
+  const { readdirSync, statSync } = await import('fs');
+  const { join, relative, basename: pathBasename } = await import('path');
+  const { resolve: resolvePath } = await import('path');
 
-  const burrow = result.data;
-  const queryLower = query.toLowerCase();
+  const targetDir = resolvePath(inputDir);
+  const outputFile = options.output || join(targetDir, '.burrow.json');
+  const maxDepth = options.maxDepth || 1;
+  const excludePatterns = options.exclude || ['node_modules', 'dist', '.git', '.burrow.json'];
 
-  const matches = burrow.entries.filter((entry) => {
-    const title = entry.title?.toLowerCase() || '';
-    const summary = entry.summary?.toLowerCase() || '';
-    const id = entry.id.toLowerCase();
-    return title.includes(queryLower) || summary.includes(queryLower) || id.includes(queryLower);
-  });
-
-  header(`Search results for "${query}":`);
+  header(`Generating burrow map for: ${targetDir}`);
+  label('Output', outputFile);
+  label('Max Depth', maxDepth.toString());
   log('');
 
-  if (matches.length === 0) {
-    log(`${colors.dim}No entries found matching "${query}"${colors.reset}`);
-  } else {
-    for (let i = 0; i < matches.length; i++) {
-      formatEntry(matches[i], i);
-      log('');
-    }
-  }
-}
-
-async function cmdAgentInfo(url: string) {
-  const result = await client.fetchBurrow(url);
-  if (!result.ok || !result.data) {
-    error(result.error?.message || 'Unknown error');
-    process.exit(1);
-  }
-
-  const burrow = result.data;
-
-  header(`Agent Information: ${burrow.manifest.title}`);
-  log('');
-
-  const context = getAgentContext(burrow);
-  if (context) {
-    log(`${colors.bold}Context:${colors.reset}`);
-    log(`  ${context}`);
-    log('');
-  }
-
-  const entryPoint = getEntryPoint(burrow);
-  if (entryPoint) {
-    log(`${colors.bold}Entry Point:${colors.reset}`);
-    formatEntry(entryPoint);
-    log('');
+  // Helper: Get MIME type from extension
+  function getMimeType(filename: string): string {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const mimeMap: Record<string, string> = {
+      md: 'text/markdown',
+      markdown: 'text/markdown',
+      json: 'application/json',
+      yaml: 'application/x-yaml',
+      yml: 'application/x-yaml',
+      html: 'text/html',
+      htm: 'text/html',
+      txt: 'text/plain',
+      pdf: 'application/pdf',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      svg: 'image/svg+xml',
+      js: 'application/javascript',
+      ts: 'application/typescript',
+      css: 'text/css',
+      xml: 'application/xml',
+      zip: 'application/zip',
+      tar: 'application/x-tar',
+      gz: 'application/gzip',
+    };
+    return mimeMap[ext || ''] || 'application/octet-stream';
   }
 
-  const hints = getAgentHints(burrow);
-  if (hints.length > 0) {
-    log(`${colors.bold}Hints:${colors.reset}`);
-    for (const hint of hints) {
-      log(`  • ${hint}`);
-    }
-    log('');
+  // Helper: Generate ID from filename
+  function generateId(name: string): string {
+    // Remove extension
+    let id = name.replace(/\.[^/.]+$/, '');
+    // Convert to lowercase and replace spaces/special chars with hyphens
+    id = id.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    // Remove leading numbers
+    id = id.replace(/^[0-9]+-/, '');
+    return id || 'entry';
   }
 
-  // Show entries by relation type
-  const relTypes = new Set(burrow.entries.flatMap((e) => e.rel));
-  log(`${colors.bold}Entries by Relation:${colors.reset}`);
-  for (const rel of relTypes) {
-    const entries = findEntriesByRel(burrow, rel);
-    log(`  ${colors.yellow}[${rel}]${colors.reset}: ${entries.map((e) => e.id).join(', ')}`);
-  }
-  log('');
-}
-
-async function cmdDiscoverBurrow(origin: string) {
-  header(`Discovering burrow at: ${origin}`);
-
-  const result = await client.discoverBurrow(origin);
-  if (!result.ok || !result.data) {
-    error(result.error?.message || 'Unknown error');
-    process.exit(1);
+  // Helper: Get priority
+  function getPriority(name: string, isDir: boolean): number {
+    if (/^readme/i.test(name)) return 100;
+    if (/^index\./i.test(name)) return 95;
+    if (isDir) return 70;
+    return 80;
   }
 
-  const discovery = result.data;
-
-  success('Burrow discovered via well-known endpoint');
-  label('Version', discovery.rbt);
-  label('Manifest', discovery.manifest);
-
-  if (discovery.roots && discovery.roots.length > 0) {
-    header('Available Roots:');
-    for (const root of discovery.roots) {
-      if ('git' in root) {
-        log(`  ${colors.blue}[git]${colors.reset} ${root.git.remote}@${root.git.ref}`);
-      } else if ('https' in root) {
-        log(`  ${colors.green}[https]${colors.reset} ${root.https.base}`);
+  // Helper: Should exclude path
+  function shouldExclude(name: string): boolean {
+    if (!options.includeHidden && name.startsWith('.')) return true;
+    return excludePatterns.some(pattern => {
+      if (pattern.includes('*')) {
+        const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+        return regex.test(name);
       }
+      return name === pattern;
+    });
+  }
+
+  // Scan directory recursively
+  function scanDirectory(dir: string, depth: number, rootDir: string): Entry[] {
+    if (depth > maxDepth) return [];
+
+    const entries: Entry[] = [];
+
+    try {
+      const items = readdirSync(dir).sort();
+
+      for (const item of items) {
+        const itemPath = join(dir, item);
+        const relativePath = relative(rootDir, itemPath);
+
+        if (shouldExclude(item)) continue;
+
+        try {
+          const stats = statSync(itemPath);
+          const isDir = stats.isDirectory();
+
+          const entry: Entry = {
+            id: generateId(item),
+            kind: isDir ? 'dir' : 'file',
+            uri: isDir ? relativePath + '/' : relativePath,
+            title: item,
+            priority: getPriority(item, isDir),
+          };
+
+          if (!isDir) {
+            entry.mediaType = getMimeType(item);
+            entry.sizeBytes = stats.size;
+          }
+
+          entries.push(entry);
+
+          // Recursively scan subdirectories if within depth limit
+          if (isDir && depth < maxDepth) {
+            const subEntries = scanDirectory(itemPath, depth + 1, rootDir);
+            entries.push(...subEntries);
+          }
+        } catch (err) {
+          warning(`Failed to process ${item}: ${err}`);
+        }
+      }
+    } catch (err) {
+      error(`Failed to read directory ${dir}: ${err}`);
     }
+
+    return entries;
   }
-  log('');
-}
 
-async function cmdDiscoverWarren(origin: string) {
-  header(`Discovering warren at: ${origin}`);
+  // Generate burrow
+  try {
+    const entries = scanDirectory(targetDir, 0, targetDir);
 
-  const result = await client.discoverWarren(origin);
-  if (!result.ok || !result.data) {
-    error(result.error?.message || 'Unknown error');
+    const burrow: Burrow = {
+      specVersion: 'fwdslsh.dev/rabit/schemas/0.3.0/burrow',
+      kind: 'burrow',
+      title: options.title || pathBasename(targetDir),
+      description: options.description || `Auto-generated burrow from ${targetDir}`,
+      updated: new Date().toISOString(),
+      entries,
+    };
+
+    if (options.baseUri) {
+      burrow.baseUri = options.baseUri;
+    }
+
+    // Write to file
+    await Bun.write(outputFile, JSON.stringify(burrow, null, 2) + '\n');
+
+    success(`Generated burrow with ${entries.length} entries`);
+    label('Output', outputFile);
+  } catch (err) {
+    error(`Failed to generate burrow: ${err}`);
     process.exit(1);
   }
-
-  const discovery = result.data;
-
-  success('Warren discovered via well-known endpoint');
-  label('Version', discovery.rbt);
-  label('Registry JSON', discovery.registry.json);
-  if (discovery.registry.md) {
-    label('Registry Markdown', discovery.registry.md);
-  }
-  log('');
 }
 
-async function cmdReport(url: string) {
-  header(`Generating traversal report for: ${url}`);
+async function cmdValidate(file: string) {
+  header(`Validating: ${file}`);
 
-  const burrowResult = await client.fetchBurrow(url);
-  if (!burrowResult.ok || !burrowResult.data) {
-    error(burrowResult.error?.message || 'Unknown error');
-    process.exit(1);
-  }
+  try {
+    const content = await Bun.file(file).text();
+    const data = JSON.parse(content);
 
-  const report = await client.generateTraversalReport(burrowResult.data);
+    // Basic validation
+    if (!data.specVersion) {
+      error('Missing required field: specVersion');
+      process.exit(1);
+    }
 
-  header('Traversal Report');
-  label('Manifest', report.manifest);
-  label('Started', report.started);
-  label('Completed', report.completed);
-  label('Entries Processed', report.entriesProcessed.toString());
-  label('Entries Skipped', report.entriesSkipped.toString());
+    if (!data.kind) {
+      error('Missing required field: kind');
+      process.exit(1);
+    }
 
-  if (report.errors.length > 0) {
-    header('Errors:');
-    for (const err of report.errors) {
-      log(`\n  ${colors.red}${err.category}${colors.reset}: ${err.message}`);
-      if (err.entryId) {
-        log(`  Entry: ${err.entryId}`);
-      }
-      if (err.href) {
-        log(`  Href: ${err.href}`);
-      }
-      if (err.attempts) {
-        log(`  Attempts:`);
-        for (const attempt of err.attempts) {
-          log(`    - ${attempt.root}: ${attempt.error}`);
+    if (data.kind !== 'burrow' && data.kind !== 'warren') {
+      error(`Invalid kind: ${data.kind} (expected "burrow" or "warren")`);
+      process.exit(1);
+    }
+
+    if (data.kind === 'burrow' && !data.entries) {
+      error('Burrow missing required field: entries');
+      process.exit(1);
+    }
+
+    if (data.kind === 'burrow') {
+      // Validate entries
+      for (let i = 0; i < data.entries.length; i++) {
+        const entry = data.entries[i];
+        if (!entry.id) {
+          error(`Entry ${i} missing required field: id`);
+          process.exit(1);
+        }
+        if (!entry.kind) {
+          error(`Entry ${i} (${entry.id}) missing required field: kind`);
+          process.exit(1);
+        }
+        if (!entry.uri) {
+          error(`Entry ${i} (${entry.id}) missing required field: uri`);
+          process.exit(1);
         }
       }
     }
-  }
-  log('');
-}
 
-async function cmdStats(url: string) {
-  const result = await client.fetchBurrow(url);
-  if (!result.ok || !result.data) {
-    error(result.error?.message || 'Unknown error');
+    success('Valid manifest');
+    label('Kind', data.kind);
+    label('Spec Version', data.specVersion);
+    if (data.title) {
+      label('Title', data.title);
+    }
+    if (data.kind === 'burrow') {
+      label('Entries', data.entries.length.toString());
+    }
+    if (data.kind === 'warren') {
+      label('Burrows', (data.burrows?.length || 0).toString());
+    }
+  } catch (err) {
+    error(`Validation failed: ${err}`);
     process.exit(1);
   }
-
-  const burrow = result.data;
-  const stats = getBurrowStats(burrow);
-
-  header(`Statistics: ${burrow.manifest.title}`);
-  label('Total Entries', stats.totalEntries.toString());
-  label('Total Size', formatSize(stats.totalSize));
-  label('With Pagination', stats.withPagination.toString());
-
-  header('By Relation Type:');
-  for (const [rel, count] of stats.byRelation) {
-    log(`  ${colors.yellow}[${rel}]${colors.reset}: ${count}`);
-  }
-
-  header('By Media Type:');
-  for (const [type, count] of stats.byMediaType) {
-    log(`  ${colors.cyan}${type}${colors.reset}: ${count}`);
-  }
-  log('');
 }
 
 function showHelp() {
   log(`
-${colors.bold}Rabit CLI${colors.reset} - Full-Featured Burrow Traversal Client
+${colors.bold}Rabit CLI${colors.reset} - Universal Burrow Browser
 ${colors.dim}Rabit Specification v0.3.0${colors.reset}
 
 ${colors.bold}Usage:${colors.reset}
   rabit <command> [options]
 
 ${colors.bold}Commands:${colors.reset}
-  warren <url>                  List burrows in a warren
-  burrow <url>                  Show burrow manifest info
-  entries <url>                 List all entries in a burrow
-  fetch <url> <entry-id>        Fetch a specific entry's content
-  traverse <url>                Traverse and fetch all entries
-  search <url> <query>          Search entries by title/summary
-  agent-info <url>              Show agent instructions
-  discover-burrow <origin>      Discover burrow via well-known endpoint
-  discover-warren <origin>      Discover warren via well-known endpoint
-  report <url>                  Generate detailed traversal report
-  stats <url>                   Show burrow statistics
+  discover <uri>                        Discover burrows at a location
+  list <uri> [options]                  List entries in a burrow
+  fetch <uri> <entry-id> [options]      Fetch a specific entry
+  traverse <uri> [options]              Traverse all entries
+  map <dir> [options]                   Generate burrow from directory
+  validate <file>                       Validate a manifest file
+
+${colors.bold}Options:${colors.reset}
+  list:
+    --depth N                           Max traversal depth
+    --kind <file|dir|burrow|link>       Filter by entry kind
+    --format <json|table|tree>          Output format
+
+  fetch:
+    --output FILE                       Save to file instead of stdout
+
+  traverse:
+    --strategy <bfs|dfs|priority>       Traversal strategy
+    --max-depth N                       Maximum depth
+    --max-entries N                     Maximum entries to process
+
+  map:
+    --output FILE                       Output file (default: .burrow.json)
+    --title TEXT                        Burrow title
+    --description TEXT                  Burrow description
+    --base-uri URI                      Base URI for entries
+    --max-depth N                       Max directory depth (default: 3)
+    --include-hidden                    Include hidden files
+    --exclude PATTERN                   Exclude patterns (comma-separated)
 
 ${colors.bold}Examples:${colors.reset}
-  rabit warren http://localhost:8080
-  rabit burrow http://localhost:8081
-  rabit entries http://localhost:8081
-  rabit fetch http://localhost:8081 readme
-  rabit traverse http://localhost:8082
-  rabit search http://localhost:8083 kubernetes
-  rabit agent-info http://localhost:8081
-  rabit discover-burrow https://example.org
-  rabit report http://localhost:8081
-  rabit stats http://localhost:8081
-
-${colors.bold}Features:${colors.reset}
-  • Full Git transport support (HTTPS and SSH)
-  • RID verification and integrity checking
-  • Mirror fallback with automatic retry
-  • Cache control and rate limiting
-  • Comprehensive error handling
-  • Security validation (URL, size limits)
-  • Well-known endpoint discovery
+  rabit discover https://example.com/repo
+  rabit list https://example.com/repo --format table
+  rabit fetch https://example.com/repo readme
+  rabit traverse https://example.com/repo --strategy priority
+  rabit map ./my-docs --title "My Documentation"
+  rabit validate .burrow.json
 
 ${colors.bold}More Info:${colors.reset}
   https://github.com/fwdslsh/rabit
 `);
 }
 
+// ============================================================================
 // Main
+// ============================================================================
+
 const args = process.argv.slice(2);
 const command = args[0];
 
@@ -530,92 +573,130 @@ if (!command || command === '--help' || command === '-h') {
 
 try {
   switch (command) {
-    case 'warren':
+    case 'discover':
       if (!args[1]) {
-        error('Missing URL argument');
+        error('Missing URI argument');
+        log('Usage: rabit discover <uri>');
         process.exit(1);
       }
-      await cmdWarren(args[1]);
+      await cmdDiscover(args[1]);
       break;
 
-    case 'burrow':
+    case 'list': {
       if (!args[1]) {
-        error('Missing URL argument');
+        error('Missing URI argument');
+        log('Usage: rabit list <uri> [--depth N] [--kind <type>] [--format <json|table|tree>]');
         process.exit(1);
       }
-      await cmdBurrow(args[1]);
-      break;
 
-    case 'entries':
-      if (!args[1]) {
-        error('Missing URL argument');
-        process.exit(1);
+      const options: any = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--depth' && args[i + 1]) {
+          options.depth = parseInt(args[i + 1], 10);
+          i++;
+        } else if (args[i] === '--kind' && args[i + 1]) {
+          options.kind = args[i + 1];
+          i++;
+        } else if (args[i] === '--format' && args[i + 1]) {
+          options.format = args[i + 1];
+          i++;
+        }
       }
-      await cmdEntries(args[1]);
-      break;
 
-    case 'fetch':
+      await cmdList(args[1], options);
+      break;
+    }
+
+    case 'fetch': {
       if (!args[1] || !args[2]) {
-        error('Usage: rabit fetch <url> <entry-id>');
+        error('Missing required arguments');
+        log('Usage: rabit fetch <uri> <entry-id> [--output FILE]');
         process.exit(1);
       }
-      await cmdFetch(args[1], args[2]);
-      break;
 
-    case 'traverse':
+      const options: any = {};
+      for (let i = 3; i < args.length; i++) {
+        if (args[i] === '--output' && args[i + 1]) {
+          options.output = args[i + 1];
+          i++;
+        }
+      }
+
+      await cmdFetch(args[1], args[2], options);
+      break;
+    }
+
+    case 'traverse': {
       if (!args[1]) {
-        error('Missing URL argument');
+        error('Missing URI argument');
+        log('Usage: rabit traverse <uri> [--strategy <bfs|dfs|priority>] [--max-depth N]');
         process.exit(1);
       }
-      await cmdTraverse(args[1]);
-      break;
 
-    case 'search':
-      if (!args[1] || !args[2]) {
-        error('Usage: rabit search <url> <query>');
-        process.exit(1);
+      const options: any = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--strategy' && args[i + 1]) {
+          const strategy = args[i + 1];
+          if (strategy === 'bfs') options.strategy = 'breadth-first';
+          else if (strategy === 'dfs') options.strategy = 'depth-first';
+          else options.strategy = strategy;
+          i++;
+        } else if (args[i] === '--max-depth' && args[i + 1]) {
+          options.maxDepth = parseInt(args[i + 1], 10);
+          i++;
+        } else if (args[i] === '--max-entries' && args[i + 1]) {
+          options.maxEntries = parseInt(args[i + 1], 10);
+          i++;
+        }
       }
-      await cmdSearch(args[1], args[2]);
-      break;
 
-    case 'agent-info':
+      await cmdTraverse(args[1], options);
+      break;
+    }
+
+    case 'map': {
       if (!args[1]) {
-        error('Missing URL argument');
+        error('Missing directory argument');
+        log('Usage: rabit map <dir> [--output FILE] [--title TEXT] [--description TEXT]');
         process.exit(1);
       }
-      await cmdAgentInfo(args[1]);
-      break;
 
-    case 'discover-burrow':
-      if (!args[1]) {
-        error('Missing origin argument');
-        process.exit(1);
+      const options: any = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--output' && args[i + 1]) {
+          options.output = args[i + 1];
+          i++;
+        } else if (args[i] === '--title' && args[i + 1]) {
+          options.title = args[i + 1];
+          i++;
+        } else if (args[i] === '--description' && args[i + 1]) {
+          options.description = args[i + 1];
+          i++;
+        } else if (args[i] === '--base-uri' && args[i + 1]) {
+          options.baseUri = args[i + 1];
+          i++;
+        } else if (args[i] === '--max-depth' && args[i + 1]) {
+          options.maxDepth = parseInt(args[i + 1], 10);
+          i++;
+        } else if (args[i] === '--include-hidden') {
+          options.includeHidden = true;
+        } else if (args[i] === '--exclude' && args[i + 1]) {
+          options.exclude = args[i + 1].split(',').map((s: string) => s.trim());
+          i++;
+        }
       }
-      await cmdDiscoverBurrow(args[1]);
-      break;
 
-    case 'discover-warren':
-      if (!args[1]) {
-        error('Missing origin argument');
-        process.exit(1);
-      }
-      await cmdDiscoverWarren(args[1]);
+      await cmdMap(args[1], options);
       break;
+    }
 
-    case 'report':
+    case 'validate':
       if (!args[1]) {
-        error('Missing URL argument');
+        error('Missing file argument');
+        log('Usage: rabit validate <file>');
         process.exit(1);
       }
-      await cmdReport(args[1]);
-      break;
-
-    case 'stats':
-      if (!args[1]) {
-        error('Missing URL argument');
-        process.exit(1);
-      }
-      await cmdStats(args[1]);
+      await cmdValidate(args[1]);
       break;
 
     default:

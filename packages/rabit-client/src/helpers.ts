@@ -241,3 +241,4 @@ export function getBurrowStats(burrow: Burrow): {
     totalSizeBytes: totalSize,
   };
 }
+

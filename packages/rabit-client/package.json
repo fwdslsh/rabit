@@ -48,7 +48,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "bun run clean && bun build ./src/index.ts --outdir=dist --target=bun && bun build ./src/cli.ts --outdir=dist --target=bun && bun run build:types",
+    "build": "bun run clean && bun build ./src/index.ts --outdir=dist --target=bun && bun build ./src/cli.ts --outdir=dist --target=bun",
     "build:types": "bun x tsc --emitDeclarationOnly --declaration --outDir dist",
     "dev": "bun --watch src/cli.ts",
     "test": "bun test",
@@ -60,6 +60,7 @@
   "dependencies": {},
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/node": "^25.0.8",
     "typescript": "^5.3.3"
   },
   "peerDependencies": {

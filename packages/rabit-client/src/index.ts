@@ -57,12 +57,37 @@ export {
   extractVersion,
 } from './types';
 
+// Export helper functions
+export {
+  findEntry,
+  findEntriesByKind,
+  findEntriesByTag,
+  findEntriesByMediaType,
+  searchEntries,
+  getEntriesByPriority,
+  groupEntriesByKind,
+  getAllTags,
+  groupByMediaType,
+  getEntryPoint,
+  getAgentHints,
+  getAgentContext,
+  listBurrows,
+  findBurrow,
+  findBurrowsByTag,
+  getWarrenTags,
+  getBurrowsByPriority,
+  getRepoFiles,
+  hasReadme,
+  getBurrowStats,
+} from './helpers';
+
 // Export main client class and factory
 export {
   RabitClient,
-  RabitClientOptions,
   createClient,
   discover,
   fetchBurrow,
   fetchWarren,
 } from './client';
+
+export type { RabitClientOptions } from './client';
