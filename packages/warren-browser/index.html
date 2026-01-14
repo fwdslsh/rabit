@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warren Browser - Rabit Content Navigator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">🐰</span>
+        <span class="logo-text">Warren Browser</span>
+      </div>
+      <div class="address-bar">
+        <input
+          type="text"
+          id="address-input"
+          class="address-input"
+          placeholder="Enter warren address..."
+          value="warren.fwdslsh.dev"
+        >
+        <button id="go-btn" class="btn btn-primary">Go</button>
+        <button id="refresh-btn" class="btn btn-secondary" title="Refresh">↻</button>
+      </div>
+      <div class="header-actions">
+        <button id="theme-toggle" class="btn btn-icon" title="Toggle theme">◐</button>
+      </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+      <!-- Sidebar Navigation -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <h2 class="sidebar-title">Navigation</h2>
+          <button id="collapse-sidebar" class="btn btn-icon btn-sm" title="Collapse">◀</button>
+        </div>
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" id="breadcrumb">
+          <span class="breadcrumb-item">Home</span>
+        </nav>
+
+        <!-- Warren Info -->
+        <div class="warren-info" id="warren-info" style="display: none;">
+          <div class="info-card">
+            <h3 class="info-title" id="warren-title">Warren</h3>
+            <p class="info-description" id="warren-description"></p>
+            <div class="info-meta">
+              <span class="meta-item" id="warren-burrow-count"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Entry List -->
+        <div class="entry-list" id="entry-list">
+          <div class="loading" id="sidebar-loading">
+            <div class="spinner"></div>
+            <span>Loading...</span>
+          </div>
+          <div class="empty-state" id="sidebar-empty" style="display: none;">
+            <span class="empty-icon">📭</span>
+            <p>No entries found</p>
+          </div>
+          <ul class="entries" id="entries"></ul>
+        </div>
+      </aside>
+
+      <!-- Content Area -->
+      <main class="content" id="content">
+        <div class="content-header" id="content-header" style="display: none;">
+          <div class="content-meta">
+            <span class="content-kind" id="content-kind"></span>
+            <h1 class="content-title" id="content-title"></h1>
+          </div>
+          <div class="content-info">
+            <span class="info-item" id="content-uri"></span>
+            <span class="info-item" id="content-size"></span>
+            <span class="info-item" id="content-type"></span>
+          </div>
+        </div>
+
+        <div class="content-body" id="content-body">
+          <!-- Welcome Screen -->
+          <div class="welcome" id="welcome">
+            <div class="welcome-icon">🐰</div>
+            <h2>Welcome to Warren Browser</h2>
+            <p>Enter a warren address above to start exploring, or use the default:</p>
+            <code>warren.fwdslsh.dev</code>
+            <button id="start-btn" class="btn btn-primary btn-lg">Start Exploring</button>
+          </div>
+
+          <!-- Loading State -->
+          <div class="loading-content" id="content-loading" style="display: none;">
+            <div class="spinner spinner-lg"></div>
+            <span>Fetching content...</span>
+          </div>
+
+          <!-- Error State -->
+          <div class="error-state" id="content-error" style="display: none;">
+            <span class="error-icon">⚠️</span>
+            <h3>Error Loading Content</h3>
+            <p id="error-message"></p>
+            <button id="retry-btn" class="btn btn-secondary">Retry</button>
+          </div>
+
+          <!-- Content Display -->
+          <div class="content-display" id="content-display" style="display: none;">
+            <pre class="content-pre" id="content-pre"></pre>
+          </div>
+
+          <!-- Burrow Display -->
+          <div class="burrow-display" id="burrow-display" style="display: none;">
+            <div class="burrow-info" id="burrow-info"></div>
+            <div class="burrow-entries" id="burrow-entries"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Status Bar -->
+    <footer class="status-bar">
+      <span class="status-item" id="status-text">Ready</span>
+      <span class="status-item" id="cache-status"></span>
+      <span class="status-item version">Rabit v0.4.0</span>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

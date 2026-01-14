@@ -1,0 +1,39 @@
+{
+  "name": "@fwdslsh/warren-browser",
+  "version": "0.4.0",
+  "description": "Lightweight browser client for navigating Warren and Burrow files - vanilla HTML/JS with no dependencies",
+  "keywords": [
+    "rabit",
+    "burrow",
+    "warren",
+    "browser",
+    "client",
+    "agent",
+    "ai",
+    "content",
+    "navigation"
+  ],
+  "homepage": "https://github.com/fwdslsh/rabit#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fwdslsh/rabit.git",
+    "directory": "packages/warren-browser"
+  },
+  "bugs": {
+    "url": "https://github.com/fwdslsh/rabit/issues"
+  },
+  "license": "CC-BY-4.0",
+  "author": "Rabit Contributors",
+  "type": "module",
+  "main": "index.html",
+  "files": [
+    "index.html",
+    "styles.css",
+    "app.js",
+    "README.md"
+  ],
+  "scripts": {
+    "serve": "python3 -m http.server 8080",
+    "dev": "bun --bun bunx serve ."
+  }
+}
