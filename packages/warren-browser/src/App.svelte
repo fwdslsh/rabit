@@ -3,7 +3,7 @@
 </script>
 
 <div class="demo-container">
-  <WarrenBrowser defaultAddress="warren.fwdslsh.dev" />
+  <WarrenBrowser defaultAddress="/examples" />
 </div>
 
 <style>

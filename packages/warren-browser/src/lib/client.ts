@@ -8,10 +8,19 @@ import type { Warren, Burrow, Entry, FetchResult } from './types';
 const DEFAULT_TIMEOUT = 30000;
 
 /**
- * Normalize a URL by ensuring https:// prefix
+ * Normalize a URL - handles relative paths and adds https:// when needed
  */
 export function normalizeUrl(url: string): string {
   let normalized = url.trim();
+
+  // Handle relative URLs (starting with /)
+  if (normalized.startsWith('/')) {
+    // Use current origin for relative URLs
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}${normalized}`;
+    }
+    return normalized;
+  }
 
   // Add https:// if no protocol
   if (!normalized.match(/^https?:\/\//)) {
