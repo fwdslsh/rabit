@@ -5,7 +5,7 @@
     onNavigate: (url: string) => void;
   }
 
-  let { address = $bindable(), loading, onNavigate }: Props = $props();
+  let { address, loading, onNavigate }: Props = $props();
 
   let inputValue = $state(address);
 

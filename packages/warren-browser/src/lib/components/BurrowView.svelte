@@ -13,26 +13,6 @@
 
   const sortedEntries = $derived(sortByPriority(burrow.entries));
 
-  const entriesByKind = $derived(() => {
-    const groups: Record<string, Entry[]> = {
-      burrow: [],
-      dir: [],
-      map: [],
-      file: [],
-      link: []
-    };
-
-    for (const entry of sortedEntries) {
-      if (groups[entry.kind]) {
-        groups[entry.kind].push(entry);
-      } else {
-        groups.file.push(entry);
-      }
-    }
-
-    return groups;
-  });
-
   function handleEntryClick(entry: Entry) {
     if (entry.kind === 'burrow' || entry.kind === 'map' || entry.kind === 'dir') {
       onSelectBurrow(entry);

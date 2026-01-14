@@ -32,6 +32,8 @@
   }
 
   $effect(() => {
+    // Track entry changes to reload content
+    entry;
     loadContent();
   });
 
@@ -47,7 +49,7 @@
     mediaType === 'application/yaml'
   );
 
-  const formattedContent = $derived(() => {
+  const formattedContent = $derived.by(() => {
     if (!content) return '';
 
     if (isJson) {
@@ -100,7 +102,7 @@
         <img src={entryUrl} alt={entry.title || entry.id} class="content-image" />
       </div>
     {:else}
-      <pre class="content-text" class:markdown={isMarkdown} class:code={isCode || isJson}>{formattedContent()}</pre>
+      <pre class="content-text" class:markdown={isMarkdown} class:code={isCode || isJson}>{formattedContent}</pre>
     {/if}
   </div>
 
