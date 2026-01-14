@@ -257,56 +257,79 @@ export class RabitClient {
    * Fetch warren from URL or path
    */
   async fetchWarren(uri: string): Promise<{ ok: boolean; data?: Warren; error?: RabitError }> {
-    const warrenUri = uri.endsWith('.warren.json')
-      ? uri
-      : `${uri.replace(/\/$/, '')}/.warren.json`;
+    const base = uri.endsWith('/') ? uri.slice(0, -1) : uri;
+    const candidates: string[] = [];
 
-    // Check cache
-    if (this.options.enableCache !== false) {
-      const cached = this.cache.get(warrenUri);
-      if (cached && !cached.stale && cached.data.kind === 'warren') {
-        return { ok: true, data: cached.data as Warren };
-      }
+    if (uri.endsWith('.warren.json') || uri.endsWith('warren.json')) {
+      candidates.push(uri);
+    } else {
+      candidates.push(`${base}/.warren.json`);
+      candidates.push(`${base}/warren.json`);
+      candidates.push(`${base}/.well-known/warren.json`);
     }
 
-    try {
-      const transport = detectTransport(warrenUri);
-
-      let content: string;
-      if (transport === 'file') {
-        content = await this.readLocalFile(warrenUri);
-      } else {
-        content = await this.fetchRemoteJson(warrenUri);
-      }
-
-      const data = JSON.parse(content) as Warren;
-
-      // Validate required fields
-      if (!data.specVersion || data.kind !== 'warren' || (!data.burrows && !data.warrens)) {
-        return {
-          ok: false,
-          error: createError(
-            'manifest-invalid',
-            'Invalid warren format: missing required fields (specVersion, kind, burrows/warrens)'
-          ),
-        };
-      }
-
-      // Cache the result
+    for (const candidate of candidates) {
+      // Cache check
       if (this.options.enableCache !== false) {
-        this.cache.set(warrenUri, data);
+        const cached = this.cache.get(candidate);
+        if (cached && !cached.stale && cached.data.kind === 'warren') {
+          return { ok: true, data: cached.data as Warren };
+        }
       }
 
-      return { ok: true, data };
-    } catch (error) {
-      if ((error as RabitError).category) {
-        return { ok: false, error: error as RabitError };
+      try {
+        const transport = detectTransport(candidate);
+        let content: string;
+
+        if (transport === 'file') {
+          try {
+            content = await this.readLocalFile(candidate);
+          } catch (err) {
+            if ((err as RabitError).category === 'manifest-not-found') {
+              continue;
+            }
+            return { ok: false, error: err as RabitError };
+          }
+        } else {
+          const resp = await this.tryFetchRemoteJson(candidate);
+          if (!resp.ok) {
+            if (resp.error && resp.error.category === 'manifest-not-found') {
+              continue;
+            }
+            return { ok: false, error: resp.error };
+          }
+          content = resp.data!;
+        }
+
+        const data = JSON.parse(content) as Warren;
+
+        if (!data.specVersion || data.kind !== 'warren' || (!data.burrows && !data.warrens)) {
+          return {
+            ok: false,
+            error: createError(
+              'manifest-invalid',
+              'Invalid warren format: missing required fields (specVersion, kind, burrows/warrens)'
+            ),
+          };
+        }
+
+        if (this.options.enableCache !== false) {
+          this.cache.set(candidate, data);
+        }
+
+        return { ok: true, data };
+      } catch (error) {
+        if ((error as RabitError).category) {
+          if ((error as RabitError).category === 'manifest-not-found') {
+            continue;
+          }
+          return { ok: false, error: error as RabitError };
+        }
+        return { ok: false, error: createError('transport-error', `Failed to fetch warren: ${error}`) };
       }
-      return {
-        ok: false,
-        error: createError('transport-error', `Failed to fetch warren: ${error}`),
-      };
     }
+
+    return { ok: false, error: createError('manifest-not-found', `No warren found at any known locations for ${uri}`) };
   }
 
   // ==========================================================================
@@ -319,81 +342,116 @@ export class RabitClient {
    * @see Specification §5
    */
   async fetchBurrow(uri: string): Promise<{ ok: boolean; data?: Burrow; error?: RabitError }> {
-    const burrowUri = uri.endsWith('.burrow.json')
-      ? uri
-      : `${uri.replace(/\/$/, '')}/.burrow.json`;
+    // Build discovery candidates in order: dotfile, no-dot, .well-known
+    const base = uri.endsWith('/') ? uri.slice(0, -1) : uri;
+    const candidates: string[] = [];
 
-    // Check cache
-    if (this.options.enableCache !== false) {
-      const cached = this.cache.get(burrowUri);
-      if (cached && !cached.stale && cached.data.kind === 'burrow') {
-        return { ok: true, data: cached.data as Burrow };
-      }
+    if (uri.endsWith('.burrow.json') || uri.endsWith('burrow.json')) {
+      candidates.push(uri);
+    } else {
+      candidates.push(`${base}/.burrow.json`);
+      candidates.push(`${base}/burrow.json`);
+      candidates.push(`${base}/.well-known/burrow.json`);
     }
 
-    try {
-      const transport = detectTransport(burrowUri);
-
-      let content: string;
-      if (transport === 'file') {
-        content = await this.readLocalFile(burrowUri);
-      } else {
-        content = await this.fetchRemoteJson(burrowUri);
-      }
-
-      const data = JSON.parse(content) as Burrow;
-
-      // Validate required fields
-      if (!data.specVersion || data.kind !== 'burrow' || !data.entries) {
-        return {
-          ok: false,
-          error: createError(
-            'manifest-invalid',
-            'Invalid burrow format: missing required fields (specVersion, kind, entries)'
-          ),
-        };
-      }
-
-      // Validate entry count
-      if (data.entries.length > RESOURCE_LIMITS.MAX_ENTRY_COUNT) {
-        return {
-          ok: false,
-          error: createError(
-            'manifest-invalid',
-            `Entry count ${data.entries.length} exceeds limit ${RESOURCE_LIMITS.MAX_ENTRY_COUNT}`
-          ),
-        };
-      }
-
-      // Set baseUri if not present (use the directory of the burrow file)
-      if (!data.baseUri) {
-        // Extract the directory from the burrow URI
-        const dirUri = burrowUri.endsWith('.burrow.json')
-          ? burrowUri.slice(0, -('.burrow.json'.length))
-          : burrowUri;
-        data.baseUri = dirUri;
-      }
-
-      // Normalize baseUri if it's a GitHub URL
-      if (data.baseUri && isGitHubUrl(data.baseUri)) {
-        data.baseUri = normalizeGitHubUrl(data.baseUri);
-      }
-
-      // Cache the result
+    // Try each candidate until one succeeds or all fail
+    for (const candidate of candidates) {
+      // Check cache per-candidate
       if (this.options.enableCache !== false) {
-        this.cache.set(burrowUri, data);
+        const cached = this.cache.get(candidate);
+        if (cached && !cached.stale && cached.data.kind === 'burrow') {
+          return { ok: true, data: cached.data as Burrow };
+        }
       }
 
-      return { ok: true, data };
-    } catch (error) {
-      if ((error as RabitError).category) {
-        return { ok: false, error: error as RabitError };
+      try {
+        const transport = detectTransport(candidate);
+        let content: string;
+
+        if (transport === 'file') {
+          try {
+            content = await this.readLocalFile(candidate);
+          } catch (err) {
+            if ((err as RabitError).category === 'manifest-not-found') {
+              // try next candidate
+              continue;
+            }
+            return { ok: false, error: err as RabitError };
+          }
+        } else {
+          const resp = await this.tryFetchRemoteJson(candidate);
+          if (!resp.ok) {
+            if (resp.error && resp.error.category === 'manifest-not-found') {
+              // try next candidate
+              continue;
+            }
+            return { ok: false, error: resp.error };
+          }
+          content = resp.data!;
+        }
+
+        const data = JSON.parse(content) as Burrow;
+
+        // Validate required fields
+        if (!data.specVersion || data.kind !== 'burrow' || !data.entries) {
+          return {
+            ok: false,
+            error: createError(
+              'manifest-invalid',
+              'Invalid burrow format: missing required fields (specVersion, kind, entries)'
+            ),
+          };
+        }
+
+        // Validate entry count
+        if (data.entries.length > RESOURCE_LIMITS.MAX_ENTRY_COUNT) {
+          return {
+            ok: false,
+            error: createError(
+              'manifest-invalid',
+              `Entry count ${data.entries.length} exceeds limit ${RESOURCE_LIMITS.MAX_ENTRY_COUNT}`
+            ),
+          };
+        }
+
+        // Set baseUri if not present (use the directory of the burrow file)
+        if (!data.baseUri) {
+          const dirUri = candidate.endsWith('.burrow.json')
+            ? candidate.slice(0, -('.burrow.json'.length))
+            : candidate.substring(0, candidate.lastIndexOf('/') + 1);
+          data.baseUri = dirUri;
+        }
+
+        // Normalize baseUri if it's a GitHub URL
+        if (data.baseUri && isGitHubUrl(data.baseUri)) {
+          data.baseUri = normalizeGitHubUrl(data.baseUri);
+        }
+
+        // Cache the result under the candidate URL
+        if (this.options.enableCache !== false) {
+          this.cache.set(candidate, data);
+        }
+
+        return { ok: true, data };
+      } catch (error) {
+        if ((error as RabitError).category) {
+          // If manifest not found, continue to next candidate
+          if ((error as RabitError).category === 'manifest-not-found') {
+            continue;
+          }
+          return { ok: false, error: error as RabitError };
+        }
+        return {
+          ok: false,
+          error: createError('transport-error', `Failed to fetch burrow: ${error}`),
+        };
       }
-      return {
-        ok: false,
-        error: createError('transport-error', `Failed to fetch burrow: ${error}`),
-      };
     }
+
+    return {
+      ok: false,
+      error: createError('manifest-not-found', `No burrow found at any known locations for ${uri}`),
+    };
   }
 
   /**
