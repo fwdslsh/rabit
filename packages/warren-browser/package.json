@@ -1,0 +1,66 @@
+{
+  "name": "@fwdslsh/warren-browser",
+  "version": "0.4.0",
+  "description": "Svelte-based browser client for navigating Warren and Burrow content spaces",
+  "keywords": [
+    "rabit",
+    "burrow",
+    "warren",
+    "browser",
+    "svelte",
+    "client"
+  ],
+  "homepage": "https://github.com/fwdslsh/rabit#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fwdslsh/rabit.git",
+    "directory": "packages/warren-browser"
+  },
+  "bugs": {
+    "url": "https://github.com/fwdslsh/rabit/issues"
+  },
+  "license": "CC-BY-4.0",
+  "author": "Rabit Contributors",
+  "type": "module",
+  "svelte": "./dist/index.js",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "svelte": "./dist/index.js",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./WarrenBrowser.svelte": {
+      "svelte": "./dist/WarrenBrowser.svelte",
+      "import": "./dist/WarrenBrowser.svelte",
+      "types": "./dist/WarrenBrowser.svelte.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "bun run clean && svelte-package -i src",
+    "dev": "vite dev",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "echo 'No tests yet'",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "svelte": "^4.0.0 || ^5.0.0"
+  },
+  "devDependencies": {
+    "@sveltejs/package": "^2.3.7",
+    "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "@types/node": "^22.10.5",
+    "svelte": "^5.16.0",
+    "svelte-check": "^4.1.1",
+    "typescript": "^5.3.3",
+    "vite": "^6.0.7"
+  }
+}
